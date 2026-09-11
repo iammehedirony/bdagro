@@ -1,0 +1,54 @@
+  import { Sprout, LayoutDashboard, Wallet, Bell, Settings } from "lucide-react";
+  
+  export const farmerMenu = [
+    // লক্ষ্য করুন: আইকনগুলোকে কম্পোনেন্ট হিসেবে < /> দিয়ে পাস করা হয়েছে
+    { label: "ওভারভিউ", href: "/farmer", icon: <LayoutDashboard /> },
+    { label: "আমার প্রকল্প", href: "/farmer/projects", icon: <Sprout /> },
+    { label: "কিস্তি ও পেমেন্ট", href: "/farmer/installments", icon: <Wallet /> },
+    { label: "নোটিফিকেশন", href: "/farmer/notifications", icon: <Bell /> },
+    { label: "সেটিংস", href: "/farmer/settings", icon: <Settings /> },
+  ];
+
+  export const investorMenu = [
+    // লক্ষ্য করুন: আইকনগুলোকে কম্পোনেন্ট হিসেবে < /> দিয়ে পাস করা হয়েছে
+    { label: "ওভারভিউ", href: "/investor", icon: <LayoutDashboard /> },
+    { label: "আমার বিনিয়োগ", href: "/investor/investments", icon: <Sprout /> },
+    { label: "প্রজেক্ট খুঁজুন", href: "/investor/find-projects", icon: <Wallet /> },
+    { label: "নোটিফিকেশন", href: "/investor/notifications", icon: <Bell /> },
+    { label: "সেটিংস", href: "/investor/settings", icon: <Settings /> },
+  ];
+
+  export const adminMenu = [
+    // লক্ষ্য করুন: আইকনগুলোকে কম্পোনেন্ট হিসেবে < /> দিয়ে পাস করা হয়েছে
+    { label: "ওভারভিউ", href: "/admin", icon: <LayoutDashboard /> },
+    { label: "যাচাই অপেক্ষমাণ", href: "/admin/verification", icon: <Sprout /> },
+    { label: "ইউজার ম্যানেজমেন্ট", href: "/admin/user-management", icon: <Wallet /> },
+    { label: "সব প্রকল্প", href: "/admin/all-projects", icon: <Sprout /> },
+    { label: "নোটিফিকেশন", href: "/admin/notifications", icon: <Bell /> },
+    { label: "সেটিংস", href: "/admin/settings", icon: <Settings /> },
+  ];
+
+     export const farmerHeaderConfig = [
+    { pathMatch: '/farmer/projects', title: 'আমার প্রকল্পসমূহ', buttonText: 'নতুন প্রকল্প পোস্ট করুন'},
+    { pathMatch: '/farmer/installments', title: 'কিস্তি ও পেমেন্ট হিস্টোরি' }, // বাটন দরকার নেই তাই দেওয়া হয়নি
+    { pathMatch: '/farmer/notifications', title: 'নোটিফিকেশন' },
+    { pathMatch: '/farmer/settings', title: 'অ্যাকাউন্ট সেটিংস' }
+  ];
+
+  export const investorHeaderConfig = [
+    { pathMatch: '/investor/investments', title: 'আমার বিনিয়োগ', buttonText: 'নতুন বিনিয়োগ করুন' },
+     { pathMatch: '/investor/find-projects', title: 'প্রজেক্ট খুঁজুন' },
+    { pathMatch: '/investor/notifications', title: 'নোটিফিকেশন' },
+    { pathMatch: '/investor/settings', title: 'অ্যাকাউন্ট সেটিংস' },
+     { pathMatch: '/investor', buttonText: 'নতুন বিনিয়োগ করুন' }
+  ];
+
+   export const adminHeaderConfig = [
+    { pathMatch: '/admin/verification', title: 'যাচাই অপেক্ষমাণ', buttonText: null },
+    { pathMatch: '/admin/user-management', title: 'ইউজার ম্যানেজমেন্ট', buttonText: null },
+     { pathMatch: '/admin/all-projects', title: 'সব প্রকল্প', buttonText: null },
+    { pathMatch: '/admin/notifications', title: 'নোটিফিকেশন' },
+    { pathMatch: '/admin/settings', title: 'অ্যাকাউন্ট সেটিংস' },
+     { pathMatch: '/admin', title: 'অ্যাডমিন ওভারভিউ', buttonText: null },
+  ];
+
