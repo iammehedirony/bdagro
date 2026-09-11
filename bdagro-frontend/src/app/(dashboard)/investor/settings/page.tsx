@@ -8,123 +8,23 @@ import {
   Settings,
   Lock,
 } from "lucide-react";
+import Field from "@/components/form/Field";
+import RiskOption from "@/components/others/RiskOption";
+import { Toggle } from "@/components/form/Toggle";
 
-const fontImport = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-`;
-
-const serif = { fontFamily: "'Fraunces', serif" };
-const sans = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
-
-function NavItem({ icon: Icon, label, active }) {
-  return (
-    <div
-      className={`flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer ${
-        active
-          ? "bg-emerald-900 text-white"
-          : "text-emerald-100/60 hover:bg-emerald-900/40 hover:text-emerald-50"
-      }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function Field({ label, value, placeholder, type = "text", readOnly }) {
-  return (
-    <div>
-      <label className="text-sm text-stone-700">{label}</label>
-      <input
-        type={type}
-        defaultValue={value}
-        placeholder={placeholder}
-        readOnly={readOnly}
-        className={`mt-1.5 w-full border px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 ${
-          readOnly ? "border-stone-200 bg-stone-50 text-stone-500" : "border-stone-300 focus:border-emerald-700"
-        }`}
-      />
-    </div>
-  );
-}
-
-function RiskOption({ label, desc, selected }) {
-  return (
-    <label
-      className={`flex items-start gap-3 border p-4 cursor-pointer ${
-        selected ? "border-emerald-800 bg-emerald-50" : "border-stone-300"
-      }`}
-    >
-      <input type="radio" name="risk" defaultChecked={selected} className="accent-emerald-800 mt-1" />
-      <div>
-        <div className="text-sm text-stone-800">{label}</div>
-        <div className="text-xs text-stone-400 mt-0.5">{desc}</div>
-      </div>
-    </label>
-  );
-}
-
-function Toggle({ label, sub, defaultOn }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <div>
-        <div className="text-sm text-stone-800">{label}</div>
-        {sub && <div className="text-xs text-stone-400 mt-0.5">{sub}</div>}
-      </div>
-      <div
-        className={`w-10 h-6 flex items-center px-0.5 cursor-pointer ${
-          defaultOn ? "bg-emerald-900 justify-end" : "bg-stone-200 justify-start"
-        }`}
-      >
-        <div className="w-5 h-5 bg-white" />
-      </div>
-    </div>
-  );
-}
 
 export default function InvestorSettingsPage() {
   return (
-    <div className="bg-white min-h-screen flex" style={sans}>
-      <style>{fontImport}</style>
+    <div className="bg-white min-h-screen flex">
 
-      {/* SIDEBAR */}
-      <aside className="w-60 bg-emerald-950 min-h-screen flex flex-col shrink-0">
-        <div className="h-16 flex items-center gap-2 px-5 border-b border-emerald-900">
-          <Sprout className="w-5 h-5 text-amber-400" />
-          <span className="text-stone-50 text-base" style={serif}>
-            Bdagroonline
-          </span>
-        </div>
-        <nav className="py-4 space-y-1">
-          <NavItem icon={LayoutDashboard} label="ওভারভিউ" />
-          <NavItem icon={Wallet} label="আমার বিনিয়োগ" />
-          <NavItem icon={Search} label="প্রজেক্ট খুঁজুন" />
-          <NavItem icon={Bell} label="নোটিফিকেশন" />
-          <NavItem icon={Settings} label="সেটিংস" active />
-        </nav>
-        <div className="mt-auto p-5 border-t border-emerald-900 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-emerald-950 text-sm">
-            র
-          </div>
-          <div>
-            <div className="text-sm text-stone-100">রাহাত করিম</div>
-            <div className="text-xs text-emerald-100/50">বিনিয়োগকারী</div>
-          </div>
-        </div>
-      </aside>
 
       {/* MAIN */}
       <div className="flex-1 min-w-0">
-        <header className="h-16 border-b border-stone-200 flex items-center px-8">
-          <div className="text-stone-900 text-base" style={serif}>
-            সেটিংস
-          </div>
-        </header>
 
         <div className="p-8 max-w-2xl space-y-10">
           {/* PROFILE */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4" style={serif}>
+            <h2 className="text-xl text-stone-900 mb-4">
               প্রোফাইল তথ্য
             </h2>
             <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
@@ -137,7 +37,7 @@ export default function InvestorSettingsPage() {
 
           {/* INVESTMENT PREFERENCES */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4" style={serif}>
+            <h2 className="text-xl text-stone-900 mb-4">
               বিনিয়োগ পছন্দ
             </h2>
             <div className="border border-stone-200 p-6">
@@ -154,7 +54,7 @@ export default function InvestorSettingsPage() {
 
           {/* PAYMENT METHOD */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4" style={serif}>
+            <h2 className="text-xl text-stone-900 mb-4">
               পেমেন্ট মাধ্যম
             </h2>
             <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
@@ -171,7 +71,7 @@ export default function InvestorSettingsPage() {
 
           {/* PASSWORD */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4" style={serif}>
+            <h2 className="text-xl text-stone-900 mb-4">
               পাসওয়ার্ড পরিবর্তন
             </h2>
             <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
@@ -182,7 +82,7 @@ export default function InvestorSettingsPage() {
 
           {/* NOTIFICATION PREFERENCES */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4" style={serif}>
+            <h2 className="text-xl text-stone-900 mb-4">
               নোটিফিকেশন পছন্দ
             </h2>
             <div className="border border-stone-200 px-6 divide-y divide-stone-100">

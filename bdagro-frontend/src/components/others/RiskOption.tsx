@@ -1,4 +1,10 @@
-function RiskOption({ label, desc, selected }) {
+interface RiskOptionProps {
+  label: string;
+  desc: string;
+  selected?: boolean;
+}
+
+function RiskOption({ label, desc, selected }: RiskOptionProps) {
   return (
     <label
       className={`flex items-start gap-3 border p-4 cursor-pointer ${
