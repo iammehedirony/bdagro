@@ -1,16 +1,17 @@
-function RiskBadge({ level }) {
-  const styles = {
-    কম: "border-emerald-600 text-emerald-800 bg-emerald-50",
-    মাঝারি: "border-amber-600 text-amber-800 bg-amber-50",
-    বেশি: "border-orange-600 text-orange-800 bg-orange-50",
+import Badge from "./Badge";
+
+interface RiskBadgeProps {
+  level: "কম" | "মাঝারি" | "বেশি";
+}
+
+function RiskBadge({ level }: RiskBadgeProps) {
+  const variantMap = {
+    "কম": "success" as const,
+    "মাঝারি": "warning" as const,
+    "বেশি": "danger" as const,
   };
-  return (
-    <span
-      className={`inline-block border px-2 py-0.5 text-xs ${styles[level]}`}
-    >
-      ঝুঁকি: {level}
-    </span>
-  );
+
+  return <Badge variant={variantMap[level]}>ঝুঁকি: {level}</Badge>;
 }
 
 export default RiskBadge;

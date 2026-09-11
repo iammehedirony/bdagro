@@ -1,23 +1,11 @@
-import React from "react";
-import {
-  Sprout,
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  Sprout as CropIcon,
-  Settings,
-  Bell,
-  Lock,
-} from "lucide-react";
+import { Lock } from "lucide-react";
 import Field from "@/components/form/Field";
 import { PermissionCheck } from "@/components/dashboard/PermissionCheck";
-
-
 
 export default function AdminSettingsPage() {
   return (
     <div className="bg-white min-h-screen flex">
-     
+
 
       {/* MAIN */}
       <div className="flex-1 min-w-0">
@@ -25,10 +13,10 @@ export default function AdminSettingsPage() {
         <div className="p-8 max-w-3xl space-y-10">
           {/* PROFILE */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4">
+            <h2 className="text-xl text-neutral-900 mb-4">
               অ্যাডমিন প্রোফাইল
             </h2>
-            <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
+            <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
               <Field label="পূর্ণ নাম" value="নাফিস আহমেদ" />
               <Field label="ইমেইল" value="nafis@bao.com" />
               <Field label="ফোন নম্বর" value="+৮৮০ ১৭৭৭-০০৯৯১১" />
@@ -38,20 +26,20 @@ export default function AdminSettingsPage() {
 
           {/* RBAC PERMISSION MATRIX */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-1">
+            <h2 className="text-xl text-neutral-900 mb-1">
               রোল ও পারমিশন (RBAC)
             </h2>
-            <p className="text-sm text-stone-400 mb-4">
+            <p className="text-sm text-neutral-400 mb-4">
               প্রতিটা রোলের জন্য কোন কোন অ্যাকশন অনুমোদিত তা নিয়ন্ত্রণ করুন
             </p>
-            <div className="border border-stone-200">
-              <div className="grid grid-cols-[1fr_90px_90px_90px] gap-2 px-5 py-3 border-b border-stone-200 text-xs text-stone-400">
+            <div className="border border-neutral-200">
+              <div className="grid grid-cols-[1fr_90px_90px_90px] gap-2 px-5 py-3 border-b border-neutral-200 text-xs text-neutral-400">
                 <span>পারমিশন</span>
                 <span className="text-center">Farmer</span>
                 <span className="text-center">Investor</span>
                 <span className="text-center">Admin</span>
               </div>
-              <div className="divide-y divide-stone-100">
+              <div className="divide-y divide-neutral-100">
                 {[
                   { label: "প্রকল্প পোস্ট করা", f: true, i: false, a: true },
                   { label: "বিনিয়োগ করা", f: false, i: true, a: true },
@@ -64,7 +52,7 @@ export default function AdminSettingsPage() {
                     key={row.label}
                     className="grid grid-cols-[1fr_90px_90px_90px] gap-2 px-5 py-3 items-center"
                   >
-                    <span className="text-sm text-stone-700">{row.label}</span>
+                    <span className="text-sm text-neutral-700">{row.label}</span>
                     <PermissionCheck checked={row.f} />
                     <PermissionCheck checked={row.i} />
                     <PermissionCheck checked={row.a} />
@@ -76,16 +64,16 @@ export default function AdminSettingsPage() {
 
           {/* PLATFORM SETTINGS */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4">
+            <h2 className="text-xl text-neutral-900 mb-4">
               প্ল্যাটফর্ম সেটিংস
             </h2>
-            <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
+            <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
               <Field label="প্ল্যাটফর্ম ফি (%)" value="২" />
               <Field label="সর্বনিম্ন বিনিয়োগ (৳)" value="৫,০০০" />
               <Field label="NID যাচাই সময়সীমা (ঘণ্টা)" value="২৪" />
               <div>
-                <label className="text-sm text-stone-700">পেমেন্ট গেটওয়ে</label>
-                <select className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:border-emerald-700">
+                <label className="text-sm text-neutral-700">পেমেন্ট গেটওয়ে</label>
+                <select className="mt-1.5 w-full border border-neutral-300 px-3 py-2.5 text-sm text-neutral-700 focus:outline-none focus:border-primary-700">
                   <option>SSLCommerz + Stripe (উভয়)</option>
                   <option>শুধু SSLCommerz</option>
                   <option>শুধু Stripe</option>
@@ -96,20 +84,20 @@ export default function AdminSettingsPage() {
 
           {/* PASSWORD */}
           <div>
-            <h2 className="text-xl text-stone-900 mb-4">
+            <h2 className="text-xl text-neutral-900 mb-4">
               পাসওয়ার্ড পরিবর্তন
             </h2>
-            <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
+            <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
               <Field label="বর্তমান পাসওয়ার্ড" type="password" placeholder="••••••••" />
               <Field label="নতুন পাসওয়ার্ড" type="password" placeholder="••••••••" />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800">
+            <button className="bg-primary-900 text-white px-6 py-3 text-sm hover:bg-primary-800">
               পরিবর্তন সংরক্ষণ করুন
             </button>
-            <button className="text-sm text-stone-500 hover:text-stone-800 flex items-center gap-1.5">
+            <button className="text-sm text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5" />
               লগ আউট করুন
             </button>

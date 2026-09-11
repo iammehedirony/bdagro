@@ -1,13 +1,17 @@
+interface ProgressBarProps {
+  percent: number;
+  tone?: "amber" | "emerald" | "orange";
+}
 
-function ProgressBar({ percent, tone = "amber" }) {
+function ProgressBar({ percent, tone = "amber" }: ProgressBarProps) {
   const fill =
     tone === "amber"
-      ? "bg-amber-500"
+      ? "bg-accent-500"
       : tone === "emerald"
-      ? "bg-emerald-600"
-      : "bg-orange-500";
+      ? "bg-primary-600"
+      : "bg-danger-500";
   return (
-    <div className="h-1.5 w-full bg-stone-200">
+    <div className="h-1.5 w-full bg-neutral-200">
       <div className={`h-1.5 ${fill}`} style={{ width: `${percent}%` }} />
     </div>
   );

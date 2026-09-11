@@ -16,29 +16,29 @@ import Link from "next/link";
   return (
     <div className="bg-white">
       {/* HERO */}
-      <section className="bg-emerald-950">
+      <section className="bg-primary-950">
         <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-14 items-center">
           <div>
             <h1
-              className="text-4xl md:text-5xl leading-[1.15] text-stone-50"
+              className="text-4xl md:text-5xl leading-[1.15] text-neutral-50"
             >
               কৃষক পান পুঁজি, বিনিয়োগকারী পান ফসলের ভাগ
             </h1>
-            <p className="mt-6 text-emerald-100/80 text-base leading-relaxed max-w-md">
+            <p className="mt-6 text-primary-100/80 text-base leading-relaxed max-w-md">
               Bdagroonline যাচাইকৃত কৃষকদের খামার প্রকল্পের সাথে
               বিনিয়োগকারীদের সরাসরি যুক্ত করে। NID ভেরিফিকেশন, রিয়েল-টাইম
               প্রজেক্ট স্ট্যাটাস আর নিরাপদ পেমেন্টের মাধ্যমে — মাটি থেকে
               মুনাফা, সবটাই স্বচ্ছ।
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/register/farmer" className="bg-amber-500 text-emerald-950 px-6 py-3 text-sm font-medium hover:bg-amber-400">
+              <Link href="/register/farmer" className="bg-accent-500 text-primary-950 px-6 py-3 text-sm font-medium hover:bg-accent-400">
                 কৃষক হিসেবে শুরু করুন
               </Link>
-              <Link href="/register/investor" className="border border-emerald-100/30 text-emerald-50 px-6 py-3 text-sm hover:border-emerald-100/70">
+              <Link href="/register/investor" className="border border-primary-100/30 text-primary-50 px-6 py-3 text-sm hover:border-primary-100/70">
                 বিনিয়োগকারী হিসেবে যোগ দিন
               </Link>
             </div>
-            <div className="mt-8 flex items-center gap-2 text-emerald-100/60 text-xs">
+            <div className="mt-8 flex items-center gap-2 text-primary-100/60 text-xs">
               <ShieldCheck className="w-4 h-4" />
               <span>SSLCommerz ও Stripe দ্বারা সুরক্ষিত পেমেন্ট</span>
             </div>
@@ -51,13 +51,13 @@ import Link from "next/link";
                   key={i}
                   className={`aspect-square ${
                     filled
-                      ? "bg-amber-500"
-                      : "border border-emerald-100/25"
+                      ? "bg-accent-500"
+                      : "border border-primary-100/25"
                   }`}
                 />
               ))}
             </div>
-            <div className="mt-5 flex items-center justify-between text-emerald-100/70 text-sm">
+            <div className="mt-5 flex items-center justify-between text-primary-100/70 text-sm">
               <span>১২৪টি সক্রিয় খামার প্রকল্প</span>
               <span>৳২.৮ কোটি বিনিয়োগকৃত</span>
             </div>
@@ -66,7 +66,7 @@ import Link from "next/link";
       </section>
 
       {/* STATS */}
-      <section className="border-b border-stone-200">
+      <section className="border-b border-neutral-200">
         <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             ["৫০০+", "যাচাইকৃত কৃষক"],
@@ -75,10 +75,10 @@ import Link from "next/link";
             ["১৭.৫%", "গড় প্রত্যাশিত ROI"],
           ].map(([num, label]) => (
             <div key={label}>
-              <div className="text-2xl text-stone-900">
+              <div className="text-2xl text-neutral-900">
                 {num}
               </div>
-              <div className="text-sm text-stone-500 mt-1">{label}</div>
+              <div className="text-sm text-neutral-500 mt-1">{label}</div>
             </div>
           ))}
         </div>
@@ -86,10 +86,10 @@ import Link from "next/link";
 
       {/* HOW IT WORKS */}
       <section id="how" className="max-w-6xl mx-auto px-6 py-20">
-        <h2 className="text-2xl md:text-3xl text-stone-900 mb-12">
+        <h2 className="text-2xl md:text-3xl text-neutral-900 mb-12">
           কীভাবে কাজ করে
         </h2>
-        <div className="grid md:grid-cols-4 gap-0 border-t border-stone-200">
+        <div className="grid md:grid-cols-4 gap-0 border-t border-neutral-200">
           {[
             {
               n: "১",
@@ -114,15 +114,15 @@ import Link from "next/link";
           ].map((step, i) => (
             <div
               key={step.n}
-              className={`p-6 border-b border-r border-stone-200 ${
+              className={`p-6 border-b border-r border-neutral-200 ${
                 i === 3 ? "border-r-0 md:border-r-0" : ""
               }`}
             >
-              <div className="text-3xl text-amber-600">
+              <div className="text-3xl text-accent-600">
                 {step.n}
               </div>
-              <h3 className="mt-3 text-stone-900 font-medium">{step.title}</h3>
-              <p className="mt-2 text-sm text-stone-500 leading-relaxed">
+              <h3 className="mt-3 text-neutral-900 font-medium">{step.title}</h3>
+              <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
                 {step.body}
               </p>
             </div>
@@ -131,9 +131,9 @@ import Link from "next/link";
       </section>
 
       {/* PROJECTS */}
-      <section id="projects" className="bg-stone-50 border-y border-stone-200">
+      <section id="projects" className="bg-neutral-50 border-y border-neutral-200">
         <div className="max-w-6xl mx-auto px-6 py-20">
-          <h2 className="text-2xl md:text-3xl text-stone-900 mb-12">
+          <h2 className="text-2xl md:text-3xl text-neutral-900 mb-12">
             চলমান খামার প্রকল্প
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -173,16 +173,16 @@ import Link from "next/link";
 
       {/* ROLES */}
       <section id="roles" className="max-w-6xl mx-auto px-6 py-20">
-        <h2 className="text-2xl md:text-3xl text-stone-900 mb-12">
+        <h2 className="text-2xl md:text-3xl text-neutral-900 mb-12">
           কৃষক ও বিনিয়োগকারী উভয়ের জন্য
         </h2>
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="border border-stone-200 p-8">
-            <Sprout className="w-6 h-6 text-emerald-800" />
-            <h3 className="mt-4 text-xl text-stone-900">
+          <div className="border border-neutral-200 p-8">
+            <Sprout className="w-6 h-6 text-primary-800" />
+            <h3 className="mt-4 text-xl text-neutral-900">
               কৃষক
             </h3>
-            <ul className="mt-5 space-y-3 text-sm text-stone-600">
+            <ul className="mt-5 space-y-3 text-sm text-neutral-600">
               {[
                 "NID ও ছবি দিয়ে সহজ ভেরিফিকেশন",
                 "লক্ষ্যমাত্রা, বিবরণ ও ছবিসহ প্রকল্প পোস্ট করুন",
@@ -190,22 +190,22 @@ import Link from "next/link";
                 "নিরাপদে টাকা উত্তোলন করুন",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-700 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary-700 shrink-0" />
                   <span>{t}</span>
                 </li>
               ))}
             </ul>
-            <button className="mt-6 bg-emerald-900 text-white px-5 py-2.5 text-sm hover:bg-emerald-800">
+            <button className="mt-6 bg-primary-900 text-white px-5 py-2.5 text-sm hover:bg-primary-800">
               কৃষক হিসেবে শুরু করুন
             </button>
           </div>
 
-          <div className="border border-stone-200 p-8">
-            <TrendingUp className="w-6 h-6 text-amber-600" />
-            <h3 className="mt-4 text-xl text-stone-900">
+          <div className="border border-neutral-200 p-8">
+            <TrendingUp className="w-6 h-6 text-accent-600" />
+            <h3 className="mt-4 text-xl text-neutral-900">
               বিনিয়োগকারী
             </h3>
-            <ul className="mt-5 space-y-3 text-sm text-stone-600">
+            <ul className="mt-5 space-y-3 text-sm text-neutral-600">
               {[
                 "ঝুঁকির মাত্রা ও প্রত্যাশিত ROI দেখে প্রকল্প বাছাই করুন",
                 "আংশিক অথবা পূর্ণ বিনিয়োগের সুযোগ",
@@ -213,12 +213,12 @@ import Link from "next/link";
                 "প্রতিটি আপডেটে ইনস্ট্যান্ট নোটিফিকেশন পান",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-accent-600 shrink-0" />
                   <span>{t}</span>
                 </li>
               ))}
             </ul>
-            <button className="mt-6 border border-stone-300 text-stone-800 px-5 py-2.5 text-sm hover:border-emerald-800 hover:text-emerald-900">
+            <button className="mt-6 border border-neutral-300 text-neutral-800 px-5 py-2.5 text-sm hover:border-primary-800 hover:text-primary-900">
               বিনিয়োগকারী হিসেবে যোগ দিন
             </button>
           </div>

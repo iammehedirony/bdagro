@@ -1,8 +1,14 @@
-export function RoleTag({ role }) {
-  const map = {
-    Farmer: "border-emerald-600 text-emerald-800 bg-emerald-50",
-    Investor: "border-amber-600 text-amber-800 bg-amber-50",
-    Admin: "border-stone-400 text-stone-700 bg-stone-100",
+import Badge from "./Badge";
+
+interface RoleTagProps {
+  role: "Farmer" | "Investor" | "Admin";
+}
+
+export function RoleTag({ role }: RoleTagProps) {
+  const variantMap = {
+    Farmer: "success" as const,
+    Investor: "warning" as const,
+    Admin: "neutral" as const,
   };
-  return <span className={`text-xs border px-2 py-0.5 ${map[role]}`}>{role}</span>;
+  return <Badge variant={variantMap[role]}>{role}</Badge>;
 }

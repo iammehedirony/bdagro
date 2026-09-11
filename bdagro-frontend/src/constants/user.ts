@@ -4,5 +4,5 @@ import { User } from "@/types/user";
     id: "farmer_789", 
     name: "রাহাত করিম",
     role: "কৃষক",
-    roleType: "admin" // admin, farmer, বা investor
+    roleType: "farmer" // admin, farmer, বা investor
   };

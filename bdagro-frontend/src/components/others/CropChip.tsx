@@ -1,10 +1,15 @@
-function CropChip({ label, selected }) {
+interface CropChipProps {
+  label: string;
+  selected?: boolean;
+}
+
+function CropChip({ label, selected }: CropChipProps) {
   return (
     <span
       className={`px-3 py-1.5 text-sm border cursor-pointer ${
         selected
-          ? "border-emerald-800 bg-emerald-50 text-emerald-900"
-          : "border-stone-300 text-stone-500 hover:border-emerald-700"
+          ? "border-primary-800 bg-primary-50 text-primary-900"
+          : "border-neutral-300 text-neutral-500 hover:border-primary-700"
       }`}
     >
       {label}

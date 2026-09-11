@@ -6,10 +6,92 @@
 }
 
 @theme inline {
+  /* === LEGACY === */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* === BRAND COLORS === */
+
+  /* Primary (Emerald) */
+  --color-primary-950: #022c22;
+  --color-primary-900: #064e3b;
+  --color-primary-800: #065f46;
+  --color-primary-700: #047857;
+  --color-primary-600: #059669;
+  --color-primary-100: #d1fae5;
+  --color-primary-50: #ecfdf5;
+
+  /* Accent (Amber) */
+  --color-accent-800: #92400e;
+  --color-accent-700: #b45309;
+  --color-accent-600: #d97706;
+  --color-accent-500: #f59e0b;
+  --color-accent-400: #fbbf24;
+  --color-accent-50: #fffbeb;
+
+  /* Neutral (Stone) */
+  --color-neutral-950: #0c0a09;
+  --color-neutral-900: #1c1917;
+  --color-neutral-800: #292524;
+  --color-neutral-700: #44403c;
+  --color-neutral-600: #57534e;
+  --color-neutral-500: #78716c;
+  --color-neutral-400: #a8a29e;
+  --color-neutral-300: #d6d3d1;
+  --color-neutral-200: #e7e5e4;
+  --color-neutral-100: #f5f5f4;
+  --color-neutral-50: #fafaf9;
+
+  /* Danger/Risk (Orange) */
+  --color-danger-800: #9a3412;
+  --color-danger-600: #ea580c;
+  --color-danger-500: #f97316;
+  --color-danger-50: #fff7ed;
+
+  /* === SEMANTIC ALIASES === */
+
+  /* Surfaces */
+  --color-surface-primary: var(--color-primary-950);
+  --color-surface-light: var(--color-neutral-50);
+  --color-surface-card: #ffffff;
+
+  /* Text */
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-muted: var(--color-neutral-400);
+  --color-text-inverse: var(--color-neutral-50);
+
+  /* Borders */
+  --color-border-default: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-border-subtle: var(--color-neutral-100);
+  --color-border-focus: var(--color-primary-700);
+
+  /* State: Success */
+  --color-state-success-bg: var(--color-primary-50);
+  --color-state-success-border: var(--color-primary-600);
+  --color-state-success-text: var(--color-primary-800);
+
+  /* State: Warning */
+  --color-state-warning-bg: var(--color-accent-50);
+  --color-state-warning-border: var(--color-accent-600);
+  --color-state-warning-text: var(--color-accent-800);
+
+  /* State: Danger */
+  --color-state-danger-bg: var(--color-danger-50);
+  --color-state-danger-border: var(--color-danger-600);
+  --color-state-danger-text: var(--color-danger-800);
+
+  /* Buttons */
+  --color-btn-primary-bg: var(--color-primary-900);
+  --color-btn-primary-hover: var(--color-primary-800);
+  --color-btn-primary-text: #ffffff;
+
+  --color-btn-accent-bg: var(--color-accent-500);
+  --color-btn-accent-hover: var(--color-accent-400);
+  --color-btn-accent-text: var(--color-primary-950);
 }
 
 
