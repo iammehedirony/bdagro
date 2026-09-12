@@ -1,6 +1,6 @@
 import { CheckCircle2, TrendingUp, Users, MapPin } from "lucide-react";
-import StatCard from "@/components/others/StatCard";
-import ProgressBar from "@/components/others/ProgressBar";
+import StatCard from "@/components/ui/StatCard";
+import ProgressBar from "@/components/ui/ProgressBar";
 
 const activity = [
   { icon: CheckCircle2, tone: "emerald", text: "সবুজ ধানখেত প্রকল্পে নতুন বিনিয়োগ পেয়েছেন ৳১০,০০০", time: "১০ মিনিট আগে" },

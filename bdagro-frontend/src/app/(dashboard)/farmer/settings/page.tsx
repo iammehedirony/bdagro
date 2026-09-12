@@ -1,6 +1,6 @@
 import { ShieldCheck, Lock } from "lucide-react";
-import Field from "@/components/form/Field";
-import { Toggle } from "@/components/form/Toggle";
+import Field from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 
 export default function FarmerSettingsPage() {
   return (

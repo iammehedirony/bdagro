@@ -1,5 +1,5 @@
 interface RiskDotProps {
-  level: "কম" | "মাঝারি" | "বেশি";
+  level: string; 
 }
 
 export default function RiskDot({ level }: RiskDotProps) {

@@ -3,8 +3,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
 } from "lucide-react";
-import FilterSection from "@/components/others/FilterSection";
-import Checkbox from "@/components/form/Checkbox";
+import FilterSection from "@/components/ui/FilterSection";
+import Checkbox from "@/components/ui/Checkbox";
 import ProjectCard from "@/components/project/ProjectCard";
 
 

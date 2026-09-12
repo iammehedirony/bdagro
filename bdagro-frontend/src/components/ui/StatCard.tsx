@@ -4,7 +4,7 @@ interface StatCardProps {
   label: string;
   value: string;
   sub?: string;
-  tone?: "up" | "down";
+  tone?: "up" | "down" | "amber" | "neutral";
 }
 
 function StatCard({ label, value, sub, tone }: StatCardProps) {

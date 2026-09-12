@@ -1,6 +1,6 @@
 import { Sprout, MapPin, Pencil, Eye } from "lucide-react";
-import StatusTag from "@/components/others/StatusTag";
-import ProgressBar from "@/components/others/ProgressBar";
+import StatusTag from "@/components/ui/StatusTag";
+import ProgressBar from "@/components/ui/ProgressBar";
 
 const projects = [
   {

@@ -27,12 +27,12 @@ export default function Sidebar({ navItems, user }: SidebarProps) {
   return (
     <aside className="w-60 bg-primary-950 min-h-screen flex flex-col shrink-0 transition-all">
       {/* লোগো সেকশন */}
-      <div className="h-16 flex items-center gap-2 px-5 border-b border-primary-900">
+      <Link href="/" className="h-16 flex items-center gap-2 px-5 border-b border-primary-900">
         <Sprout className="w-5 h-5 text-accent-400" />
         <span className="text-neutral-50 text-base font-serif">
           Bdagroonline
         </span>
-      </div>
+      </Link>
 
       {/* নেভিগেশন মেনু */}
       <nav className="py-4 space-y-1 overflow-y-auto">

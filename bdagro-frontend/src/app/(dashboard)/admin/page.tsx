@@ -1,5 +1,5 @@
 import { MapPin, Check, X } from "lucide-react";
-import StatCard from "@/components/others/StatCard";
+import StatCard from "@/components/ui/StatCard";
 
 const nidQueue = [
   { name: "আব্দুল করিম", location: "কুমিল্লা", submitted: "২ ঘণ্টা আগে" },

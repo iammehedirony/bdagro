@@ -1,6 +1,6 @@
 interface ProgressBarProps {
   percent: number;
-  tone?: "amber" | "emerald" | "orange";
+  tone?: string;
 }
 
 function ProgressBar({ percent, tone = "amber" }: ProgressBarProps) {

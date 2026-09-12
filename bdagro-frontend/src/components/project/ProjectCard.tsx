@@ -1,6 +1,6 @@
 import { MapPin, Sprout } from "lucide-react";
-import ProgressBar from "@/components/others/ProgressBar";
-import RiskBadge from "@/components/others/RiskBadge";
+import ProgressBar from "@/components/ui/ProgressBar";
+import RiskBadge from "@/components/ui/RiskBadge";
 import Link from "next/link";
 
 interface ProjectCardProps {

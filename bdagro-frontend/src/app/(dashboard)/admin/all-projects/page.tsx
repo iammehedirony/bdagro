@@ -1,6 +1,6 @@
 import { Sprout, Eye, MapPin } from "lucide-react";
-import StatusTag from "@/components/others/StatusTag";
-import ProgressBar from "@/components/others/ProgressBar";
+import StatusTag from "@/components/ui/StatusTag";
+import ProgressBar from "@/components/ui/ProgressBar";
 
 const projects = [
   { name: "সবুজ ধানখেত", farmer: "আব্দুল করিম", location: "কুমিল্লা", goal: "৫,০০,০০০", percent: 75, status: "Approved" as const, tone: "emerald" as const },

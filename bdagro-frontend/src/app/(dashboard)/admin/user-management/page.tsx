@@ -1,5 +1,5 @@
 import { MoreVertical } from "lucide-react";
-import { RoleTag } from "@/components/others/RoleTag";
+import { RoleTag } from "@/components/ui/RoleTag";
 import StatusTag from "@/components/others/StatusTag";
 
 const users = [

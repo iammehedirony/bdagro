@@ -1,7 +1,7 @@
 import { Lock } from "lucide-react";
-import Field from "@/components/form/Field";
-import RiskOption from "@/components/others/RiskOption";
-import { Toggle } from "@/components/form/Toggle";
+import Field from "@/components/ui/Field";
+import RiskOption from "@/components/ui/RiskOption";
+import { Toggle } from "@/components/ui/Toggle";
 
 export default function InvestorSettingsPage() {
   return (

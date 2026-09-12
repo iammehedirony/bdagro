@@ -1,7 +1,7 @@
 import Badge from "./Badge";
 
-interface StatusTagProps {
-  status: "Approved" | "Processing" | "Pending" | "Rejected";
+export interface StatusTagProps {
+  status: string;
 }
 
 function StatusTag({ status }: StatusTagProps) {

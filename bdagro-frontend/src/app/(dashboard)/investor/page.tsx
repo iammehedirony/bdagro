@@ -1,7 +1,7 @@
 import { MapPin, CheckCircle2, TrendingUp, Clock } from "lucide-react";
-import StatCard from "@/components/others/StatCard";
-import ProgressBar from "@/components/others/ProgressBar";
-import RiskDot from "@/components/others/RiskDot";
+import StatCard from "@/components/ui/StatCard";
+import ProgressBar from "@/components/ui/ProgressBar";
+import RiskDot from "@/components/ui/RiskDot";
 
 const investments: Array<{
   name: string;

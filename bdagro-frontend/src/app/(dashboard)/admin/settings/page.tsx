@@ -1,5 +1,5 @@
 import { Lock } from "lucide-react";
-import Field from "@/components/form/Field";
+import Field from "@/components/ui/Field";
 import { PermissionCheck } from "@/components/dashboard/PermissionCheck";
 
 export default function AdminSettingsPage() {
