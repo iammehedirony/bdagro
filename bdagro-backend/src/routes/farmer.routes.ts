@@ -7,6 +7,7 @@ import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
 import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
 import { submitProfitReportSchema, markPaidSchema } from "../validators/installment.validator";
+import { updateFarmerSettingsSchema } from "../validators/settings.validator";
 import * as profileCtrl from "../controllers/farmerProfile.controller";
 import * as loanAppCtrl from "../controllers/loanApplication.controller";
 import * as installmentCtrl from "../controllers/installment.controller";
@@ -14,6 +15,7 @@ import * as farmerProjectCtrl from "../controllers/farmerProject.controller";
 import * as farmerTransactionCtrl from "../controllers/farmerTransaction.controller";
 import * as notificationCtrl from "../controllers/userNotification.controller";
 import * as farmerDashboardCtrl from "../controllers/farmerDashboard.controller";
+import * as settingsCtrl from "../controllers/settings.controller";
 
 const router = Router();
 
@@ -61,5 +63,8 @@ router.get("/transactions", farmerTransactionCtrl.listFarmerTransactions);
 router.get("/notifications", notificationCtrl.listMyNotifications);
 router.put("/notifications/mark-all-read", notificationCtrl.markAllNotificationsAsRead);
 router.put("/notifications/:id/read", notificationCtrl.markNotificationAsRead);
+
+// --- Settings ---
+router.put("/settings", validate(updateFarmerSettingsSchema), settingsCtrl.updateFarmerSettings);
 
 export default router;

@@ -11,6 +11,7 @@ import {
   updateUserRoleSchema,
   sendNotificationSchema,
 } from "../validators/admin.validator";
+import { updateAdminSettingsSchema } from "../validators/settings.validator";
 import * as dashboardCtrl from "../controllers/adminDashboard.controller";
 import * as verificationCtrl from "../controllers/adminVerification.controller";
 import * as loanAppCtrl from "../controllers/adminLoanApplication.controller";
@@ -18,6 +19,7 @@ import * as userCtrl from "../controllers/adminUser.controller";
 import * as transactionCtrl from "../controllers/adminTransaction.controller";
 import * as notificationCtrl from "../controllers/adminNotification.controller";
 import * as projectCtrl from "../controllers/adminProject.controller";
+import * as settingsCtrl from "../controllers/settings.controller";
 
 const router = Router();
 
@@ -58,5 +60,8 @@ router.post("/notifications", validate(sendNotificationSchema), notificationCtrl
 // --- Projects: full-status view + loan disbursement ---
 router.get("/projects", projectCtrl.listProjectsForAdmin);
 router.post("/projects/:id/disburse", projectCtrl.disburseProject);
+
+// --- Settings ---
+router.put("/settings", validate(updateAdminSettingsSchema), settingsCtrl.updateAdminSettings);
 
 export default router;
