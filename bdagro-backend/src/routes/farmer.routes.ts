@@ -12,11 +12,15 @@ import * as installmentCtrl from "../controllers/installment.controller";
 import * as farmerProjectCtrl from "../controllers/farmerProject.controller";
 import * as farmerTransactionCtrl from "../controllers/farmerTransaction.controller";
 import * as notificationCtrl from "../controllers/userNotification.controller";
+import * as farmerDashboardCtrl from "../controllers/farmerDashboard.controller";
 
 const router = Router();
 
 // Every route below requires a logged-in, active Farmer account.
 router.use(requireAuth(), syncClerkUser, requireRole(UserRole.FARMER));
+
+// --- Dashboard ---
+router.get("/dashboard", farmerDashboardCtrl.getFarmerDashboard);
 
 // --- Profile & document verification ---
 router.get("/profile/me", profileCtrl.getMyProfile);
