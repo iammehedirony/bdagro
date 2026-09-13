@@ -8,6 +8,7 @@ import { createInvestmentSchema } from "../validators/investor.validator";
 import * as investmentCtrl from "../controllers/investment.controller";
 import * as portfolioCtrl from "../controllers/portfolio.controller";
 import * as transactionCtrl from "../controllers/transaction.controller";
+import * as notificationCtrl from "../controllers/userNotification.controller";
 
 const router = Router();
 
@@ -25,5 +26,10 @@ router.get("/portfolio", portfolioCtrl.getPortfolio);
 // --- Transaction history & receipts ---
 router.get("/transactions", transactionCtrl.listMyTransactions);
 router.get("/transactions/:id/receipt", transactionCtrl.getMyTransactionReceipt);
+
+// --- Notifications ---
+router.get("/notifications", notificationCtrl.listMyNotifications);
+router.put("/notifications/mark-all-read", notificationCtrl.markAllNotificationsAsRead);
+router.put("/notifications/:id/read", notificationCtrl.markNotificationAsRead);
 
 export default router;

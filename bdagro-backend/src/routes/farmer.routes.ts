@@ -10,6 +10,8 @@ import * as profileCtrl from "../controllers/farmerProfile.controller";
 import * as loanAppCtrl from "../controllers/loanApplication.controller";
 import * as installmentCtrl from "../controllers/installment.controller";
 import * as farmerProjectCtrl from "../controllers/farmerProject.controller";
+import * as farmerTransactionCtrl from "../controllers/farmerTransaction.controller";
+import * as notificationCtrl from "../controllers/userNotification.controller";
 
 const router = Router();
 
@@ -39,5 +41,13 @@ router.get("/projects", farmerProjectCtrl.listMyProjects);
 router.get("/projects/:id", farmerProjectCtrl.getMyProjectById);
 router.post("/projects", validate(createLoanApplicationSchema), farmerProjectCtrl.createMyProject);
 router.put("/projects/:id", validate(updateFarmerProjectSchema), farmerProjectCtrl.updateMyProject);
+
+// --- Transactions ---
+router.get("/transactions", farmerTransactionCtrl.listFarmerTransactions);
+
+// --- Notifications ---
+router.get("/notifications", notificationCtrl.listMyNotifications);
+router.put("/notifications/mark-all-read", notificationCtrl.markAllNotificationsAsRead);
+router.put("/notifications/:id/read", notificationCtrl.markNotificationAsRead);
 
 export default router;
