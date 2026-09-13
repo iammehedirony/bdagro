@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import StatusTag from "@/components/ui/StatusTag";
+import Link from "next/link";
 
 
 const settlements = [
@@ -112,9 +113,12 @@ export default function FarmerProfitSharingPage() {
               </div>
 
               <div className="sm:col-span-2">
-                <button className="w-full bg-amber-500 text-emerald-950 py-3 text-sm font-medium hover:bg-amber-400">
-                  ৳৮,৭৫০ বিনিয়োগকারীকে প্রদান করুন
-                </button>
+               <Link 
+  href="/farmer/installments/checkout" 
+  className="w-full block text-center bg-amber-500 text-emerald-950 py-3 text-sm font-medium hover:bg-amber-400"
+>
+  ৳৮,৭৫০ বিনিয়োগকারীকে প্রদান করুন
+</Link>
               </div>
             </div>
           </div>

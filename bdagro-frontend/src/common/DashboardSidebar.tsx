@@ -37,7 +37,14 @@ export default function Sidebar({ navItems, user }: SidebarProps) {
       {/* নেভিগেশন মেনু */}
       <nav className="py-4 space-y-1 overflow-y-auto">
         {navItems.map((item, idx) => {
-          const isActive = pathname === item.href;
+          // রুট ওভারভিউ লিংকগুলো চেক করা হচ্ছে
+          const isRoot = item.href === '/farmer' || item.href === '/investor' || item.href === '/admin';
+          
+          // নতুন isActive লজিক
+          const isActive = isRoot 
+            ? pathname === item.href 
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
           return (
             <Link
               key={idx}
@@ -54,6 +61,7 @@ export default function Sidebar({ navItems, user }: SidebarProps) {
           );
         })}
       </nav>
+      
 
       {/* ইউজার প্রোফাইল সেকশন */}
       <div className="mt-auto p-5 border-t border-primary-900 flex items-center gap-3">

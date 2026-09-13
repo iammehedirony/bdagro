@@ -10,9 +10,14 @@ import {
 } from "lucide-react";
 import StatusStep from "@/components/ui/StatusStep";
 import ProgressBar from "@/components/ui/ProgressBar";
+import Link from 'next/link';
 
 
-export default function ProjectDetailsPage() {
+
+
+export default async function ProjectDetailsPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
+
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto px-6 py-10">
@@ -206,9 +211,12 @@ export default function ProjectDetailsPage() {
                   সর্বনিম্ন বিনিয়োগ ৳৫,০০০
                 </div>
 
-                <button className="mt-4 w-full bg-amber-500 text-emerald-950 py-3 text-sm font-medium hover:bg-amber-400">
-                  বিনিয়োগ করুন
-                </button>
+                <Link 
+  href={`/projects/${id}/checkout`} 
+  className="mt-4 w-full block text-center bg-amber-500 text-emerald-950 py-3 text-sm font-medium hover:bg-amber-400"
+>
+  বিনিয়োগ করুন
+</Link>
 
                 <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
