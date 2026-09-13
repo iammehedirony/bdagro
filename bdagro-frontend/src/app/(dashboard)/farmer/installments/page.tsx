@@ -36,15 +36,7 @@ export default function FarmerProfitSharingPage() {
       {/* MAIN */}
       <div className="flex-1 min-w-0">
         <div className="p-8">
-          {/* MODEL DISCLAIMER */}
-          <div className="flex items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3 max-w-2xl mb-8">
-            <Info className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-            <p className="text-xs text-emerald-800 leading-relaxed">
-              এখানে কোনো সুদ বা নির্দিষ্ট কিস্তি নেই। ফসল বা প্রকল্প বিক্রির
-              পর লাভ হলে তার একটি নির্দিষ্ট অংশ বিনিয়োগকারীদের প্রদান করতে
-              হবে। লোকসান হলে কোনো অর্থ ফেরত দেওয়ার বাধ্যবাধকতা নেই।
-            </p>
-          </div>
+         
 
           {/* STATS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

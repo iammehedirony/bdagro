@@ -68,7 +68,7 @@ export default function AdminSettingsPage() {
               প্ল্যাটফর্ম সেটিংস
             </h2>
             <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
-              <Field label="প্ল্যাটফর্ম ফি (%)" value="২" />
+             
               <Field label="সর্বনিম্ন বিনিয়োগ (৳)" value="৫,০০০" />
               <Field label="NID যাচাই সময়সীমা (ঘণ্টা)" value="২৪" />
               <div>

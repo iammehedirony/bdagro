@@ -5,8 +5,7 @@
     { label: "ওভারভিউ", href: "/farmer", icon: <LayoutDashboard /> },
     { label: "আমার প্রকল্প", href: "/farmer/projects", icon: <Sprout /> },
     { label: "মুনাফা বণ্টন", href: "/farmer/installments", icon: <Wallet /> },
-    { label: "ওয়ালেট", href: "/farmer/wallet", icon: <Wallet /> },
-    { label: "আয়ের ওভারভিউ", href: "/farmer/earnings", icon: <BarChart3 /> },
+     { label: "লেনদেন", href: "/farmer/transactions", icon: <ArrowLeftRight /> },
     { label: "নোটিফিকেশন", href: "/farmer/notifications", icon: <Bell /> },
     { label: "সেটিংস", href: "/farmer/settings", icon: <Settings /> },
   ];
@@ -16,7 +15,7 @@
     { label: "ওভারভিউ", href: "/investor", icon: <LayoutDashboard /> },
     { label: "আমার বিনিয়োগ", href: "/investor/investments", icon: <Sprout /> },
     { label: "রিটার্ন ট্র্যাকিং", href: "/investor/roi-tracking", icon: <TrendingUp /> },
-    { label: "লেনদেন ও পেআউট", href: "/investor/transactions", icon: <ArrowLeftRight /> },
+    { label: "লেনদেন", href: "/investor/transactions", icon: <ArrowLeftRight /> },
     { label: "নোটিফিকেশন", href: "/investor/notifications", icon: <Bell /> },
     { label: "সেটিংস", href: "/investor/settings", icon: <Settings /> },
   ];
@@ -35,8 +34,7 @@
      export const farmerHeaderConfig = [
     { pathMatch: '/farmer/projects', title: 'আমার প্রকল্পসমূহ', buttonText: 'নতুন প্রকল্প পোস্ট করুন'},
     { pathMatch: '/farmer/installments', title: 'মুনাফা বণ্টন' },
-    { pathMatch: '/farmer/wallet', title: 'ওয়ালেট' },
-    { pathMatch: '/farmer/earnings', title: 'আয়ের ওভারভিউ' },
+    { pathMatch: '/farmer/transactions', title: 'লেনদেন' },
     { pathMatch: '/farmer/notifications', title: 'নোটিফিকেশন' },
     { pathMatch: '/farmer/settings', title: 'অ্যাকাউন্ট সেটিংস' }
   ];

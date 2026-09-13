@@ -37,16 +37,7 @@ export default function AdminTransactionsPage() {
 
 
         <div className="p-8">
-          {/* MODEL NOTE */}
-          <div className="flex items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3 max-w-2xl mb-8">
-            <Info className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-            <p className="text-xs text-emerald-800 leading-relaxed">
-              বিনিয়োগ ও মুনাফা পরিশোধ সরাসরি বিনিয়োগকারী ও কৃষকের মধ্যে
-              সম্পন্ন হয় — কোনো অর্থ প্ল্যাটফর্মে আটকে থাকে না, তাই এখানে
-              কোনো অনুমোদনের প্রয়োজন নেই। এই তালিকা শুধু পর্যবেক্ষণ ও
-              রিপোর্টিংয়ের জন্য।
-            </p>
-          </div>
+          
 
           {/* STATS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
