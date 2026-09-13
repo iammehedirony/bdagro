@@ -30,3 +30,12 @@ export const initiatePaymentSchema = z.object({
   paymentMethod: z.enum(PaymentMethod).default(PaymentMethod.SSLCOMMERZ),
 });
 export type InitiatePaymentInput = z.infer<typeof initiatePaymentSchema>;
+
+export const updateFarmerProjectSchema = z.object({
+  requestedAmount: z.coerce.number().positive("requestedAmount must be greater than 0").optional(),
+  durationMonths: z.coerce.number().int().positive("durationMonths must be a positive integer").optional(),
+  projectTitle: z.string().trim().min(3, "projectTitle is too short").optional(),
+  projectDescription: z.string().trim().min(10, "projectDescription is too short").optional(),
+  cropType: z.string().trim().optional(),
+});
+export type UpdateFarmerProjectInput = z.infer<typeof updateFarmerProjectSchema>;

@@ -5,10 +5,11 @@ import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
 import { uploadFarmerDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
-import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema } from "../validators/farmer.validator";
+import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
 import * as profileCtrl from "../controllers/farmerProfile.controller";
 import * as loanAppCtrl from "../controllers/loanApplication.controller";
 import * as installmentCtrl from "../controllers/installment.controller";
+import * as farmerProjectCtrl from "../controllers/farmerProject.controller";
 
 const router = Router();
 
@@ -32,5 +33,11 @@ router.get("/loan-applications/:id", loanAppCtrl.getMyApplicationById);
 // --- Installments / repayments ---
 router.get("/installments", installmentCtrl.listMyInstallments);
 router.post("/installments/:id/pay", validate(initiatePaymentSchema), installmentCtrl.initiatePayment);
+
+// --- Projects (Farmer perspective of Loan Applications & Marketplace Projects) ---
+router.get("/projects", farmerProjectCtrl.listMyProjects);
+router.get("/projects/:id", farmerProjectCtrl.getMyProjectById);
+router.post("/projects", validate(createLoanApplicationSchema), farmerProjectCtrl.createMyProject);
+router.put("/projects/:id", validate(updateFarmerProjectSchema), farmerProjectCtrl.updateMyProject);
 
 export default router;
