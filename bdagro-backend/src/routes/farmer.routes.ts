@@ -6,6 +6,7 @@ import { validate } from "../middlewares/validate";
 import { uploadFarmerDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
 import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
+import { submitProfitReportSchema, markPaidSchema } from "../validators/installment.validator";
 import * as profileCtrl from "../controllers/farmerProfile.controller";
 import * as loanAppCtrl from "../controllers/loanApplication.controller";
 import * as installmentCtrl from "../controllers/installment.controller";
@@ -39,6 +40,8 @@ router.get("/loan-applications/:id", loanAppCtrl.getMyApplicationById);
 // --- Installments / repayments ---
 router.get("/installments", installmentCtrl.listMyInstallments);
 router.post("/installments/:id/pay", validate(initiatePaymentSchema), installmentCtrl.initiatePayment);
+router.post("/installments/:id/profit-report", validate(submitProfitReportSchema), installmentCtrl.submitProfitReport);
+router.post("/installments/:id/mark-paid", validate(markPaidSchema), installmentCtrl.markAsPaid);
 
 // --- Projects (Farmer perspective of Loan Applications & Marketplace Projects) ---
 router.get("/projects", farmerProjectCtrl.listMyProjects);

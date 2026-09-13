@@ -5,6 +5,7 @@ import { Transaction } from "../models/Transaction";
 import { InstallmentStatus, TransactionType, TransactionStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { InitiatePaymentInput } from "../validators/farmer.validator";
+import { SubmitProfitReportInput, MarkPaidInput } from "../validators/installment.validator";
 import { getPagination, buildMeta } from "../utils/pagination";
 
 /**
@@ -81,5 +82,93 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
   res.status(201).json({
     transaction,
     message: "Payment initiated. Gateway checkout integration is pending (see roadmap).",
+  });
+}
+
+/**
+ * POST /api/farmers/installments/:id/profit-report
+ * Submits a profit report for a project after harvest/sales completion.
+ * Calculates net profit and investor share amount.
+ */
+export async function submitProfitReport(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid installment id", 400);
+  }
+
+  const body = req.body as SubmitProfitReportInput;
+
+  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id }).populate(
+    "loanApplication"
+  );
+  if (!installment) {
+    throw new AppError("Installment not found", 404);
+  }
+
+  const netProfit = body.totalSales - body.productionCost;
+  if (netProfit < 0) {
+    throw new AppError("Net profit cannot be negative (sales must exceed production cost)", 400);
+  }
+
+  const investorShareAmount = (netProfit * body.profitSharePercent) / 100;
+
+  // Store profit report metadata on the installment
+  installment.metadata = {
+    profitReport: {
+      totalSales: body.totalSales,
+      productionCost: body.productionCost,
+      netProfit,
+      profitSharePercent: body.profitSharePercent,
+      investorShareAmount,
+      submittedAt: new Date(),
+    },
+  };
+  await installment.save();
+
+  res.json({
+    installment,
+    profitReport: {
+      totalSales: body.totalSales,
+      productionCost: body.productionCost,
+      netProfit,
+      profitSharePercent: body.profitSharePercent,
+      investorShareAmount,
+    },
+  });
+}
+
+/**
+ * POST /api/farmers/installments/:id/mark-paid
+ * Marks the installment as paid after the farmer has distributed
+ * profits to all investors manually (off-platform).
+ */
+export async function markAsPaid(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid installment id", 400);
+  }
+
+  const body = req.body as MarkPaidInput;
+
+  if (!body.confirmPaid) {
+    throw new AppError("You must confirm that all investors have been paid", 400);
+  }
+
+  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id });
+  if (!installment) {
+    throw new AppError("Installment not found", 404);
+  }
+
+  if (installment.status === InstallmentStatus.PAID) {
+    throw new AppError("This installment is already marked as paid", 409);
+  }
+
+  installment.status = InstallmentStatus.PAID;
+  installment.paidAt = new Date();
+  await installment.save();
+
+  res.json({
+    installment,
+    message: "Installment marked as paid successfully",
   });
 }

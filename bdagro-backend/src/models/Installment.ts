@@ -16,6 +16,7 @@ export interface IInstallment extends Document {
   status: InstallmentStatus;
   paidAt: Date | null;
   transaction: Types.ObjectId | null;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,7 @@ const installmentSchema = new Schema<IInstallment>(
     },
     paidAt: { type: Date, default: null },
     transaction: { type: Schema.Types.ObjectId, ref: "Transaction", default: null },
+    metadata: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
