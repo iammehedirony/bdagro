@@ -5,7 +5,7 @@ import { NotificationRow } from "./NotificationRow";
 
 interface NotificationItem {
   icon: string;
-  tone: "emerald" | "amber" | "orange";
+  tone: string;
   text: string;
   time: string;
   unread?: boolean;
