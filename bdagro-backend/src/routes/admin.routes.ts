@@ -52,6 +52,7 @@ router.patch("/users/:id/role", validate(updateUserRoleSchema), userCtrl.updateU
 
 // --- Monitoring & notifications ---
 router.get("/transactions", transactionCtrl.listAllTransactions);
+router.get("/notifications", notificationCtrl.listNotifications);
 router.post("/notifications", validate(sendNotificationSchema), notificationCtrl.sendNotification);
 
 // --- Projects: full-status view + loan disbursement ---

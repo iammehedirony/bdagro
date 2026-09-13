@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
+import { Notification } from "../models/Notification";
 import { AppError } from "../middlewares/errorHandler";
 import { notifyUser } from "../services/notification.service";
 import { SendNotificationInput } from "../validators/admin.validator";
+import { getPagination, buildMeta } from "../utils/pagination";
 
 /**
  * POST /api/admin/notifications
@@ -32,4 +34,30 @@ export async function sendNotification(req: Request, res: Response): Promise<voi
   );
 
   res.status(201).json({ sentCount: notifications.length });
+}
+
+/**
+ * GET /api/admin/notifications?type=&page=&limit=
+ * Lists all notifications sent from the admin panel, with optional filtering by type.
+ * This allows admins to see the history of notifications they've sent.
+ */
+export async function listNotifications(req: Request, res: Response): Promise<void> {
+  const { type } = req.query as { type?: string };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (type) {
+    filter.type = type;
+  }
+
+  const [notifications, total] = await Promise.all([
+    Notification.find(filter)
+      .populate("user", "name email role")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Notification.countDocuments(filter),
+  ]);
+
+  res.json({ notifications, meta: buildMeta(total, pagination) });
 }
