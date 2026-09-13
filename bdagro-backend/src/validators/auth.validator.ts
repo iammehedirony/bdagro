@@ -9,6 +9,7 @@ import { UserRole } from "../utils/constants";
  */
 export const selectRoleSchema = z.object({
   role: z.enum([UserRole.FARMER, UserRole.INVESTOR]),
+  phone: z.string(),
 });
 
 export type SelectRoleInput = z.infer<typeof selectRoleSchema>;

@@ -5,6 +5,11 @@ import { IUser } from "../models/User";
 declare global {
   namespace Express {
     interface Request {
+      auth?: {
+        userId: string | null;
+        sessionId: string | null;
+        [key: string]: any;
+      };
       user?: IUser;
     }
   }

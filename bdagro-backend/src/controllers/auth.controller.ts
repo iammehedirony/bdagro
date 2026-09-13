@@ -42,14 +42,13 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
 
   const clerkUser = await clerkClient.users.getUser(userId);
   const email = clerkUser.primaryEmailAddress?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
-  const phone = clerkUser.primaryPhoneNumber?.phoneNumber ?? clerkUser.phoneNumbers[0]?.phoneNumber;
-  const name = clerkUser.fullName || email || phone || "Unnamed User";
+  const name = clerkUser.fullName || email || "Unnamed User";
 
   const user = await User.create({
     clerkId: userId,
     name,
     email,
-    phone,
+    phone: parsed.data.phone,
     avatarUrl: clerkUser.imageUrl ?? null,
     role: parsed.data.role,
   });

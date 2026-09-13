@@ -3,6 +3,7 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { User } from "../models/User";
 import { UserStatus } from "../utils/constants";
 import { upsertUser, normalizeFromApi } from "../services/user.service";
+import { RequestHandler } from "express";
 
 /**
  * Must run after `requireAuth()` (or at least `clerkMiddleware()`) so that
@@ -18,9 +19,9 @@ import { upsertUser, normalizeFromApi } from "../services/user.service";
  * first.
  */
 export async function syncClerkUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { userId } = getAuth(req);
+  const {isAuthenticated, userId } = getAuth(req);
 
-  if (!userId) {
+  if (!isAuthenticated || !userId) {
     res.status(401).json({ message: "Authentication required" });
     return;
   }
@@ -51,3 +52,15 @@ export async function syncClerkUser(req: Request, res: Response, next: NextFunct
   req.user = user;
   next();
 }
+
+export const requireAuth: RequestHandler = (req, res, next) => {
+  const { userId } = getAuth(req);
+  console.log(req.headers, req.body)
+  console.log("userId", userId);
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  next();
+};
