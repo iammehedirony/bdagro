@@ -19,6 +19,7 @@ export interface IProject extends Document {
   fundedAmount: number;
   status: ProjectStatus;
   fundingDeadline: Date | null;
+  imageUrls: string[];
   remainingAmount?: number; // virtual
   createdAt: Date;
   updatedAt: Date;
@@ -47,6 +48,7 @@ const projectSchema = new Schema<IProject>(
       index: true,
     },
     fundingDeadline: { type: Date, default: null },
+    imageUrls: { type: [String], default: [] },
   },
   { timestamps: true }
 );

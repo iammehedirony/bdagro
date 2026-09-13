@@ -16,6 +16,7 @@ import * as farmerTransactionCtrl from "../controllers/farmerTransaction.control
 import * as notificationCtrl from "../controllers/userNotification.controller";
 import * as farmerDashboardCtrl from "../controllers/farmerDashboard.controller";
 import * as settingsCtrl from "../controllers/settings.controller";
+import * as installmentRecipientsCtrl from "../controllers/installmentRecipients.controller";
 
 const router = Router();
 
@@ -46,6 +47,7 @@ router.get("/loan-applications/:id", loanAppCtrl.getMyApplicationById);
 
 // --- Installments / repayments ---
 router.get("/installments", installmentCtrl.listMyInstallments);
+router.get("/installments/:id/recipients", installmentRecipientsCtrl.getInstallmentRecipients);
 router.post("/installments/:id/pay", validate(initiatePaymentSchema), installmentCtrl.initiatePayment);
 router.post("/installments/:id/profit-report", validate(submitProfitReportSchema), installmentCtrl.submitProfitReport);
 router.post("/installments/:id/mark-paid", validate(markPaidSchema), installmentCtrl.markAsPaid);

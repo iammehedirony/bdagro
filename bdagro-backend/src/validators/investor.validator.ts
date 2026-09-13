@@ -4,8 +4,12 @@ import { RiskLevel, InvestmentType, PaymentMethod } from "../utils/constants";
 export const listProjectsQuerySchema = z.object({
   cropType: z.string().trim().optional(),
   riskLevel: z.enum(RiskLevel).optional(),
+  status: z.string().optional(), // "open", "partially_funded", "fully_funded"
+  location: z.string().trim().optional(),
   minROI: z.coerce.number().optional(),
   maxROI: z.coerce.number().optional(),
+  search: z.string().trim().optional(),
+  sort: z.enum(["roi_desc", "roi_asc", "newest", "oldest", "funding_desc", "funding_asc"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().optional(),
 });
