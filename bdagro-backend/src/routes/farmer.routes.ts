@@ -3,7 +3,7 @@ import { requireAuth } from "@clerk/express";
 import { syncClerkUser } from "../middlewares/auth";
 import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
-import { uploadFarmerDocs } from "../middlewares/upload";
+import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
 import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
 import { submitProfitReportSchema, markPaidSchema } from "../validators/installment.validator";
@@ -33,7 +33,12 @@ router.put(
 );
 
 // --- Loan applications ---
-router.post("/loan-applications", validate(createLoanApplicationSchema), loanAppCtrl.createApplication);
+router.post(
+  "/loan-applications",
+  uploadLoanDocs,
+  validate(createLoanApplicationSchema),
+  loanAppCtrl.createApplication
+);
 router.get("/loan-applications", loanAppCtrl.listMyApplications);
 router.get("/loan-applications/:id", loanAppCtrl.getMyApplicationById);
 

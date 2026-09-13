@@ -16,6 +16,8 @@ export interface ILoanApplication extends Document {
   projectTitle: string;
   projectDescription: string;
   cropType?: string;
+  landDeedUrl?: string;
+  incomeProofUrl?: string;
   status: LoanApplicationStatus;
   reviewedBy: Types.ObjectId | null;
   reviewedAt: Date | null;
@@ -33,6 +35,8 @@ const loanApplicationSchema = new Schema<ILoanApplication>(
     projectTitle: { type: String, required: true, trim: true },
     projectDescription: { type: String, required: true },
     cropType: { type: String, trim: true },
+    landDeedUrl: { type: String },
+    incomeProofUrl: { type: String },
     status: {
       type: String,
       enum: Object.values(LoanApplicationStatus),

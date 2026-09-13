@@ -7,13 +7,16 @@ import { VerificationStatus, LoanApplicationStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { CreateLoanApplicationInput } from "../validators/farmer.validator";
 import { getPagination, buildMeta } from "../utils/pagination";
+import { toPublicUploadUrl } from "../middlewares/upload";
 
 /**
  * POST /api/farmers/loan-applications
  * A farmer can only apply once their identity/land documents are Approved.
+ * Accepts optional document uploads via multipart/form-data.
  */
 export async function createApplication(req: Request, res: Response): Promise<void> {
   const body = req.body as CreateLoanApplicationInput;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   const profile = await FarmerProfile.findOne({ user: req.user!._id });
   if (!profile || profile.verificationStatus !== VerificationStatus.APPROVED) {
@@ -40,6 +43,17 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     throw new AppError(`durationMonths cannot exceed ${loanProduct.maxDurationMonths} for this product`, 400);
   }
 
+  // Handle uploaded documents
+  let landDeedUrl: string | undefined;
+  let incomeProofUrl: string | undefined;
+
+  if (files?.landDeed?.[0]) {
+    landDeedUrl = toPublicUploadUrl(files.landDeed[0].filename);
+  }
+  if (files?.incomeProof?.[0]) {
+    incomeProofUrl = toPublicUploadUrl(files.incomeProof[0].filename);
+  }
+
   const application = await LoanApplication.create({
     farmer: req.user!._id,
     loanProduct: loanProduct._id,
@@ -48,6 +62,8 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     projectTitle: body.projectTitle,
     projectDescription: body.projectDescription,
     cropType: body.cropType,
+    landDeedUrl,
+    incomeProofUrl,
     status: LoanApplicationStatus.PENDING,
   });
 

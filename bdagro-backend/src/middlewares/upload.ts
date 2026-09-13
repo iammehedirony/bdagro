@@ -52,6 +52,15 @@ export const uploadFarmerDocs = upload.fields([
   { name: "landDocument", maxCount: 1 },
 ]);
 
+/**
+ * Expects multipart/form-data for loan application supporting documents:
+ * `landDeed`, `incomeProof`. Both are optional but recommended.
+ */
+export const uploadLoanDocs = upload.fields([
+  { name: "landDeed", maxCount: 1 },
+  { name: "incomeProof", maxCount: 1 },
+]);
+
 /** Builds the public URL for a file saved by the storage above. */
 export function toPublicUploadUrl(filename: string): string {
   return `/uploads/farmer-docs/${filename}`;
