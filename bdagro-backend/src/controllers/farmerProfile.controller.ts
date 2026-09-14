@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import { FarmerProfile } from "../models/FarmerProfile";
 import { VerificationStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
-import { toPublicUploadUrl } from "../middlewares/upload";
+import { uploadToCloudinary } from "../middlewares/upload";
 import { SubmitFarmerProfileInput } from "../validators/farmer.validator";
+import { clerkClient, getAuth } from "@clerk/express";
 
 type UploadedFiles = { [fieldname: string]: Express.Multer.File[] } | undefined;
 
@@ -28,9 +29,14 @@ export async function getMyProfile(req: Request, res: Response): Promise<void> {
 export async function submitProfile(req: Request, res: Response): Promise<void> {
   const body = req.body as SubmitFarmerProfileInput;
   const files = req.files as UploadedFiles;
+  const { userId } = getAuth(req);
 
-  const nidFile = files?.nidImage?.[0];
-  const landFile = files?.landDocument?.[0];
+  if (!userId) {
+    throw new AppError("Authentication required", 401);
+  }
+
+  const nidFrontFile = files?.nidFront?.[0];
+  const nidBackFile = files?.nidBack?.[0];
 
   const existing = await FarmerProfile.findOne({ user: req.user!._id });
 
@@ -38,22 +44,35 @@ export async function submitProfile(req: Request, res: Response): Promise<void> 
     throw new AppError("Profile is already verified and can no longer be self-edited. Contact support.", 409);
   }
 
-  if (!existing && (!nidFile || !landFile)) {
-    throw new AppError("Both nidImage and landDocument files are required for first submission", 400);
+  if (!existing && (!nidFrontFile || !nidBackFile)) {
+    throw new AppError("Both nidFrontFile and nidBackFile are required for first submission", 400);
   }
+
+  const [nidFrontUpload, nidBackUpload] = await Promise.all([
+    nidFrontFile ? uploadToCloudinary(nidFrontFile, req.user!._id.toString()) : undefined,
+    nidBackFile ? uploadToCloudinary(nidBackFile, req.user!._id.toString()) : undefined,
+  ]);
+
+  await clerkClient.users.updateUserMetadata(userId, {
+      publicMetadata: {
+        nidStatus: "submitted"
+      },
+    });
 
   const update = {
     nidNumber: body.nidNumber,
+    nidName: body.nidName,
     address: {
-      district: body.district,
-      upazila: body.upazila,
-      village: body.village,
-      fullAddress: body.fullAddress,
+      district: body.address.district,
+      upazila: body.address.upazila,
+      village: body.address.village,
+      fullAddress: body.address.fullAddress,
     },
-    farmSizeAcres: body.farmSizeAcres ?? null,
-    ...(nidFile ? { nidImageUrl: toPublicUploadUrl(nidFile.filename) } : {}),
-    ...(landFile ? { landDocumentUrl: toPublicUploadUrl(landFile.filename) } : {}),
-    // Any (re)submission goes back to Pending for Admin to review again.
+    dob: body.dob,
+    nidImageUrl: [
+      nidFrontUpload?.secure_url ?? existing?.nidImageUrl[0],
+      nidBackUpload?.secure_url ?? existing?.nidImageUrl[1],
+    ],
     verificationStatus: VerificationStatus.PENDING,
     verifiedBy: null,
     verifiedAt: null,

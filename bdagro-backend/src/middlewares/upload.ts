@@ -1,31 +1,14 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { Request } from "express";
-
-const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads", "farmer-docs");
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 /**
- * Local-disk storage for NID card / land document scans, served back via
- * `express.static("/uploads", ...)` in app.ts.
- *
- * NOTE: local disk is fine for development, but most production hosts
- * (Render, Railway, Heroku-style dynos, etc.) have ephemeral filesystems
- * — swap this for Cloudinary/S3 before shipping (env vars are already
- * scaffolded in .env.example: CLOUDINARY_*).
+ * Multer keeps the file in memory until the controller uploads it to
+ * Cloudinary. This avoids writing documents to an ephemeral local disk.
  */
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req: Request, file, cb) => {
-    const userId = req.user?._id?.toString() ?? "anonymous";
-    const ext = path.extname(file.originalname);
-    const unique = `${userId}-${file.fieldname}-${Date.now()}${ext}`;
-    cb(null, unique);
-  },
-});
+const storage = multer.memoryStorage();
 
 function fileFilter(_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) {
   if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
@@ -41,27 +24,64 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
 });
 
+function configureCloudinary(): void {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Cloudinary upload is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+  }
+
+  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+}
+
+/** Uploads a validated multer file and returns its stable HTTPS URL. */
+export function uploadToCloudinary(file: Express.Multer.File, userId: string): Promise<UploadApiResponse> {
+  configureCloudinary();
+
+  return new Promise((resolve, reject) => {
+    const publicId = `${userId}-${file.fieldname}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "bdagro/farmer-docs",
+        public_id: publicId,
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!result) {
+          reject(new Error("Cloudinary did not return an upload result"));
+          return;
+        }
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+}
+
 /**
  * Expects multipart/form-data with up to one file in each of these fields:
- * `nidImage`, `landDocument`. Both are optional per-request (e.g. a
+ * `nidFront`, `nidBack`. Both are optional per-request (e.g. a
  * resubmission might only replace one of the two), required-on-first-
  * submit is enforced in the controller, not here.
  */
 export const uploadFarmerDocs = upload.fields([
-  { name: "nidImage", maxCount: 1 },
-  { name: "landDocument", maxCount: 1 },
+  { name: "nidFront", maxCount: 1 },
+  { name: "nidBack", maxCount: 1 },
 ]);
 
 /**
  * Expects multipart/form-data for loan application supporting documents:
- * `landDeed`, `incomeProof`. Both are optional but recommended.
+ * `landDeed`, `incomeProof`. Both are optional but recommended. These
+ * documents are uploaded to Cloudinary by the consuming controller.
  */
 export const uploadLoanDocs = upload.fields([
   { name: "landDeed", maxCount: 1 },
   { name: "incomeProof", maxCount: 1 },
 ]);
-
-/** Builds the public URL for a file saved by the storage above. */
-export function toPublicUploadUrl(filename: string): string {
-  return `/uploads/farmer-docs/${filename}`;
-}

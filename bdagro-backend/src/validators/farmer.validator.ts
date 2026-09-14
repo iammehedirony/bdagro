@@ -8,11 +8,17 @@ import { PaymentMethod } from "../utils/constants";
  */
 export const submitFarmerProfileSchema = z.object({
   nidNumber: z.string().trim().min(5, "NID number looks too short"),
-  district: z.string().trim().optional(),
-  upazila: z.string().trim().optional(),
-  village: z.string().trim().optional(),
-  fullAddress: z.string().trim().optional(),
-  farmSizeAcres: z.coerce.number().positive().optional(),
+  nidName: z.string().trim().min(2, "NID অনুযায়ী আপনার সঠিক নাম দিন"),
+  dob: z.string().trim().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/(19|20)\d\d$/, {
+    message: "সঠিক জন্ম তারিখ দিন (DD/MM/YYYY)",
+  }),
+  address: z.object({
+    district: z.string().trim().min(2, "জেলা কমপক্ষে ২ অক্ষরের হতে হবে"),
+    upazila: z.string().trim().min(2, "উপজেলা কমপক্ষে ২ অক্ষরের হতে হবে"),
+    village: z.string().trim().min(2, "গ্রাম কমপক্ষে ২ অক্ষরের হতে হবে"),
+    fullAddress: z.string().trim().min(5, "পূর্ণ ঠিকানা কমপক্ষে ৫ অক্ষরের হতে হবে"),
+  }).strict(),
+  
 });
 export type SubmitFarmerProfileInput = z.infer<typeof submitFarmerProfileSchema>;
 

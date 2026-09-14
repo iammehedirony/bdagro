@@ -6,6 +6,7 @@ import { AppError } from "../middlewares/errorHandler";
 import { getPagination, buildMeta } from "../utils/pagination";
 import { notifyUser } from "../services/notification.service";
 import { RejectInput } from "../validators/admin.validator";
+import { clerkClient, getAuth } from "@clerk/express";
 
 /**
  * GET /api/admin/verifications?status=&page=&limit=
@@ -57,8 +58,13 @@ export async function getVerificationById(req: Request, res: Response): Promise<
  */
 export async function approveVerification(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
+  const {userId} = getAuth(req);
   if (!mongoose.isValidObjectId(id)) {
     throw new AppError("Invalid profile id", 400);
+  }
+
+  if (!userId) {
+    throw new AppError("Authentication required", 401);
   }
 
   const profile = await FarmerProfile.findById(id);
@@ -68,6 +74,12 @@ export async function approveVerification(req: Request, res: Response): Promise<
   if (profile.verificationStatus === VerificationStatus.APPROVED) {
     throw new AppError("Profile is already approved", 409);
   }
+
+  await clerkClient.users.updateUserMetadata(userId, {
+  publicMetadata: {
+    nidStatus: "approved",
+  },
+});
 
   profile.verificationStatus = VerificationStatus.APPROVED;
   profile.verifiedBy = req.user!._id;

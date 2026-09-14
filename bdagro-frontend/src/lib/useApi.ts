@@ -17,7 +17,7 @@ export const useApi = () => {
     // এখানে ইন্টারসেপ্টর কাজ করবে এবং হুক থেকে পাওয়া getToken() ব্যবহার করবে
     instance.interceptors.request.use(async (config) => {
       try {
-        const token = await getToken();
+        const token = await getToken({ skipCache: true });
         console.log('Fetched token in interceptor:', token);
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;

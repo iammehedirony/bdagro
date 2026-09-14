@@ -31,7 +31,12 @@ export const farmerNidSchema = z.object({
   dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/(19|20)\d\d$/, {
     message: "সঠিক জন্ম তারিখ দিন (DD/MM/YYYY)",
   }),
-  farmAddress: z.string().min(5, { message: "খামারের সঠিক ঠিকানা দিন" }),
+  address: z.object({
+    district: z.string().min(2, { message: "জেলা কমপক্ষে ২ অক্ষরের হতে হবে" }),
+    upazila: z.string().min(2, { message: "উপজেলা কমপক্ষে ২ অক্ষরের হতে হবে" }),
+    village: z.string().min(2, { message: "গ্রাম কমপক্ষে ২ অক্ষরের হতে হবে" }),
+    fullAddress: z.string().min(5, { message: "পূর্ণ ঠিকানা কমপক্ষে ৫ অক্ষরের হতে হবে" }),
+  }).strict(),
   
   // File Uploads
   nidFront: z.any().refine((file) => file !== null && file !== undefined, {

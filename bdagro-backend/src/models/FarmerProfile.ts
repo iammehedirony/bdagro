@@ -16,23 +16,26 @@ export interface IFarmerProfile extends Document {
   _id: Types.ObjectId;
   user: Types.ObjectId;
   nidNumber: string;
-  nidImageUrl: string;
-  landDocumentUrl: string;
+  nidImageUrl: [
+    nidFront: string,
+    nidBack: string
+  ];
+  landDocumentUrl?: string;
   address: IAddress;
-  farmSizeAcres: number | null;
-  verificationStatus: VerificationStatus;
-  verifiedBy: Types.ObjectId | null;
-  verifiedAt: Date | null;
-  rejectionReason: string | null;
-  settings: {
+  farmSizeAcres?: number | null;
+  verificationStatus?: VerificationStatus;
+  verifiedBy?: Types.ObjectId | null;
+  verifiedAt?: Date | null;
+  rejectionReason?: string | null;
+  settings?: {
     bkashNumber?: string;
     nagadNumber?: string;
     bankAccount?: string;
     defaultPaymentGateway?: string;
-    notifyInvestmentUpdates: boolean;
-    notifyProfitReportReminders: boolean;
-    notifyProjectStatusChanges: boolean;
-    notifyPromotional: boolean;
+    notifyInvestmentUpdates?: boolean;
+    notifyProfitReportReminders?: boolean;
+    notifyProjectStatusChanges?: boolean;
+    notifyPromotional?: boolean;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -42,8 +45,11 @@ const farmerProfileSchema = new Schema<IFarmerProfile>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true, index: true },
     nidNumber: { type: String, required: true, trim: true },
-    nidImageUrl: { type: String, required: true }, // scanned copy of NID card
-    landDocumentUrl: { type: String, required: true }, // scanned copy of পর্চা/খতিয়ান
+    nidImageUrl: [
+      { type: String, required: true },
+      { type: String, required: true }
+    ], // scanned copy of NID card
+    landDocumentUrl: { type: String, default: null }, // scanned copy of পর্চা/খতিয়ান
     address: {
       district: { type: String, trim: true },
       upazila: { type: String, trim: true },
@@ -61,10 +67,10 @@ const farmerProfileSchema = new Schema<IFarmerProfile>(
     verifiedAt: { type: Date, default: null },
     rejectionReason: { type: String, default: null },
     settings: {
-      bkashNumber: { type: String, trim: true },
-      nagadNumber: { type: String, trim: true },
-      bankAccount: { type: String, trim: true },
-      defaultPaymentGateway: { type: String },
+      bkashNumber: { type: String, trim: true, default: null },
+      nagadNumber: { type: String, trim: true, default: null },
+      bankAccount: { type: String, trim: true, default: null },
+      defaultPaymentGateway: { type: String , trim: true, default: null },
       notifyInvestmentUpdates: { type: Boolean, default: true },
       notifyProfitReportReminders: { type: Boolean, default: true },
       notifyProjectStatusChanges: { type: Boolean, default: true },

@@ -159,7 +159,7 @@ requireRole(UserRole.FARMER)` (see `src/routes/farmer.routes.ts`).
 | Method & path | Purpose |
 |---|---|
 | `GET /profile/me` | Own farmer profile + verification status |
-| `PUT /profile` | Submit/resubmit NID + land document (multipart: `nidImage`, `landDocument` files + text fields). Locked once Admin approves it. |
+| `PUT /profile` | Submit/resubmit NID documents (multipart: `nidFront`, `nidBack` files + text fields). Locked once Admin approves it. |
 | `POST /loan-applications` | Apply for a loan against a `LoanProduct` (requires an Approved profile) |
 | `GET /loan-applications` | List own applications, `?status=&page=&limit=` |
 | `GET /loan-applications/:id` | One application's detail |
@@ -169,11 +169,11 @@ requireRole(UserRole.FARMER)` (see `src/routes/farmer.routes.ts`).
 Also added: `GET /api/loan-products` (`?category=&page=&limit=`) — the
 "লোন এক্সপ্লোরার" catalog browse, open to any authenticated role.
 
-**File uploads:** `src/middlewares/upload.ts` (multer) saves NID/land
-document scans to local disk under `uploads/farmer-docs/`, served back at
-`/uploads/farmer-docs/<filename>`. This is dev-only — swap for
-Cloudinary/S3 (env vars already scaffolded) before deploying, since most
-hosts have ephemeral filesystems.
+**File uploads:** `src/middlewares/upload.ts` uses multer memory storage and
+streams validated NID and loan documents to Cloudinary. Set
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in
+the backend environment. Controllers persist the returned HTTPS
+`secure_url`; files are no longer served from local `/uploads` paths.
 
 **Validation:** `src/middlewares/validate.ts` is a reusable Zod
 middleware — `validate(schema)` parses/coerces `req.body` and 400s with a

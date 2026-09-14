@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "@clerk/express";
-import { syncClerkUser } from "../middlewares/auth";
+import { syncClerkUser, requireAuth } from "../middlewares/auth";
 import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
 import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
@@ -21,7 +20,7 @@ import * as installmentRecipientsCtrl from "../controllers/installmentRecipients
 const router = Router();
 
 // Every route below requires a logged-in, active Farmer account.
-router.use(requireAuth(), syncClerkUser, requireRole(UserRole.FARMER));
+router.use(requireAuth, syncClerkUser, requireRole(UserRole.FARMER));
 
 // --- Dashboard ---
 router.get("/dashboard", farmerDashboardCtrl.getFarmerDashboard);

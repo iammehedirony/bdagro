@@ -1,4 +1,3 @@
-import path from "path";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -48,10 +47,6 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-
-// Serves uploaded NID/land-document scans (dev-only local disk storage —
-// see src/middlewares/upload.ts for the production Cloudinary/S3 note).
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // --- Health check ---
 app.get("/api/health", (_req: Request, res: Response) => {

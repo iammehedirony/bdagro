@@ -1,7 +1,7 @@
 import { STEPS } from "@/constants/auth";
 import { CheckCircle2, Lock } from "lucide-react";
 
-export function StepSidebar({ step, phone }: { step: number; phone?: string }) {
+export function StepSidebar({ step }: { step: number }) {
   return (
     <div className="relative">
       <div className="absolute left-[15px] top-4 bottom-4 w-px bg-stone-200" />
@@ -50,9 +50,7 @@ export function StepSidebar({ step, phone }: { step: number; phone?: string }) {
                 >
                   {isDone ? "সম্পন্ন" : isCurrent ? "এই ধাপে আছেন" : "লকড"}
                 </div>
-                {isDone && s.id === 1 && phone && (
-                  <div className="text-xs text-stone-400 mt-1">{phone}</div>
-                )}
+               
               </div>
             </div>
           );

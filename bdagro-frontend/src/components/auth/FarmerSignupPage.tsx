@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useForm,
   FormProvider,
@@ -9,8 +9,8 @@ import {
   type FieldError as RHFFieldError,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldCheck, CheckCircle2, Clock } from "lucide-react";
-import { useSignUp } from "@clerk/nextjs";
+import { ShieldCheck, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { useAuth, useSignUp, useUser } from "@clerk/nextjs";
 import Field from "../ui/Field";
 import UploadBox from "../ui/UploadBox";
 import StatusChip from "../ui/StatusChip";
@@ -24,8 +24,9 @@ import {
 import { StepSidebar } from "./StepSidebar";
 import { FieldError } from "../ui/FieldError";
 import { LockedPreview } from "./LockedPreview";
-import { useApi } from "@/lib/useApi";
 import axios from "axios";
+import { useApi } from "@/lib/useApi";
+import Link from "next/link";
 
 function AccountStep() {
   const {
@@ -33,14 +34,30 @@ function AccountStep() {
     control,
     trigger,
     getValues,
-    formState: { errors },
+    formState: { errors , isSubmitting},
   } = useFormContext<FarmerAccountFormValues>();
 
-const { signUp, fetchStatus } = useSignUp();
-const loading = fetchStatus === "fetching";
+const { signUp } = useSignUp();
 const [clerkError, setClerkError] = useState("");
+const [isOtpSending, setIsOtpSending] = useState(false);
+const [countdown, setCountdown] = useState<number | null>(null); // কাউন্টডাউনের জন্য স্টেট
+
+  // কাউন্টডাউন টাইমার হ্যান্ডেল করার জন্য useEffect
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) {
+      if (countdown === 0) setCountdown(null);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown]);
 
 const handleSendOTP = async () => {
+  setIsOtpSending(true);
   const isValid = await trigger(["name", "email", "password", "terms", "phone"]);
   if (!isValid) return;
 
@@ -57,13 +74,17 @@ const handleSendOTP = async () => {
     return;
   }
 
-  await signUp.verifications.sendEmailCode();
+  const verificationResult = await signUp.verifications.sendEmailCode();
+  setIsOtpSending(false);
+  if (verificationResult) {
+      setCountdown(5);
+    }
 };
 
   return (
     <>
       <div className="border border-stone-200">
-        <div className="p-8 border-b border-stone-200">
+        <div className="px-8">
           <div className="flex items-center gap-2 text-emerald-800">
             <ShieldCheck className="w-4 h-4" />
             <span className="text-xs">ধাপ ১ / ২</span>
@@ -86,7 +107,7 @@ const handleSendOTP = async () => {
             <Field
               label="পূর্ণ নাম"
               placeholder="আপনার নাম লিখুন"
-              readOnly={loading}
+              readOnly={isSubmitting || isOtpSending}
               {...register("name")}
             />
             <FieldError error={errors.name} />
@@ -97,7 +118,7 @@ const handleSendOTP = async () => {
             <Field
               label="ফোন নম্বর"
               placeholder="০১৭XXXXXXXX"
-              readOnly={loading}
+              readOnly={isSubmitting || isOtpSending}
               {...register("phone")}
             />
             <FieldError error={errors.phone} />
@@ -107,16 +128,22 @@ const handleSendOTP = async () => {
             <Field
               label="ইমেইল"
               placeholder="আপনার ইমেইল দিন"
-              readOnly={loading}
+              readOnly={isSubmitting || isOtpSending}
               {...register("email")}
               suffix={
-                <button
+               <button
                   type="button"
                   onClick={handleSendOTP}
-                  disabled={loading}
+                  disabled={isSubmitting || isOtpSending || countdown !== null}
                   className="px-4 py-2.5 text-xs text-emerald-800 border-l border-stone-300 hover:bg-stone-50 whitespace-nowrap disabled:opacity-50"
                 >
-                  {loading ? "লোড হচ্ছে..." : "OTP পাঠান"}
+                  {isOtpSending ? (
+                    <Loader2 className="w-3 h-3 animate-spin inline" />
+                  ) : countdown !== null ? (
+                    `otp sent! (${countdown}s)`
+                  ) : (
+                    "OTP পাঠান"
+                  )}
                 </button>
               }
             />
@@ -130,7 +157,7 @@ const handleSendOTP = async () => {
               name="otp"
               control={control}
               render={({ field: { value, onChange } }) => (
-                <OtpInput value={value} onChange={onChange} disabled={loading} />
+                <OtpInput value={value} onChange={onChange} disabled={isSubmitting || isOtpSending} />
               )}
             />
             <FieldError 
@@ -142,7 +169,6 @@ const handleSendOTP = async () => {
             />
             <div className="mt-2 text-xs text-stone-400">
               ফোনে পাঠানো ৬-ডিজিট কোডটি লিখুন ·{" "}
-              <span className="text-emerald-900 cursor-pointer">আবার পাঠান</span>
             </div>
           </div>
 
@@ -152,7 +178,7 @@ const handleSendOTP = async () => {
               label="পাসওয়ার্ড"
               type="password"
               placeholder="কমপক্ষে ৮ ক্যারেক্টার"
-              readOnly={loading}
+              readOnly={isSubmitting || isOtpSending}
               {...register("password")}
             />
             <FieldError error={errors.password} />
@@ -167,7 +193,7 @@ const handleSendOTP = async () => {
                 type="checkbox"
                 className="accent-emerald-800 mt-0.5"
                 {...register("terms")}
-                disabled={loading}
+                disabled={isSubmitting || isOtpSending}
               />
               <span>
                 আমি Bdagroonline-এর ব্যবহারের শর্তাবলী ও গোপনীয়তা নীতিতে সম্মত
@@ -186,10 +212,10 @@ const handleSendOTP = async () => {
         <div className="p-8 pt-0 flex items-center justify-end">
           <button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitting || isOtpSending}
             className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 disabled:opacity-70"
           >
-            {loading ? "যাচাই করা হচ্ছে..." : "পরবর্তী ধাপ: NID ভেরিফিকেশন"}
+            {isSubmitting ? <Loader2 className="animate-spin w-4 h-4"/> : "পরবর্তী ধাপ: NID ভেরিফিকেশন"}
           </button>
         </div>
       </div>
@@ -199,11 +225,11 @@ const handleSendOTP = async () => {
   );
 }
 
-function NidStep({ onBack }: { onBack: () => void }) {
+function NidStep() {
   const {
     register,
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useFormContext<FarmerNidFormValues>();
 
   return (
@@ -225,23 +251,53 @@ function NidStep({ onBack }: { onBack: () => void }) {
         <div className="p-8 space-y-6">
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
-              <Field label="NID নম্বর" placeholder="১০ / ১৭ ডিজিট" {...register("nidNumber")} />
+              <Field label="NID নম্বর" placeholder="১০ / ১৭ ডিজিট" 
+              readOnly={isSubmitting}
+              {...register("nidNumber")} />
               <FieldError error={errors.nidNumber} />
             </div>
             <div>
-              <Field label="পূর্ণ নাম (NID অনুযায়ী)" placeholder="নাম লিখুন" {...register("nidName")} />
+              <Field label="পূর্ণ নাম (NID অনুযায়ী)" placeholder="নাম লিখুন" 
+              readOnly={isSubmitting}
+              {...register("nidName")} />
               <FieldError error={errors.nidName} />
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
-              <Field label="জন্ম তারিখ" placeholder="dd/mm/yyyy" {...register("dob")} />
+              <Field label="জন্ম তারিখ" placeholder="dd/mm/yyyy" 
+              readOnly={isSubmitting}
+              {...register("dob")} />
               <FieldError error={errors.dob} />
             </div>
+            {/* district */}
             <div>
-              <Field label="খামারের ঠিকানা" placeholder="জেলা, উপজেলা" {...register("farmAddress")} />
-              <FieldError error={errors.farmAddress} />
+              <Field label="জেলা" placeholder="জেলা লিখুন" 
+              readOnly={isSubmitting}
+              {...register("address.district")} />
+              <FieldError error={errors.address?.district} />
+            </div>
+            {/* upazila */}
+            <div>
+              <Field label="উপজেলা" placeholder="উপজেলা লিখুন"
+              readOnly={isSubmitting}
+              {...register("address.upazila")} />
+              <FieldError error={errors.address?.upazila} />
+            </div>
+            {/* village */}
+            <div>
+              <Field label="গ্রাম" placeholder="গ্রাম লিখুন" 
+              readOnly={isSubmitting}
+              {...register("address.village")} />
+              <FieldError error={errors.address?.village} />
+            </div>
+            {/* fullAddress */}
+            <div>
+              <Field label="পূর্ণ ঠিকানা" placeholder="পূর্ণ ঠিকানা লিখুন" 
+              readOnly={isSubmitting}
+              {...register("address.fullAddress")} />
+              <FieldError error={errors.address?.fullAddress} />
             </div>
           </div>
 
@@ -290,17 +346,10 @@ function NidStep({ onBack }: { onBack: () => void }) {
 
         <div className="p-8 pt-0 flex items-center justify-between">
           <button
-            type="button"
-            onClick={onBack}
-            className="text-sm text-stone-500 hover:text-stone-800"
-          >
-            পূর্ববর্তী ধাপ
-          </button>
-          <button
             type="submit"
-            className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800"
+            className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 w-full text-center"
           >
-            যাচাইয়ের জন্য জমা দিন
+          {isSubmitting ? <Loader2 className="animate-spin w-4 h-4" /> : "NID যাচাইয়ের জন্য জমা দিন"} 
           </button>
         </div>
       </div>
@@ -333,7 +382,19 @@ function DoneScreen() {
 export default function FarmerSignupFlow() {
   const [step, setStep] = useState<1 | 2>(1);
   const [submitted, setSubmitted] = useState(false);
-  const api = useApi();
+  const api = useApi()
+  const { signUp } = useSignUp();
+  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const goNext = () => setStep(2);
+  const nidStatus = user?.publicMetadata?.nidStatus as string;
+  let currentStep = 1;
+  if (nidStatus === "unsubmitted") {
+    currentStep = 2;
+  } else if (nidStatus === "pending" || nidStatus === "submitted") {
+    currentStep = 3;
+  }
+  console.log(nidStatus)
 
   const accountMethods = useForm<FarmerAccountFormValues>({
     resolver: zodResolver(farmerAccountSchema),
@@ -344,48 +405,104 @@ export default function FarmerSignupFlow() {
   const nidMethods = useForm<FarmerNidFormValues>({
     resolver: zodResolver(farmerNidSchema),
     mode: "onSubmit",
-    defaultValues: { nidNumber: "", nidName: "", dob: "", farmAddress: "", nidFront: null, nidBack: null }
+    defaultValues: { nidNumber: "", nidName: "", dob: "", address: { district: "", upazila: "", village: "", fullAddress: "" }, nidFront: null, nidBack: null }
   });
 
-  const phone = accountMethods.watch("phone");
+// পেজ রিলোড হলে স্ট্যাটাস অনুযায়ী স্টেপ ঠিক করা
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const role = user.publicMetadata?.role as string;
 
-  const goNext = () => setStep(2);
-  const goBack = () => setStep(1);
-
- // FarmerSignupFlow এর ভিতরে
-const { signUp } = useSignUp();
-
-const onSubmitAccount = async (data: FarmerAccountFormValues) => {
-  const otpCode = data.otp?.join("") || "";
-  const { error } = await signUp.verifications.verifyEmailCode({ code: otpCode });
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  if (signUp.status === "complete") {
-    await signUp.finalize({
-      navigate: async () => {
-        try {
-          const response = await api.post("/auth/select-role", { role: "farmer", phone: data.phone });
-          if (response.data.success) {
-            goNext();
-          }
-        } catch (error) {
-          if (axios.isAxiosError(error)) {
-            console.log("Axios Error", error.message);
-            if (error.response) console.log(error.response.status);
-          }
+      if (role === 'farmer') {
+        // যদি unsubmitted হয়, তবে সরাসরি ২য় ধাপে (NID Form) পাঠাবে
+        if (nidStatus === 'unsubmitted') {
+          setStep(2);
         }
-      },
-    });
+      }
+    }
+  }, [isLoaded, isSignedIn, user, nidStatus]);
+
+
+ const onSubmitAccount = async (data: FarmerAccountFormValues) => {
+  try {
+    const otpCode = data.otp?.join("") || "";
+    const verification = await signUp.verifications.verifyEmailCode({ code: otpCode });
+    if (verification.error) {
+      console.error("Clerk email verification failed:", verification.error);
+      return;
+    }
+
+    if (signUp.status !== "complete") {
+      console.error("Clerk signup is not complete after email verification:", signUp.status);
+      return;
+    }
+
+    const finalizeResult = await signUp.finalize();
+    console.log("Clerk signup finalized:", finalizeResult);
+    if (finalizeResult.error) {
+      console.error("Clerk signup finalization failed:", finalizeResult.error);
+      return;
+    }
+
+    const token = await getToken({ skipCache: true });
+    console.log("Fetched token after Core 3 finalize:", token);
+    if (!token) {
+      console.error("Clerk finalized signup but no active session token is available");
+      return;
+    }
+
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/select-role",
+      { role: "farmer", phone: data.phone },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (response.status === 201) {
+        await user?.reload();
+      }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.log("Axios Error", error.message);
+      if (error.response) console.log(error.response.status);
+    } else {
+      console.error("Farmer signup failed:", error);
+    }
   }
 };
 
-  const onSubmitNid = async (data: FarmerNidFormValues) => {
-    console.log("NID Data:", data);
-    setSubmitted(true);
-  };
+ const onSubmitNid = async (data: FarmerNidFormValues) => {
+  try {
+    const formData = new FormData();
+
+    formData.append("nidNumber", data.nidNumber);
+    formData.append("nidName", data.nidName);
+    formData.append("dob", data.dob);
+    // nested objects don't survive multipart as-is — send as JSON string
+    // and JSON.parse(req.body.address) server-side, or flatten the keys:
+    formData.append("address[district]", data.address.district);
+    formData.append("address[upazila]", data.address.upazila);
+    formData.append("address[village]", data.address.village);
+    formData.append("address[fullAddress]", data.address.fullAddress);
+
+    if (data.nidFront) formData.append("nidFront", data.nidFront);
+    if (data.nidBack) formData.append("nidBack", data.nidBack);
+
+    const response = await api.put("/farmers/profile", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    console.log("NID Response:", response);
+    await user?.reload();
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.log("Axios Error", error.message);
+      if (error.response) console.log(error.response.status);
+    } else {
+      console.error("NID submission failed:", error);
+    }
+  }
+};
+
+const isPending = nidStatus === "submitted";
 
   return (
     <div className="bg-white min-h-screen">
@@ -396,14 +513,14 @@ const onSubmitAccount = async (data: FarmerAccountFormValues) => {
         </p>
 
         <div className="mt-12 grid md:grid-cols-[220px_1fr] gap-12">
-          <StepSidebar step={submitted ? 3 : step} phone={phone} />
+          <StepSidebar step={currentStep} />
 
           <div>
-            {submitted ? (
+            {isPending ? (
               <DoneScreen />
             ) : (
               <>
-                {step === 1 && (
+                {currentStep === 1 && (
                   <FormProvider {...accountMethods}>
                     <form onSubmit={accountMethods.handleSubmit(onSubmitAccount)} noValidate>
                       <AccountStep />
@@ -411,10 +528,10 @@ const onSubmitAccount = async (data: FarmerAccountFormValues) => {
                   </FormProvider>
                 )}
 
-                {step === 2 && (
+                {currentStep === 2 && (
                   <FormProvider {...nidMethods}>
                     <form onSubmit={nidMethods.handleSubmit(onSubmitNid)} noValidate>
-                      <NidStep onBack={goBack} />
+                      <NidStep />
                     </form>
                   </FormProvider>
                 )}

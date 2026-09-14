@@ -35,6 +35,14 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
     throw new AppError(parsed.error.issues.map((e) => e.message).join(", "), 400);
   }
 
+  // Clerk API ব্যবহার করে ইউজারের publicMetadata আপডেট করা
+    await clerkClient.users.updateUserMetadata(userId, {
+      publicMetadata: {
+        role: parsed.data.role,
+        nidStatus: "unsubmitted"
+      },
+    });
+
   const existing = await User.findOne({ clerkId: userId });
   if (existing) {
     throw new AppError("Role has already been set for this account", 409);

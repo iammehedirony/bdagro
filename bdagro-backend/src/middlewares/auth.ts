@@ -53,7 +53,7 @@ export async function syncClerkUser(req: Request, res: Response, next: NextFunct
   next();
 }
 
-export const requireAuth: RequestHandler = (req, res, next) => {
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   const { userId } = getAuth(req);
   console.log(req.headers, req.body)
   console.log("userId", userId);
@@ -61,6 +61,5 @@ export const requireAuth: RequestHandler = (req, res, next) => {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
-
   next();
 };

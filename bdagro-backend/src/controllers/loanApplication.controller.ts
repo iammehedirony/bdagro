@@ -7,7 +7,7 @@ import { VerificationStatus, LoanApplicationStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { CreateLoanApplicationInput } from "../validators/farmer.validator";
 import { getPagination, buildMeta } from "../utils/pagination";
-import { toPublicUploadUrl } from "../middlewares/upload";
+import { uploadToCloudinary } from "../middlewares/upload";
 
 /**
  * POST /api/farmers/loan-applications
@@ -43,16 +43,14 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     throw new AppError(`durationMonths cannot exceed ${loanProduct.maxDurationMonths} for this product`, 400);
   }
 
-  // Handle uploaded documents
-  let landDeedUrl: string | undefined;
-  let incomeProofUrl: string | undefined;
-
-  if (files?.landDeed?.[0]) {
-    landDeedUrl = toPublicUploadUrl(files.landDeed[0].filename);
-  }
-  if (files?.incomeProof?.[0]) {
-    incomeProofUrl = toPublicUploadUrl(files.incomeProof[0].filename);
-  }
+  const [landDeedUpload, incomeProofUpload] = await Promise.all([
+    files?.landDeed?.[0]
+      ? uploadToCloudinary(files.landDeed[0], req.user!._id.toString())
+      : undefined,
+    files?.incomeProof?.[0]
+      ? uploadToCloudinary(files.incomeProof[0], req.user!._id.toString())
+      : undefined,
+  ]);
 
   const application = await LoanApplication.create({
     farmer: req.user!._id,
@@ -62,8 +60,8 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     projectTitle: body.projectTitle,
     projectDescription: body.projectDescription,
     cropType: body.cropType,
-    landDeedUrl,
-    incomeProofUrl,
+    landDeedUrl: landDeedUpload?.secure_url,
+    incomeProofUrl: incomeProofUpload?.secure_url,
     status: LoanApplicationStatus.PENDING,
   });
 
