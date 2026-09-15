@@ -26,7 +26,6 @@ import { FieldError } from "../ui/FieldError";
 import { LockedPreview } from "./LockedPreview";
 import axios from "axios";
 import { useApi } from "@/lib/useApi";
-import Link from "next/link";
 import LoadingPage from "@/app/loading";
 
 function AccountStep() {

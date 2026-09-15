@@ -1,6 +1,5 @@
 import { MoreVertical } from "lucide-react";
 import { RoleTag } from "@/components/ui/RoleTag";
-import StatusTag from "@/components/others/StatusTag";
 
 const users = [
   { name: "আব্দুল করিম", phone: "+৮৮০ ১৭১২-৩৪৫৬৭৮", role: "Farmer" as const, status: "Verified", joined: "১২ জুন ২০২৬" },

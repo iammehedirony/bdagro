@@ -18,7 +18,7 @@ const iconMap = {
 export function NotificationRow({ icon, tone, text, time, unread }: NotificationRowProps) {
   const Icon = iconMap[icon as keyof typeof iconMap] || CheckCircle2;
 
-  const toneMap: Record<"emerald" | "amber" | "orange", string> = {
+  const toneMap = {
     emerald: "text-primary-700 bg-primary-50",
     amber: "text-accent-700 bg-accent-50",
     orange: "text-danger-600 bg-danger-50",
