@@ -18,6 +18,11 @@ export interface IUser extends Document {
   role: UserRole;
   status: UserStatus;
   statusReason: string | null;
+  adminSettings?: {
+    minInvestmentAmount?: number;
+    nidVerificationTimeoutHours?: number;
+    allowedPaymentGateways?: string[];
+  };
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +48,11 @@ const userSchema = new Schema<IUser>(
       index: true,
     },
     statusReason: { type: String, default: null },
+     adminSettings: {
+      minInvestmentAmount: { type: Number },
+      nidVerificationTimeoutHours: { type: Number },
+      allowedPaymentGateways: [{ type: String }],
+    },
     lastLoginAt: { type: Date, default: null },
   },
   { timestamps: true }

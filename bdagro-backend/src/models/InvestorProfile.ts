@@ -3,6 +3,7 @@ import { Schema, model, Document, Types } from "mongoose";
 interface IInvestorPreferences {
   preferredCropTypes: string[];
   maxRiskLevel: string | null;
+  monthlyInvestmentPlan: string;
 }
 
 /**
@@ -37,6 +38,7 @@ const investorProfileSchema = new Schema<IInvestorProfile>(
     totalReturned: { type: Number, default: 0 },
     activeProjectsCount: { type: Number, default: 0 },
     preferences: {
+      monthlyInvestmentPlan: { type: String },
       preferredCropTypes: [{ type: String }],
       maxRiskLevel: { type: String, default: null },
     },

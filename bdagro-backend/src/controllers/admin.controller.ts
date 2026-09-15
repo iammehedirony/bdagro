@@ -1,0 +1,692 @@
+import { Request, Response } from "express";
+import { User } from "../models/User";
+import { FarmerProfile } from "../models/FarmerProfile";
+import { ILoanApplication, LoanApplication } from "../models/LoanApplication";
+import { Project } from "../models/Project";
+import { Investment } from "../models/Investment";
+import { Transaction } from "../models/Transaction";
+import {
+  UserRole,
+  VerificationStatus,
+  LoanApplicationStatus,
+  InvestmentStatus,
+  TransactionType,
+  TransactionStatus,
+  ProjectStatus,
+  UserStatus,
+} from "../utils/constants";
+import { buildMeta, getPagination } from "../utils/pagination";
+import { AppError } from "../middlewares/errorHandler";
+import mongoose, { HydratedDocument } from "mongoose";
+import { notifyUser } from "../services/notification.service";
+import { getIo } from "../realtime/io";
+import { ApproveLoanApplicationInput, RejectInput, SendNotificationInput, UpdateUserRoleInput, UpdateUserStatusInput } from "../validators/admin.validator";
+import { Notification } from "../models";
+import { disburseLoan } from "../services/loan.service";
+import { clerkClient, getAuth } from "@clerk/express";
+import { UpdateAdminSettingsInput } from "../validators/settings.validator";
+
+// ****************** dashboard home ****************
+/**
+ * GET /api/admin/dashboard
+ * The "সেন্ট্রাল ড্যাশবোর্ড" — platform-wide totals for users, loans,
+ * investments, and the two review queues (verifications, loan applications).
+ */
+export async function getDashboard(_req: Request, res: Response): Promise<void> {
+  const [
+    totalFarmers,
+    totalInvestors,
+    pendingVerifications,
+    pendingLoanApplications,
+    openProjects,
+    disbursementAgg,
+    investmentAgg,
+  ] = await Promise.all([
+    User.countDocuments({ role: UserRole.FARMER }),
+    User.countDocuments({ role: UserRole.INVESTOR }),
+    FarmerProfile.countDocuments({ verificationStatus: VerificationStatus.PENDING }),
+    LoanApplication.countDocuments({
+      status: { $in: [LoanApplicationStatus.PENDING, LoanApplicationStatus.PROCESSING] },
+    }),
+    Project.countDocuments({ status: { $in: [ProjectStatus.OPEN, ProjectStatus.PARTIALLY_FUNDED] } }),
+    Transaction.aggregate([
+      { $match: { type: TransactionType.LOAN_DISBURSEMENT, status: TransactionStatus.SUCCESS } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Investment.aggregate([
+      { $match: { status: InvestmentStatus.COMPLETED } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+  ]);
+
+  res.json({
+    stats: {
+      totalFarmers,
+      totalInvestors,
+      pendingVerifications,
+      pendingLoanApplications,
+      openProjects,
+      totalLoanDisbursed: disbursementAgg[0]?.total ?? 0,
+      totalInvested: investmentAgg[0]?.total ?? 0,
+    },
+  });
+}
+
+
+
+// ****************** verification ****************
+/**
+ * GET /api/admin/verifications?status=&page=&limit=
+ * Defaults to the "Pending Verifications" review queue when no status
+ * filter is given, matching the PRD's named admin screen.
+ */
+export async function listVerifications(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as { status?: VerificationStatus };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {
+    verificationStatus: status ?? VerificationStatus.PENDING,
+  };
+  if (status && !Object.values(VerificationStatus).includes(status)) {
+    throw new AppError("Invalid status filter", 400);
+  }
+
+  const [profiles, total] = await Promise.all([
+    FarmerProfile.find(filter)
+      .populate("user", "name email phone")
+      .sort({ createdAt: 1 }) // oldest submissions reviewed first
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    FarmerProfile.countDocuments(filter),
+  ]);
+
+  res.json({ profiles, meta: buildMeta(total, pagination) });
+}
+
+/**
+ * GET /api/admin/verifications/:id
+ */
+export async function getVerificationById(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid profile id", 400);
+  }
+
+  const profile = await FarmerProfile.findById(id).populate("user", "name email phone");
+  if (!profile) {
+    throw new AppError("Farmer profile not found", 404);
+  }
+
+  res.json({ profile });
+}
+
+/**
+ * POST /api/admin/verifications/:id/approve
+ */
+export async function approveVerification(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const {userId} = getAuth(req);
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid profile id", 400);
+  }
+
+  if (!userId) {
+    throw new AppError("Authentication required", 401);
+  }
+
+  const profile = await FarmerProfile.findById(id);
+  if (!profile) {
+    throw new AppError("Farmer profile not found", 404);
+  }
+  if (profile.verificationStatus === VerificationStatus.APPROVED) {
+    throw new AppError("Profile is already approved", 409);
+  }
+
+  await clerkClient.users.updateUserMetadata(userId, {
+  publicMetadata: {
+    nidStatus: "approved",
+  },
+});
+
+  profile.verificationStatus = VerificationStatus.APPROVED;
+  profile.verifiedBy = req.user!._id;
+  profile.verifiedAt = new Date();
+  profile.rejectionReason = null;
+  await profile.save();
+
+  await notifyUser(profile.user, {
+    title: "Document verification approved",
+    message: "Your NID and land document have been verified. You can now apply for a loan.",
+    type: "verification",
+  });
+
+  res.json({ profile });
+}
+
+/**
+ * POST /api/admin/verifications/:id/reject
+ */
+export async function rejectVerification(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid profile id", 400);
+  }
+
+  const { rejectionReason } = req.body as RejectInput;
+
+  const profile = await FarmerProfile.findById(id);
+  if (!profile) {
+    throw new AppError("Farmer profile not found", 404);
+  }
+  if (profile.verificationStatus === VerificationStatus.APPROVED) {
+    throw new AppError("An already-approved profile cannot be rejected directly", 409);
+  }
+
+  profile.verificationStatus = VerificationStatus.REJECTED;
+  profile.verifiedBy = req.user!._id;
+  profile.verifiedAt = new Date();
+  profile.rejectionReason = rejectionReason;
+  await profile.save();
+
+  await notifyUser(profile.user, {
+    title: "Document verification rejected",
+    message: `Your submission was rejected: ${rejectionReason}`,
+    type: "verification",
+  });
+
+  res.json({ profile });
+}
+
+
+
+// ****************** user ****************
+/**
+ * GET /api/admin/users?role=&status=&search=&page=&limit=
+ */
+export async function listUsers(req: Request, res: Response): Promise<void> {
+  const { role, status, search } = req.query as { role?: UserRole; status?: UserStatus; search?: string };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (role) {
+    if (!Object.values(UserRole).includes(role)) throw new AppError("Invalid role filter", 400);
+    filter.role = role;
+  }
+  if (status) {
+    if (!Object.values(UserStatus).includes(status)) throw new AppError("Invalid status filter", 400);
+    filter.status = status;
+  }
+  if (search) {
+    const re = new RegExp(search.trim(), "i");
+    filter.$or = [{ name: re }, { email: re }, { phone: re }];
+  }
+
+  const [users, total] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
+    User.countDocuments(filter),
+  ]);
+
+  res.json({ users, meta: buildMeta(total, pagination) });
+}
+
+/**
+ * GET /api/admin/users/:id
+ */
+export async function getUserById(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid user id", 400);
+  }
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+  res.json({ user });
+}
+
+/**
+ * PATCH /api/admin/users/:id/status
+ * Suspend, block, or reactivate any account except the acting admin's own.
+ */
+export async function updateUserStatus(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid user id", 400);
+  }
+  if (id === req.user!._id.toString()) {
+    throw new AppError("You cannot change your own account status", 400);
+  }
+
+  const { status, reason } = req.body as UpdateUserStatusInput;
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  user.status = status;
+  user.statusReason = reason ?? null;
+  await user.save();
+
+  if (status !== UserStatus.ACTIVE) {
+    await notifyUser(user._id, {
+      title: "Account status changed",
+      message: `Your account has been ${status}${reason ? `: ${reason}` : ""}.`,
+      type: "account_status",
+    });
+  }
+
+  res.json({ user });
+}
+
+/**
+ * PATCH /api/admin/users/:id/role
+ * Assigns a new role, including promoting an account to Admin — the
+ * PRD's "নতুন অ্যাডমিন রোল অ্যাসাইন করা". Also mirrors the change into
+ * Clerk's publicMetadata so it's consistent on the next login/webhook.
+ */
+export async function updateUserRole(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid user id", 400);
+  }
+  if (id === req.user!._id.toString()) {
+    throw new AppError("You cannot change your own role", 400);
+  }
+
+  const { role } = req.body as UpdateUserRoleInput;
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  user.role = role;
+  await user.save();
+
+  await clerkClient.users.updateUserMetadata(user.clerkId, { publicMetadata: { role } });
+
+  await notifyUser(user._id, {
+    title: "Account role updated",
+    message: `Your account role has been changed to ${role}.`,
+    type: "account_role",
+  });
+
+  res.json({ user });
+}
+
+
+// ****************** loans page ****************
+/**
+ * GET /api/admin/loan-applications?status=&page=&limit=
+ */
+export async function listLoanApplications(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as { status?: LoanApplicationStatus };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (status) {
+    if (!Object.values(LoanApplicationStatus).includes(status)) {
+      throw new AppError("Invalid status filter", 400);
+    }
+    filter.status = status;
+  }
+
+  const [applications, total] = await Promise.all([
+    LoanApplication.find(filter)
+      .populate("farmer", "name email phone")
+      .populate("loanProduct", "name category")
+      .sort({ createdAt: 1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    LoanApplication.countDocuments(filter),
+  ]);
+
+  res.json({ applications, meta: buildMeta(total, pagination) });
+}
+
+/**
+ * GET /api/admin/loan-applications/:id
+ */
+export async function getLoanApplicationById(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid application id", 400);
+  }
+
+  const application = await LoanApplication.findById(id)
+    .populate("farmer", "name email phone")
+    .populate("loanProduct");
+
+  if (!application) {
+    throw new AppError("Loan application not found", 404);
+  }
+
+  res.json({ application });
+}
+
+/** Notifies the farmer + pushes a live status update over Socket.io. */
+async function broadcastStatusUpdate(
+  application: HydratedDocument<ILoanApplication>,
+  message: string
+): Promise<void> {
+  await notifyUser(application.farmer, {
+    title: "Loan application update",
+    message,
+    type: "loan_status",
+    meta: { loanApplicationId: application._id, status: application.status },
+  });
+
+  const io = getIo();
+  io?.to(`user:${application.farmer}`).emit("loan:status_updated", {
+    loanApplicationId: application._id,
+    status: application.status,
+  });
+}
+
+/**
+ * POST /api/admin/loan-applications/:id/process
+ * Optional intermediate step (Pending -> Processing) while under review,
+ * matching the status set named explicitly in the PRD.
+ */
+export async function markProcessing(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid application id", 400);
+  }
+
+  const application = await LoanApplication.findById(id);
+  if (!application) {
+    throw new AppError("Loan application not found", 404);
+  }
+  if (application.status !== LoanApplicationStatus.PENDING) {
+    throw new AppError(`Cannot move to Processing from status ${application.status}`, 409);
+  }
+
+  application.status = LoanApplicationStatus.PROCESSING;
+  application.reviewedBy = req.user!._id;
+  await application.save();
+
+  await broadcastStatusUpdate(application, "Your loan application is now being processed.");
+
+  res.json({ application });
+}
+
+/**
+ * POST /api/admin/loan-applications/:id/approve
+ * Approves the application AND creates the marketplace `Project` from it
+ * in the same step — this is the only place Projects get created.
+ */
+export async function approveLoanApplication(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid application id", 400);
+  }
+
+  const body = req.body as ApproveLoanApplicationInput;
+
+  const application = await LoanApplication.findById(id);
+  if (!application) {
+    throw new AppError("Loan application not found", 404);
+  }
+  if (application.status === LoanApplicationStatus.APPROVED) {
+    throw new AppError("Application is already approved", 409);
+  }
+  if (application.status === LoanApplicationStatus.REJECTED) {
+    throw new AppError("A rejected application cannot be approved", 409);
+  }
+
+  application.status = LoanApplicationStatus.APPROVED;
+  application.reviewedBy = req.user!._id;
+  application.reviewedAt = new Date();
+  application.rejectionReason = null;
+  await application.save();
+
+  const project = await Project.create({
+    loanApplication: application._id,
+    farmer: application.farmer,
+    title: application.projectTitle,
+    description: application.projectDescription,
+    cropType: body.cropType || application.cropType || "unspecified",
+    riskLevel: body.riskLevel,
+    expectedROIPercent: body.expectedROIPercent,
+    fundingGoal: body.fundingGoal ?? application.requestedAmount,
+    fundingDeadline: body.fundingDeadline ?? null,
+  });
+
+  await broadcastStatusUpdate(
+    application,
+    "Congratulations! Your loan application was approved and is now live on the investor marketplace."
+  );
+
+  res.json({ application, project });
+}
+
+/**
+ * POST /api/admin/loan-applications/:id/reject
+ */
+export async function rejectLoanApplication(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid application id", 400);
+  }
+
+  const { rejectionReason } = req.body as RejectInput;
+
+  const application = await LoanApplication.findById(id);
+  if (!application) {
+    throw new AppError("Loan application not found", 404);
+  }
+  if (application.status === LoanApplicationStatus.APPROVED) {
+    throw new AppError("An approved application cannot be rejected", 409);
+  }
+
+  application.status = LoanApplicationStatus.REJECTED;
+  application.reviewedBy = req.user!._id;
+  application.reviewedAt = new Date();
+  application.rejectionReason = rejectionReason;
+  await application.save();
+
+  await broadcastStatusUpdate(application, `Your loan application was rejected: ${rejectionReason}`);
+
+  res.json({ application });
+}
+
+
+
+
+// ****************** project ****************
+/**
+ * GET /api/admin/projects?status=&page=&limit=
+ * Unlike the investor-facing GET /api/projects (which only shows
+ * OPEN/PARTIALLY_FUNDED), this shows every status — including
+ * FULLY_FUNDED projects awaiting disbursement and CLOSED ones.
+ */
+export async function listProjectsForAdmin(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as { status?: ProjectStatus };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (status) {
+    if (!Object.values(ProjectStatus).includes(status)) {
+      throw new AppError("Invalid status filter", 400);
+    }
+    filter.status = status;
+  }
+
+  const [projects, total] = await Promise.all([
+    Project.find(filter)
+      .populate("farmer", "name email phone")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Project.countDocuments(filter),
+  ]);
+
+  res.json({ projects, meta: buildMeta(total, pagination) });
+}
+
+/**
+ * POST /api/admin/projects/:id/disburse
+ * Disburses a fully funded project's loan and generates its repayment
+ * Installment schedule (see src/services/loan.service.ts).
+ */
+export async function disburseProject(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid project id", 400);
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  await disburseLoan(project);
+
+  await notifyUser(project.farmer, {
+    title: "Loan disbursed",
+    message: "Your loan has been disbursed and your repayment schedule is ready.",
+    type: "loan_status",
+    meta: { projectId: project._id },
+  });
+
+  res.json({ project, message: "Loan disbursed and installment schedule generated." });
+}
+
+
+
+// ****************** transactions ****************
+/**
+ * GET /api/admin/transactions?type=&status=&userId=&page=&limit=
+ * The "সমস্ত ট্রানজেকশন মনিটর করা" admin screen — every money movement
+ * on the platform, across all users.
+ */
+export async function listAllTransactions(req: Request, res: Response): Promise<void> {
+  const { type, status, userId } = req.query as {
+    type?: TransactionType;
+    status?: TransactionStatus;
+    userId?: string;
+  };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (type) {
+    if (!Object.values(TransactionType).includes(type)) throw new AppError("Invalid type filter", 400);
+    filter.type = type;
+  }
+  if (status) {
+    if (!Object.values(TransactionStatus).includes(status)) throw new AppError("Invalid status filter", 400);
+    filter.status = status;
+  }
+  if (userId) {
+    if (!mongoose.isValidObjectId(userId)) throw new AppError("Invalid userId filter", 400);
+    filter.user = userId;
+  }
+
+  const [transactions, total] = await Promise.all([
+    Transaction.find(filter)
+      .populate("user", "name role")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Transaction.countDocuments(filter),
+  ]);
+
+  res.json({ transactions, meta: buildMeta(total, pagination) });
+}
+
+
+
+
+
+// ****************** notification ****************
+/**
+ * POST /api/admin/notifications
+ * Manually push a real-time notification/alert to specific users
+ * (`userIds`) and/or everyone with a given `role` — the PRD's
+ * "নির্দিষ্ট ইভেন্টে ইউজারদের কাছে রিয়েল-টাইম নোটিফিকেশন পাঠানো".
+ */
+export async function sendNotification(req: Request, res: Response): Promise<void> {
+  const body = req.body as SendNotificationInput;
+
+  let targetUserIds: string[] = body.userIds ?? [];
+
+  if (body.role) {
+    const usersWithRole = await User.find({ role: body.role }).select("_id");
+    targetUserIds = [...targetUserIds, ...usersWithRole.map((u) => u._id.toString())];
+  }
+
+  const uniqueIds = Array.from(new Set(targetUserIds));
+  if (uniqueIds.length === 0) {
+    throw new AppError("No matching recipients found", 400);
+  }
+
+  const notifications = await Promise.all(
+    uniqueIds.map((userId) =>
+      notifyUser(userId, { title: body.title, message: body.message, type: body.type })
+    )
+  );
+
+  res.status(201).json({ sentCount: notifications.length });
+}
+
+/**
+ * GET /api/admin/notifications?type=&page=&limit=
+ * Lists all notifications sent from the admin panel, with optional filtering by type.
+ * This allows admins to see the history of notifications they've sent.
+ */
+export async function listNotifications(req: Request, res: Response): Promise<void> {
+  const { type } = req.query as { type?: string };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (type) {
+    filter.type = type;
+  }
+
+  const [notifications, total] = await Promise.all([
+    Notification.find(filter)
+      .populate("user", "name email role")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Notification.countDocuments(filter),
+  ]);
+
+  res.json({ notifications, meta: buildMeta(total, pagination) });
+}
+
+
+
+
+
+// ****************** settings ****************
+/**
+ * PUT /api/admin/settings
+ * Updates platform-wide configuration settings (only accessible by admins)
+ */
+export async function updateAdminSettings(req: Request, res: Response): Promise<void> {
+  const body = req.body as UpdateAdminSettingsInput;
+
+  const user = await User.findById(req.user!._id);
+  if (!user || user.role !== UserRole.ADMIN) {
+    throw new AppError("Only admins can update platform settings", 403);
+  }
+
+  if (!user.adminSettings) {
+    user.adminSettings = {};
+  }
+
+  // Update settings
+  if (body.minInvestmentAmount !== undefined)
+    user.adminSettings.minInvestmentAmount = body.minInvestmentAmount;
+  if (body.nidVerificationTimeoutHours !== undefined)
+    user.adminSettings.nidVerificationTimeoutHours = body.nidVerificationTimeoutHours;
+  if (body.allowedPaymentGateways !== undefined)
+    user.adminSettings.allowedPaymentGateways = body.allowedPaymentGateways;
+
+  await user.save();
+
+  res.json({ settings: user.adminSettings, message: "Platform settings updated successfully" });
+}

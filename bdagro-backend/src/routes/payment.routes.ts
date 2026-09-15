@@ -1,12 +1,11 @@
 import { Router, raw, urlencoded } from "express";
-import { requireAuth } from "@clerk/express";
-import { syncClerkUser } from "../middlewares/auth";
+import { syncClerkUser, requireAuth } from "../middlewares/auth";
 import * as paymentCtrl from "../controllers/payment.controller";
 
 const router = Router();
 
 // --- Authenticated: generate a checkout session for one's own pending transaction ---
-router.post("/:transactionId/checkout", requireAuth(), syncClerkUser, paymentCtrl.createCheckoutSession);
+router.post("/:transactionId/checkout", requireAuth, syncClerkUser, paymentCtrl.createCheckoutSession);
 
 // --- SSLCommerz: server-to-server IPN + browser redirect endpoints (public, form-encoded).
 // Scoped urlencoded() here (not the global one) since this router is

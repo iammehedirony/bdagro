@@ -8,7 +8,7 @@ import webhookRoutes from "./routes/webhook.routes";
 import paymentRoutes from "./routes/payment.routes";
 import authRoutes from "./routes/auth.routes";
 import farmerRoutes from "./routes/farmer.routes";
-import loanProductRoutes from "./routes/loanProduct.routes";
+import loanProductRoutes from "./routes/loan.routes";
 import projectRoutes from "./routes/project.routes";
 import investorRoutes from "./routes/investor.routes";
 import adminRoutes from "./routes/admin.routes";
