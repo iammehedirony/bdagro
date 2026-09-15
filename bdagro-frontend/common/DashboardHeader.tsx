@@ -9,7 +9,7 @@ interface ConfigItem {
 }
 
 interface DashboardHeaderProps {
-  userName: string;
+  userName: string | null;
   config?: ConfigItem[];
 }
 

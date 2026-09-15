@@ -18,6 +18,7 @@ import CropChip from "../ui/CropChip";
 import RiskOption from "../ui/RiskOption";
 import { FieldError } from "../ui/FieldError";
 import { investorSignupSchema, type InvestorSignupFormValues } from "../../lib/schemas/auth";
+import { useRouter } from "next/navigation";
 
 export default function InvestorSignupPage() {
   const { signUp } = useSignUp();
@@ -27,6 +28,7 @@ export default function InvestorSignupPage() {
   const [isOtpSending, setIsOtpSending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [clerkError, setClerkError] = useState("");
+  const router = useRouter();
 
   const {
     register,
@@ -139,7 +141,22 @@ export default function InvestorSignupPage() {
 
       if (response.status === 201) {
         await user?.reload();
-        await getToken({ skipCache: true });
+
+        const profileToken = await getToken({ skipCache: true });
+        if (!profileToken) {
+          setClerkError("অ্যাকাউন্ট তৈরি হয়েছে, কিন্তু প্রোফাইল সংরক্ষণের জন্য সক্রিয় সেশন পাওয়া যায়নি।");
+          return;
+        }
+
+        await axios.post(
+          "http://localhost:5000/api/investors/profile",
+          {
+            preferredCropTypes: data.interests,
+            maxRiskLevel: data.riskTolerance,
+            monthlyInvestmentPlan: data.monthlyPlan,
+          },
+          { headers: { Authorization: `Bearer ${profileToken}` } },
+        );
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -149,6 +166,7 @@ export default function InvestorSignupPage() {
       }
     } finally {
       setLoading(false);
+      router.push("/investor/dashboard");
     }
   };
 

@@ -1,10 +1,13 @@
 "use client";
 
-import { currentUser } from '@/constants/user';
+import { UserDropdown } from '@/components/ui/Dropdown';
 import { useClerk } from '@clerk/nextjs';
 import { Sprout } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useUserWithRole } from '@/hooks/useUserWithRole';
 
 // নেভিগেশন ডেটা স্ট্রাকচার
 const allNavItems = [
@@ -22,18 +25,18 @@ const allNavItems = [
   { name: 'আমাদের সম্পর্কে', path: '/about', roles: ['all'] },
 ];
 
+
 const Navbar = () => {
   const pathname = usePathname();
   const { signOut } = useClerk();
-  
-  // ডেমো ইউজার রোল (আপনার প্রোজেক্টে এটি Auth Context/State থেকে আসবে)
-  // ভ্যালুগুলো হতে পারে: 'farmer', 'investor', অথবা লগিন না থাকলে null
-  const userRole = currentUser.roleType; // চেক করার জন্য এটি পরিবর্তন করে 'investor' করে দেখতে পারেন
+  const {user, role: userRole} = useUserWithRole()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // ইউজারের রোল অনুযায়ী নেভিগেশন আইটেম ফিল্টার করা হচ্ছে
   const visibleNavItems = allNavItems.filter(
     (item) => item.roles.includes('all') || (userRole && item.roles.includes(userRole))
   );
+
 
   return (
     <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
@@ -88,15 +91,24 @@ const Navbar = () => {
               </Link>
             </>
           ) : (
-            // ইউজার লগইন থাকলে
-            <button 
-              onClick={async () => {
-                await signOut();
-              }}
-              className="text-sm font-medium border border-neutral-200 text-neutral-700 px-5 py-2 rounded-md hover:bg-neutral-50 transition-all"
-            >
-              লগআউট
-            </button>
+      <div className="relative">
+      <button
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        className="w-10 h-10 bg-amber-500 rounded-full text-emerald-950 flex items-center justify-center font-medium"
+      >
+        <Image src={user?.imageUrl || '/default-user-image.png'} alt="User" width={40} height={40} className="rounded-full" />
+      </button>
+
+      <UserDropdown 
+             isOpen={isDropdownOpen}
+             user={{ name: user?.firstName || 'User', role: userRole || 'Unknown' }}
+             onProfileClick={() => setIsDropdownOpen(false)}
+             onSettingsClick={() => setIsDropdownOpen(false)}
+             onLogoutClick={() => {
+               setIsDropdownOpen(false);
+               signOut();
+             }}/>
+    </div> 
           )}
         </div>
         

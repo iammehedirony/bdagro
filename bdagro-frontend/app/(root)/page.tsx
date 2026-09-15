@@ -11,8 +11,7 @@ import {
 import Link from "next/link";
 
  function HomePage() {
-  const {user} = useUser();
-  console.log(user,"home")
+
   const plots = [
     1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1,
   ];

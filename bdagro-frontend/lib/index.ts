@@ -7,7 +7,7 @@ export  const getNavItems = (roleType: 'admin' | 'farmer' | 'investor') => {
     return investorMenu; 
   };
 
-  export const getActiveHeaderConfig = (roleType: 'admin' | 'farmer' | 'investor') => {
+  export const getActiveHeaderConfig = (roleType: string) => {
   let activeHeaderConfig : any[] = [];
   if (roleType === 'farmer') activeHeaderConfig = farmerHeaderConfig;
   else if (roleType === 'investor') activeHeaderConfig = investorHeaderConfig;

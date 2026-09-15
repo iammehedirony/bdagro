@@ -3,7 +3,7 @@ import { syncClerkUser, requireAuth } from "../middlewares/auth";
 import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
 import { UserRole } from "../utils/constants";
-import { createInvestmentSchema } from "../validators/investor.validator";
+import { createInvestmentSchema, createInvestorProfileSchema } from "../validators/investor.validator";
 import { updateInvestorSettingsSchema } from "../validators/settings.validator";
 import * as investorCtrl from "../controllers/investor.controller";
 import * as notificationCtrl from "../controllers/notification.controller";
@@ -15,6 +15,7 @@ const router = Router();
 router.use(requireAuth, syncClerkUser, requireRole(UserRole.INVESTOR));
 
 // --- Funding & investment ---
+router.post("/profile", validate(createInvestorProfileSchema), investorCtrl.createInvestorProfile);
 router.post("/investments", validate(createInvestmentSchema), investorCtrl.createInvestment);
 router.get("/investments", investorCtrl.listMyInvestments);
 router.get("/investments/:id", investorCtrl.getMyInvestmentById);

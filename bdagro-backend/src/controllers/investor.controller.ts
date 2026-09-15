@@ -14,7 +14,32 @@ import { AppError } from "../middlewares/errorHandler";
 import { CreateInvestmentInput } from "../validators/investor.validator";
 import { getPagination, buildMeta } from "../utils/pagination";
 import { UpdateInvestorSettingsInput } from "../validators/settings.validator";
+import { CreateInvestorProfileInput } from "../validators/investor.validator";
 import { InvestorProfile } from "../models";
+
+/**
+ * POST /api/investors/profile
+ * Creates the investor's initial preference profile after registration.
+ */
+export async function createInvestorProfile(req: Request, res: Response): Promise<void> {
+  const body = req.body as CreateInvestorProfileInput;
+
+  const existingProfile = await InvestorProfile.findOne({ user: req.user!._id });
+  if (existingProfile) {
+    throw new AppError("Investor profile already exists", 409);
+  }
+
+  const profile = await InvestorProfile.create({
+    user: req.user!._id,
+    preferences: {
+      preferredCropTypes: body.preferredCropTypes,
+      maxRiskLevel: body.maxRiskLevel,
+      monthlyInvestmentPlan: body.monthlyInvestmentPlan,
+    },
+  });
+
+  res.status(201).json({ profile });
+}
 
 
 // ************** portfolio dashboard ************

@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { RiskLevel, InvestmentType, PaymentMethod } from "../utils/constants";
 
+export const createInvestorProfileSchema = z.object({
+  preferredCropTypes: z.array(z.string().trim()).min(1),
+  maxRiskLevel: z.string().trim().nullable(),
+  monthlyInvestmentPlan: z.string().trim().min(1),
+}).strict();
+export type CreateInvestorProfileInput = z.infer<typeof createInvestorProfileSchema>;
+
 export const listProjectsQuerySchema = z.object({
   cropType: z.string().trim().optional(),
   riskLevel: z.enum(RiskLevel).optional(),

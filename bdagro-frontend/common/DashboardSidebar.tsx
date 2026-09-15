@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface User {
-  name: string;
+  name: string | null;
   role: string;
 }
 
