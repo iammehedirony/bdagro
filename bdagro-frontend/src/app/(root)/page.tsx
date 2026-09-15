@@ -1,4 +1,7 @@
+"use client";
+
 import ProjectCard from "@/components/project/ProjectCard";
+import { useUser } from "@clerk/nextjs";
 import {
   Sprout,
   ShieldCheck,
@@ -8,6 +11,8 @@ import {
 import Link from "next/link";
 
  function HomePage() {
+  const {user, getToken} = useUser();
+  console.log(user,"home")
   const plots = [
     1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1,
   ];

@@ -2,7 +2,16 @@ import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 export default clerkMiddleware(async (auth, req) => {
-  const path = req.nextUrl.pathname;
+  const path = req.nextUrl.pathname;  
+
+  // ১. চেক করা মিডলওয়্যার কল হচ্ছে কিনা
+  console.log(`🚀 [Middleware] রিকোয়েস্ট এসেছে এই পাথে: ${path}`);
+
+  const { userId, sessionClaims, redirectToSignIn } = await auth();
+
+  // ২. চেক করা ইউজার এবং মেটাডাটা ঠিকমতো পাচ্ছে কিনা
+  console.log(`👤 [Middleware] User ID: ${userId}`);
+  console.log(`📦 [Middleware] Session Claims:`, JSON.stringify(sessionClaims));
 
   const isAdminRoute = path.startsWith('/admin');
   const isInvestorRoute = path.startsWith('/investor') || path.startsWith('/projects');
@@ -14,10 +23,9 @@ export default clerkMiddleware(async (auth, req) => {
   if (isAuthPage) {
     const { userId, sessionClaims } = await auth();
     if (userId) {
-      const metadata = (sessionClaims?.metadata as any) || {};
+      const metadata = (sessionClaims?.publicMetadata as any) || {};
       const role = metadata?.role;
       const nidStatus = metadata?.nidStatus;
-      console.log("log from proxy.ts: ", role, nidStatus);
 
       if (role === 'investor') return NextResponse.redirect(new URL('/investor', req.url));
       if (role === 'admin') return NextResponse.redirect(new URL('/admin', req.url));
@@ -34,7 +42,7 @@ export default clerkMiddleware(async (auth, req) => {
     const { userId, sessionClaims, redirectToSignIn } = await auth();
     if (!userId) return redirectToSignIn();
 
-    const metadata = (sessionClaims?.metadata as any) || {};
+    const metadata = (sessionClaims?.publicMetadata as any) || {};
     const role = metadata?.role;
     const nidStatus = metadata?.nidStatus;
 

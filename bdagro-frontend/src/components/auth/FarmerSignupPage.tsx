@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
   useForm,
   FormProvider,
@@ -27,6 +27,7 @@ import { LockedPreview } from "./LockedPreview";
 import axios from "axios";
 import { useApi } from "@/lib/useApi";
 import Link from "next/link";
+import LoadingPage from "@/app/loading";
 
 function AccountStep() {
   const {
@@ -386,7 +387,6 @@ export default function FarmerSignupFlow() {
   const { signUp } = useSignUp();
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
-  const goNext = () => setStep(2);
   const nidStatus = user?.publicMetadata?.nidStatus as string;
   let currentStep = 1;
   if (nidStatus === "unsubmitted") {
@@ -407,20 +407,6 @@ export default function FarmerSignupFlow() {
     mode: "onSubmit",
     defaultValues: { nidNumber: "", nidName: "", dob: "", address: { district: "", upazila: "", village: "", fullAddress: "" }, nidFront: null, nidBack: null }
   });
-
-// পেজ রিলোড হলে স্ট্যাটাস অনুযায়ী স্টেপ ঠিক করা
-  useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
-      const role = user.publicMetadata?.role as string;
-
-      if (role === 'farmer') {
-        // যদি unsubmitted হয়, তবে সরাসরি ২য় ধাপে (NID Form) পাঠাবে
-        if (nidStatus === 'unsubmitted') {
-          setStep(2);
-        }
-      }
-    }
-  }, [isLoaded, isSignedIn, user, nidStatus]);
 
 
  const onSubmitAccount = async (data: FarmerAccountFormValues) => {
@@ -458,6 +444,7 @@ export default function FarmerSignupFlow() {
     );
     if (response.status === 201) {
         await user?.reload();
+        await getToken({ skipCache: true });
       }
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -504,8 +491,10 @@ export default function FarmerSignupFlow() {
 
 const isPending = nidStatus === "submitted";
 
+if(!isLoaded) return <LoadingPage/>
+
   return (
-    <div className="bg-white min-h-screen">
+  <div className="bg-white min-h-screen">
       <div className="max-w-5xl mx-auto px-6 py-14">
         <h1 className="text-3xl text-stone-900">কৃষক হিসেবে যোগ দিন</h1>
         <p className="mt-2 text-stone-500 text-sm max-w-lg">

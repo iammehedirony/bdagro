@@ -1,6 +1,7 @@
 "use client";
 
 import { currentUser } from '@/constants/user';
+import { useClerk } from '@clerk/nextjs';
 import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,6 +24,7 @@ const allNavItems = [
 
 const Navbar = () => {
   const pathname = usePathname();
+  const { signOut } = useClerk();
   
   // ডেমো ইউজার রোল (আপনার প্রোজেক্টে এটি Auth Context/State থেকে আসবে)
   // ভ্যালুগুলো হতে পারে: 'farmer', 'investor', অথবা লগিন না থাকলে null
@@ -88,8 +90,10 @@ const Navbar = () => {
           ) : (
             // ইউজার লগইন থাকলে
             <button 
+              onClick={async () => {
+                await signOut();
+              }}
               className="text-sm font-medium border border-neutral-200 text-neutral-700 px-5 py-2 rounded-md hover:bg-neutral-50 transition-all"
-              onClick={() => console.log("Logout clicked")}
             >
               লগআউট
             </button>
