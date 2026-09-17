@@ -1,5 +1,6 @@
 import InvestorSignupPage from "@/components/auth/InvestorSignupPage";
 import FarmerSignupPage from "@/components/auth/FarmerSignupPage";
+import AdminSignupPage from "@/components/auth/AdminSignupPage";
 
 
 
@@ -13,9 +14,7 @@ const Register = async({ params }: RegisterPageProps) => {
     const { role } = await params;
     return (
         <div>
-            {
-                role === "farmer" ? <FarmerSignupPage /> : <InvestorSignupPage />
-            }
+            {role === "farmer" ? <FarmerSignupPage /> : role === "admin" ? <AdminSignupPage /> : <InvestorSignupPage />}
         </div>
     );
 };

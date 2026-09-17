@@ -4,18 +4,15 @@ import { useAuth, useSession, useSignIn, useSignUp, useUser } from "@clerk/nextj
 import { useMutation } from "@tanstack/react-query";
 import { useApi } from "@/lib/useApi";
 import { queryKeys } from "@/lib/query/keys";
-import { selectRole, type Role } from "@/lib/services/auth.service";
+import { selectRole, type SelectRolePayload } from "@/lib/services/auth.service";
 import {
   createInvestorProfile,
   type InvestorProfilePayload,
 } from "@/lib/services/investor.service";
 
-interface SignupPayload {
-  otp: string;
-  role: Role;
-  phone: string;
-  profile?: InvestorProfilePayload;
-}
+type SignupPayload =
+  | { otp: string; role: "admin"; phone?: string; profile?: never }
+  | { otp: string; role: "farmer" | "investor"; phone: string; profile?: InvestorProfilePayload };
 
 export function useSendSignupOtpMutation() {
   const { signUp } = useSignUp();
@@ -55,7 +52,10 @@ export function useSignupMutation() {
       const finalized = await signUp.finalize();
       if (finalized.error) throw new Error(finalized.error.message);
 
-      const response = await selectRole(api, { role, phone });
+      const selectRolePayload: SelectRolePayload = role === "admin"
+        ? { role, ...(phone ? { phone } : {}) }
+        : { role, phone };
+      const response = await selectRole(api, selectRolePayload);
       if (role === "investor" && profile) await createInvestorProfile(api, profile);
       return response;
     },

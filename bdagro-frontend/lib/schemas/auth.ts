@@ -68,6 +68,17 @@ export const investorSignupSchema = z.object({
 
 export type InvestorSignupFormValues = z.infer<typeof investorSignupSchema>;
 
+export const adminSignupSchema = z.object({
+  name: z.string().min(2, { message: "নাম কমপক্ষে ২ অক্ষরের হতে হবে" }),
+  email: z.string().email({ message: "সঠিক ইমেইল দিন" }),
+  otp: z.array(z.string().min(1, { message: "OTP-এর প্রতিটি ঘর পূরণ করতে হবে" })).length(6, {
+    message: "৬-ডিজিটের সঠিক OTP দিন",
+  }),
+  password: z.string().trim().min(8, { message: "পাসওয়ার্ড কমপক্ষে ৮ ক্যারেক্টারের হতে হবে" }),
+});
+
+export type AdminSignupFormValues = z.infer<typeof adminSignupSchema>;
+
 
 
 export const loginSchema = z.object({
