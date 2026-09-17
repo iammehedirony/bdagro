@@ -10,8 +10,7 @@ import {
   Bell,
   Wallet,
 } from "lucide-react";
-import { useAuth, useSignUp, useUser } from "@clerk/nextjs";
-import axios from "axios";
+import { useUser } from "@clerk/nextjs";
 import Field from "../ui/Field";
 import OtpInput from "../ui/OtpInput";
 import CropChip from "../ui/CropChip";
@@ -19,15 +18,13 @@ import RiskOption from "../ui/RiskOption";
 import { FieldError } from "../ui/FieldError";
 import { investorSignupSchema, type InvestorSignupFormValues } from "../../lib/schemas/auth";
 import { useRouter } from "next/navigation";
+import { useSendSignupOtpMutation, useSignupMutation } from "@/hooks/mutations/useAuthMutations";
 
 export default function InvestorSignupPage() {
-  const { signUp } = useSignUp();
-  const { getToken } = useAuth();
   const { user } = useUser();
-  const [loading, setLoading] = useState(false);
-  const [isOtpSending, setIsOtpSending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [clerkError, setClerkError] = useState("");
+  const signupMutation = useSignupMutation();
+  const sendOtpMutation = useSendSignupOtpMutation();
   const router = useRouter();
 
   const {
@@ -72,101 +69,37 @@ export default function InvestorSignupPage() {
   }, [countdown]);
 
   const handleSendOTP = async () => {
-    setClerkError("");
-    setIsOtpSending(true);
-
     const isValid = await trigger(["name", "email", "password", "terms", "phone"]);
-    if (!isValid) {
-      setIsOtpSending(false);
-      return;
-    }
+    if (!isValid) return;
 
     const data = getValues();
 
     try {
-      const { error } = await signUp.password({
-        firstName: data.name,
-        emailAddress: data.email,
-        password: data.password,
-      });
-
-      if (error) {
-        setClerkError(error.message || "OTP পাঠাতে সমস্যা হয়েছে। ইমেইলটি চেক করুন।");
-        return;
-      }
-
-      const verificationResult = await signUp.verifications.sendEmailCode();
-      if (verificationResult) setCountdown(5);
-    } catch (error) {
-      setClerkError(error instanceof Error ? error.message : "OTP পাঠাতে সমস্যা হয়েছে।");
-    } finally {
-      setIsOtpSending(false);
+      await sendOtpMutation.mutateAsync(data);
+      setCountdown(5);
+    } catch {
+      // The mutation error is rendered below.
+      console.log(sendOtpMutation.error);
     }
   };
 
   const onSubmit = async (data: InvestorSignupFormValues) => {
-    setLoading(true);
-    setClerkError("");
-
     try {
-      const otpCode = data.otp.join("");
-      const verification = await signUp.verifications.verifyEmailCode({ code: otpCode });
-      if (verification.error) {
-        setClerkError(verification.error.message || "OTP যাচাই করা যায়নি।");
-        return;
-      }
-
-      if (signUp.status !== "complete") {
-        setClerkError("OTP যাচাইয়ের পরেও অ্যাকাউন্ট সম্পন্ন হয়নি।");
-        return;
-      }
-
-      const finalizeResult = await signUp.finalize();
-      if (finalizeResult.error) {
-        setClerkError(finalizeResult.error.message || "অ্যাকাউন্ট সক্রিয় করা যায়নি।");
-        return;
-      }
-
-      const token = await getToken({ skipCache: true });
-      if (!token) {
-        setClerkError("অ্যাকাউন্ট তৈরি হয়েছে, কিন্তু সক্রিয় সেশন পাওয়া যায়নি।");
-        return;
-      }
-
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/select-role",
-        { role: "investor", phone: data.phone },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      if (response.status === 201) {
-        await user?.reload();
-
-        const profileToken = await getToken({ skipCache: true });
-        if (!profileToken) {
-          setClerkError("অ্যাকাউন্ট তৈরি হয়েছে, কিন্তু প্রোফাইল সংরক্ষণের জন্য সক্রিয় সেশন পাওয়া যায়নি।");
-          return;
-        }
-
-        await axios.post(
-          "http://localhost:5000/api/investors/profile",
-          {
-            preferredCropTypes: data.interests,
-            maxRiskLevel: data.riskTolerance,
-            monthlyInvestmentPlan: data.monthlyPlan,
-          },
-          { headers: { Authorization: `Bearer ${profileToken}` } },
-        );
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        setClerkError(error.response?.data?.message || error.message || "অ্যাকাউন্ট তৈরি করা যায়নি।");
-      } else {
-        setClerkError(error instanceof Error ? error.message : "অ্যাকাউন্ট তৈরি করা যায়নি।");
-      }
-    } finally {
-      setLoading(false);
+      await signupMutation.mutateAsync({
+        otp: data.otp.join(""),
+        role: "investor",
+        phone: data.phone,
+        profile: {
+          preferredCropTypes: data.interests,
+          maxRiskLevel: data.riskTolerance,
+          monthlyInvestmentPlan: data.monthlyPlan,
+        },
+      });
+      await user?.reload();
       router.push("/investor/dashboard");
+    } catch {
+      // The mutation error is rendered below.
+        console.log(signupMutation.error);
     }
   };
 
@@ -185,20 +118,20 @@ export default function InvestorSignupPage() {
             অ্যাকাউন্ট খুলুন এবং যাচাইকৃত খামার প্রকল্পে বিনিয়োগ শুরু করুন।
           </p>
 
-          {clerkError && (
+          {(sendOtpMutation.error || signupMutation.error) && (
             <div className="mt-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
-              {clerkError}
+              {sendOtpMutation.error?.message || signupMutation.error?.message}
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5" noValidate>
             <div className="grid sm:grid-cols-2 gap-5">
               <div>
-                <Field label="পূর্ণ নাম" placeholder="আপনার নাম লিখুন" readOnly={loading || isOtpSending} {...register("name")} />
+                <Field label="পূর্ণ নাম" placeholder="আপনার নাম লিখুন" readOnly={signupMutation.isPending || sendOtpMutation.isPending} {...register("name")} />
                 <FieldError error={errors.name} />
               </div>
               <div>
-                <Field label="ফোন নম্বর" placeholder="+880 1XXXXXXXX" readOnly={loading || isOtpSending} {...register("phone")} />
+                <Field label="ফোন নম্বর" placeholder="+880 1XXXXXXXX" readOnly={signupMutation.isPending || sendOtpMutation.isPending} {...register("phone")} />
                 <FieldError error={errors.phone} />
               </div>
             </div>
@@ -208,16 +141,16 @@ export default function InvestorSignupPage() {
               <Field
                 label="ইমেইল"
                 placeholder="আপনার ইমেইল লিখুন"
-                readOnly={loading || isOtpSending}
+                readOnly={signupMutation.isPending || sendOtpMutation.isPending}
                 {...register("email")}
                 suffix={
                   <button
                     type="button"
                     onClick={handleSendOTP}
-                    disabled={loading || isOtpSending || countdown !== null}
+                    disabled={signupMutation.isPending || sendOtpMutation.isPending || countdown !== null}
                     className="px-4 py-2.5 text-xs text-emerald-800 border-l border-stone-300 hover:bg-stone-50 whitespace-nowrap disabled:opacity-50"
                   >
-                    {isOtpSending ? "লোড হচ্ছে..." : countdown !== null ? `OTP পাঠানো হয়েছে (${countdown}s)` : "OTP পাঠান"}
+                    {sendOtpMutation.isPending ? "লোড হচ্ছে..." : countdown !== null ? `OTP পাঠানো হয়েছে (${countdown}s)` : "OTP পাঠান"}
                   </button>
                 }
               />
@@ -231,15 +164,15 @@ export default function InvestorSignupPage() {
                 name="otp"
                 control={control}
                 render={({ field: { value, onChange } }) => (
-                  <OtpInput value={value} onChange={onChange} disabled={loading || isOtpSending} />
+                  <OtpInput value={value} onChange={onChange} disabled={signupMutation.isPending || sendOtpMutation.isPending} />
                 )}
               />
-              <FieldError 
+              <FieldError
                 error={
-                  errors.otp 
-                    ? { message: errors.otp.message || "অনুগ্রহ করে ৬-ডিজিটের সম্পূর্ণ OTP কোডটি লিখুন" } as RHFFieldError 
+                  errors.otp
+                    ? { message: errors.otp.message || "অনুগ্রহ করে ৬-ডিজিটের সম্পূর্ণ OTP কোডটি লিখুন" } as RHFFieldError
                     : undefined
-                } 
+                }
               />
               <div className="mt-2 text-xs text-stone-400">
                 ইমেইলে পাঠানো ৬-ডিজিট কোডটি লিখুন ·{" "}
@@ -253,7 +186,7 @@ export default function InvestorSignupPage() {
                 label="পাসওয়ার্ড"
                 type="password"
                 placeholder="কমপক্ষে ৮ ক্যারেক্টার"
-                readOnly={loading || isOtpSending}
+                readOnly={signupMutation.isPending || sendOtpMutation.isPending}
                 {...register("password")}
               />
               <FieldError error={errors.password} />
@@ -327,10 +260,10 @@ export default function InvestorSignupPage() {
 
             <button
               type="submit"
-              disabled={loading || isOtpSending}
+              disabled={signupMutation.isPending || sendOtpMutation.isPending}
               className="w-full bg-emerald-900 text-white py-3 text-sm hover:bg-emerald-800 disabled:opacity-70"
             >
-              {loading ? "অ্যাকাউন্ট তৈরি হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন"}
+              {signupMutation.isPending ? "অ্যাকাউন্ট তৈরি হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন"}
             </button>
 
             <div className="text-center text-sm text-stone-400">

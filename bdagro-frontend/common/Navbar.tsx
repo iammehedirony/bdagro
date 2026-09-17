@@ -94,7 +94,7 @@ const Navbar = () => {
       <div className="relative">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="w-10 h-10 bg-amber-500 rounded-full text-emerald-950 flex items-center justify-center font-medium"
+        className="w-10 h-10 bg-amber-500 rounded-full text-emerald-950 flex items-center justify-center font-medium cursor-pointer hover:opacity-90 transition-opacity"
       >
         <Image src={user?.imageUrl || '/default-user-image.png'} alt="User" width={40} height={40} className="rounded-full" />
       </button>

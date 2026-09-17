@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import AuthLoaderWrapper from "@/common/AuthLoaderWrapper";
+import QueryProvider from "@/common/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,9 +28,9 @@ export default function Layout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
       <ClerkProvider>
-        <AuthLoaderWrapper>
-         {children}
-        </AuthLoaderWrapper>
+        <QueryProvider>
+          <AuthLoaderWrapper>{children}</AuthLoaderWrapper>
+        </QueryProvider>
       </ClerkProvider>
       
       </body>

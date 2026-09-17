@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useForm,
   FormProvider,
@@ -10,7 +10,7 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck, CheckCircle2, Clock, Loader2 } from "lucide-react";
-import { useAuth, useSignUp, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import Field from "../ui/Field";
 import UploadBox from "../ui/UploadBox";
 import StatusChip from "../ui/StatusChip";
@@ -24,9 +24,9 @@ import {
 import { StepSidebar } from "./StepSidebar";
 import { FieldError } from "../ui/FieldError";
 import { LockedPreview } from "./LockedPreview";
-import axios from "axios";
-import { useApi } from "@/lib/useApi";
 import LoadingPage from "@/app/loading";
+import { useSendSignupOtpMutation, useSignupMutation } from "@/hooks/mutations/useAuthMutations";
+import { useFarmerNidMutation } from "@/hooks/mutations/useProfileMutations";
 
 function AccountStep() {
   const {
@@ -37,47 +37,32 @@ function AccountStep() {
     formState: { errors , isSubmitting},
   } = useFormContext<FarmerAccountFormValues>();
 
-const { signUp } = useSignUp();
 const [clerkError, setClerkError] = useState("");
-const [isOtpSending, setIsOtpSending] = useState(false);
 const [countdown, setCountdown] = useState<number | null>(null); // কাউন্টডাউনের জন্য স্টেট
+const sendOtpMutation = useSendSignupOtpMutation();
 
   // কাউন্টডাউন টাইমার হ্যান্ডেল করার জন্য useEffect
   useEffect(() => {
-    if (countdown === null || countdown <= 0) {
-      if (countdown === 0) setCountdown(null);
-      return;
-    }
+    if (countdown === null) return;
 
     const timer = setInterval(() => {
-      setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+      setCountdown((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
     }, 1000);
 
     return () => clearInterval(timer);
   }, [countdown]);
 
 const handleSendOTP = async () => {
-  setIsOtpSending(true);
   const isValid = await trigger(["name", "email", "password", "terms", "phone"]);
   if (!isValid) return;
 
   const data = getValues();
 
-  const { error } = await signUp.password({
-    firstName: data.name,
-    emailAddress: data.email,
-    password: data.password,
-  });
-
-  if (error) {
-    setClerkError(error.message || "OTP পাঠাতে সমস্যা হয়েছে। ইমেইলটি চেক করুন।");
-    return;
-  }
-
-  const verificationResult = await signUp.verifications.sendEmailCode();
-  setIsOtpSending(false);
-  if (verificationResult) {
+  try {
+    await sendOtpMutation.mutateAsync(data);
       setCountdown(5);
+  } catch {
+    setClerkError("OTP পাঠাতে সমস্যা হয়েছে।");
     }
 };
 
@@ -96,9 +81,9 @@ const handleSendOTP = async () => {
         </div>
 
         <div className="p-8 space-y-5">
-          {clerkError && (
+          {(clerkError || sendOtpMutation.error) && (
             <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
-              {clerkError}
+              {clerkError || sendOtpMutation.error?.message}
             </div>
           )}
 
@@ -107,7 +92,7 @@ const handleSendOTP = async () => {
             <Field
               label="পূর্ণ নাম"
               placeholder="আপনার নাম লিখুন"
-              readOnly={isSubmitting || isOtpSending}
+              readOnly={isSubmitting || sendOtpMutation.isPending}
               {...register("name")}
             />
             <FieldError error={errors.name} />
@@ -118,7 +103,7 @@ const handleSendOTP = async () => {
             <Field
               label="ফোন নম্বর"
               placeholder="০১৭XXXXXXXX"
-              readOnly={isSubmitting || isOtpSending}
+              readOnly={isSubmitting || sendOtpMutation.isPending}
               {...register("phone")}
             />
             <FieldError error={errors.phone} />
@@ -128,16 +113,16 @@ const handleSendOTP = async () => {
             <Field
               label="ইমেইল"
               placeholder="আপনার ইমেইল দিন"
-              readOnly={isSubmitting || isOtpSending}
+              readOnly={isSubmitting || sendOtpMutation.isPending}
               {...register("email")}
               suffix={
                <button
                   type="button"
                   onClick={handleSendOTP}
-                  disabled={isSubmitting || isOtpSending || countdown !== null}
+                  disabled={isSubmitting || sendOtpMutation.isPending || countdown !== null}
                   className="px-4 py-2.5 text-xs text-emerald-800 border-l border-stone-300 hover:bg-stone-50 whitespace-nowrap disabled:opacity-50"
                 >
-                  {isOtpSending ? (
+                  {sendOtpMutation.isPending ? (
                     <Loader2 className="w-3 h-3 animate-spin inline" />
                   ) : countdown !== null ? (
                     `otp sent! (${countdown}s)`
@@ -157,15 +142,15 @@ const handleSendOTP = async () => {
               name="otp"
               control={control}
               render={({ field: { value, onChange } }) => (
-                <OtpInput value={value} onChange={onChange} disabled={isSubmitting || isOtpSending} />
+                <OtpInput value={value} onChange={onChange} disabled={isSubmitting || sendOtpMutation.isPending} />
               )}
             />
-            <FieldError 
+            <FieldError
               error={
-                errors.otp 
-                  ? { message: errors.otp.message || "অনুগ্রহ করে ৬-ডিজিটের সম্পূর্ণ OTP কোডটি লিখুন" } as RHFFieldError 
+                errors.otp
+                  ? { message: errors.otp.message || "অনুগ্রহ করে ৬-ডিজিটের সম্পূর্ণ OTP কোডটি লিখুন" } as RHFFieldError
                   : undefined
-              } 
+              }
             />
             <div className="mt-2 text-xs text-stone-400">
               ফোনে পাঠানো ৬-ডিজিট কোডটি লিখুন ·{" "}
@@ -178,7 +163,7 @@ const handleSendOTP = async () => {
               label="পাসওয়ার্ড"
               type="password"
               placeholder="কমপক্ষে ৮ ক্যারেক্টার"
-              readOnly={isSubmitting || isOtpSending}
+              readOnly={isSubmitting || sendOtpMutation.isPending}
               {...register("password")}
             />
             <FieldError error={errors.password} />
@@ -193,18 +178,18 @@ const handleSendOTP = async () => {
                 type="checkbox"
                 className="accent-emerald-800 mt-0.5"
                 {...register("terms")}
-                disabled={isSubmitting || isOtpSending}
+                disabled={isSubmitting || sendOtpMutation.isPending}
               />
               <span>
                 আমি Bdagroonline-এর ব্যবহারের শর্তাবলী ও গোপনীয়তা নীতিতে সম্মত
               </span>
             </label>
-            <FieldError 
+            <FieldError
               error={
-                errors.terms 
+                errors.terms
                   ? { ...errors.terms, message: "এগিয়ে যেতে আপনাকে শর্তাবলী ও গোপনীয়তা নীতিতে সম্মত হতে হবে।" } as RHFFieldError
                   : undefined
-              } 
+              }
             />
           </div>
         </div>
@@ -212,7 +197,7 @@ const handleSendOTP = async () => {
         <div className="p-8 pt-0 flex items-center justify-end">
           <button
             type="submit"
-            disabled={isSubmitting || isOtpSending}
+            disabled={isSubmitting || sendOtpMutation.isPending}
             className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 disabled:opacity-70"
           >
             {isSubmitting ? <Loader2 className="animate-spin w-4 h-4"/> : "পরবর্তী ধাপ: NID ভেরিফিকেশন"}
@@ -251,13 +236,13 @@ function NidStep() {
         <div className="p-8 space-y-6">
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
-              <Field label="NID নম্বর" placeholder="১০ / ১৭ ডিজিট" 
+              <Field label="NID নম্বর" placeholder="১০ / ১৭ ডিজিট"
               readOnly={isSubmitting}
               {...register("nidNumber")} />
               <FieldError error={errors.nidNumber} />
             </div>
             <div>
-              <Field label="পূর্ণ নাম (NID অনুযায়ী)" placeholder="নাম লিখুন" 
+              <Field label="পূর্ণ নাম (NID অনুযায়ী)" placeholder="নাম লিখুন"
               readOnly={isSubmitting}
               {...register("nidName")} />
               <FieldError error={errors.nidName} />
@@ -266,14 +251,14 @@ function NidStep() {
 
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
-              <Field label="জন্ম তারিখ" placeholder="dd/mm/yyyy" 
+              <Field label="জন্ম তারিখ" placeholder="dd/mm/yyyy"
               readOnly={isSubmitting}
               {...register("dob")} />
               <FieldError error={errors.dob} />
             </div>
             {/* district */}
             <div>
-              <Field label="জেলা" placeholder="জেলা লিখুন" 
+              <Field label="জেলা" placeholder="জেলা লিখুন"
               readOnly={isSubmitting}
               {...register("address.district")} />
               <FieldError error={errors.address?.district} />
@@ -287,14 +272,14 @@ function NidStep() {
             </div>
             {/* village */}
             <div>
-              <Field label="গ্রাম" placeholder="গ্রাম লিখুন" 
+              <Field label="গ্রাম" placeholder="গ্রাম লিখুন"
               readOnly={isSubmitting}
               {...register("address.village")} />
               <FieldError error={errors.address?.village} />
             </div>
             {/* fullAddress */}
             <div>
-              <Field label="পূর্ণ ঠিকানা" placeholder="পূর্ণ ঠিকানা লিখুন" 
+              <Field label="পূর্ণ ঠিকানা" placeholder="পূর্ণ ঠিকানা লিখুন"
               readOnly={isSubmitting}
               {...register("address.fullAddress")} />
               <FieldError error={errors.address?.fullAddress} />
@@ -349,18 +334,12 @@ function NidStep() {
             type="submit"
             className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 w-full text-center"
           >
-          {isSubmitting ? <Loader2 className="animate-spin w-4 h-4" /> : "NID যাচাইয়ের জন্য জমা দিন"} 
+          {isSubmitting ? <Loader2 className="animate-spin w-4 h-4" /> : "NID যাচাইয়ের জন্য জমা দিন"}
           </button>
         </div>
       </div>
 
-      <div className="mt-6 border border-stone-200 p-5 flex flex-wrap items-center gap-3">
-        <span className="text-xs text-stone-400 mr-1">ভেরিফিকেশন স্ট্যাটাস:</span>
-        <StatusChip label="Pending" tone="neutral" />
-        <StatusChip label="Processing" tone="warning" active />
-        <StatusChip label="Approved" tone="success" />
-        <StatusChip label="Rejected" tone="danger" />
-      </div>
+     
     </>
   );
 }
@@ -380,12 +359,9 @@ function DoneScreen() {
 }
 
 export default function FarmerSignupFlow() {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [submitted, setSubmitted] = useState(false);
-  const api = useApi()
-  const { signUp } = useSignUp();
-  const { getToken } = useAuth();
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, user } = useUser();
+  const signupMutation = useSignupMutation();
+  const nidMutation = useFarmerNidMutation();
   const nidStatus = user?.publicMetadata?.nidStatus as string;
   let currentStep = 1;
   if (nidStatus === "unsubmitted") {
@@ -393,7 +369,6 @@ export default function FarmerSignupFlow() {
   } else if (nidStatus === "pending" || nidStatus === "submitted") {
     currentStep = 3;
   }
-  console.log(nidStatus)
 
   const accountMethods = useForm<FarmerAccountFormValues>({
     resolver: zodResolver(farmerAccountSchema),
@@ -410,81 +385,19 @@ export default function FarmerSignupFlow() {
 
  const onSubmitAccount = async (data: FarmerAccountFormValues) => {
   try {
-    const otpCode = data.otp?.join("") || "";
-    const verification = await signUp.verifications.verifyEmailCode({ code: otpCode });
-    if (verification.error) {
-      console.error("Clerk email verification failed:", verification.error);
-      return;
-    }
-
-    if (signUp.status !== "complete") {
-      console.error("Clerk signup is not complete after email verification:", signUp.status);
-      return;
-    }
-
-    const finalizeResult = await signUp.finalize();
-    console.log("Clerk signup finalized:", finalizeResult);
-    if (finalizeResult.error) {
-      console.error("Clerk signup finalization failed:", finalizeResult.error);
-      return;
-    }
-
-    const token = await getToken({ skipCache: true });
-    console.log("Fetched token after Core 3 finalize:", token);
-    if (!token) {
-      console.error("Clerk finalized signup but no active session token is available");
-      return;
-    }
-
-    const response = await axios.post(
-      "http://localhost:5000/api/auth/select-role",
-      { role: "farmer", phone: data.phone },
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (response.status === 201) {
-        await user?.reload();
-        await getToken({ skipCache: true });
-      }
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.log("Axios Error", error.message);
-      if (error.response) console.log(error.response.status);
-    } else {
-      console.error("Farmer signup failed:", error);
-    }
+    await signupMutation.mutateAsync({ otp: data.otp.join(""), role: "farmer", phone: data.phone });
+    await user?.reload();
+  } catch {
+    console.error("অ্যাকাউন্ট তৈরি করা যায়নি।");
   }
 };
 
  const onSubmitNid = async (data: FarmerNidFormValues) => {
   try {
-    const formData = new FormData();
-
-    formData.append("nidNumber", data.nidNumber);
-    formData.append("nidName", data.nidName);
-    formData.append("dob", data.dob);
-    // nested objects don't survive multipart as-is — send as JSON string
-    // and JSON.parse(req.body.address) server-side, or flatten the keys:
-    formData.append("address[district]", data.address.district);
-    formData.append("address[upazila]", data.address.upazila);
-    formData.append("address[village]", data.address.village);
-    formData.append("address[fullAddress]", data.address.fullAddress);
-
-    if (data.nidFront) formData.append("nidFront", data.nidFront);
-    if (data.nidBack) formData.append("nidBack", data.nidBack);
-
-    const response = await api.put("/farmers/profile", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    console.log("NID Response:", response);
+    await nidMutation.mutateAsync(data);
     await user?.reload();
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.log("Axios Error", error.message);
-      if (error.response) console.log(error.response.status);
-    } else {
-      console.error("NID submission failed:", error);
-    }
+  } catch {
+    console.error("NID তথ্য জমা দেওয়া যায়নি।");
   }
 };
 
@@ -518,6 +431,11 @@ if(!isLoaded) return <LoadingPage/>
 
                 {currentStep === 2 && (
                   <FormProvider {...nidMethods}>
+                    {nidMutation.error && (
+                      <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+                        {nidMutation.error.message}
+                      </div>
+                    )}
                     <form onSubmit={nidMethods.handleSubmit(onSubmitNid)} noValidate>
                       <NidStep />
                     </form>

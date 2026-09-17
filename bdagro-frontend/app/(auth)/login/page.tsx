@@ -1,29 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import { Sprout, Loader2 } from "lucide-react";
-import { useSignIn } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { loginSchema, LoginSchema } from "@/lib/schemas/auth";
 import Field from "@/components/ui/Field";
 import { FieldError } from "@/components/ui/FieldError";
-import axios from "axios";
+import { useLoginMutation } from "@/hooks/mutations/useAuthMutations";
 
 
 function LoginPage() {
-  // react-hook-form এর error এর সাথে conflict এড়াতে Clerk এর errors রিনেম করা হয়েছে
-  const { signIn, errors: clerkErrors } = useSignIn(); 
   const router = useRouter();
-  const [formError, setFormError] = useState("");
+  const loginMutation = useLoginMutation();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
@@ -33,53 +28,12 @@ function LoginPage() {
     },
   });
 
-  const finalizeSignIn = async () => {
-    if (!signIn) return;
-    await signIn.finalize({
-      navigate: ({ session, decorateUrl }) => {
-        if (session?.currentTask) {
-          setFormError("আপনার অ্যাকাউন্টের অতিরিক্ত যাচাই প্রয়োজন।");
-          return;
-        }
-
-        const url = decorateUrl("/");
-        if (url.startsWith("http")) {
-          window.location.href = url;
-        } else {
-          router.push(url);
-        }
-      },
-    });
-  };
-
   const onSubmit = async (data: LoginSchema) => {
-    setFormError("");
-    if (!signIn) return;
-
     try {
-      const { error } = await signIn.password({
-        emailAddress: data.email.trim(),
-        password: data.password,
-      });
-
-      if (error) {
-        setFormError(error.message || "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।");
-        return;
-      }
-
-      if (signIn.status === "complete") {
-        await finalizeSignIn();
-        return;
-      }
-
-      setFormError("লগইন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।");
-    } catch (err) {
-       if(axios.isAxiosError(err)) {
-        setFormError(err.response?.data?.message || "লগইন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।");
-       } else {
-        setFormError("লগইন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।");
-       }
-       
+      await loginMutation.mutateAsync(data);
+      router.push("/");
+    } catch {
+      // The mutation error is rendered below.
     }
   };
 
@@ -107,7 +61,7 @@ function LoginPage() {
               label="ইমেইল"
               type="email"
               placeholder="আপনার ইমেইল লিখুন"
-              readOnly={isSubmitting}
+              readOnly={loginMutation.isPending}
               {...register("email")}
             />
             <FieldError error={errors.email} />
@@ -118,24 +72,24 @@ function LoginPage() {
               label="পাসওয়ার্ড"
               type="password"
               placeholder="পাসওয়ার্ড লিখুন"
-              readOnly={isSubmitting}
+              readOnly={loginMutation.isPending}
               {...register("password")}
             />
             <FieldError error={errors.password} />
           </div>
 
-          {(formError || clerkErrors?.fields?.identifier || clerkErrors?.fields?.password) && (
+          {loginMutation.error && (
             <p className="text-sm text-red-700" role="alert">
-              {formError || clerkErrors?.fields?.identifier?.message || clerkErrors?.fields?.password?.message}
+              {loginMutation.error.message}
             </p>
           )}
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={loginMutation.isPending}
             className="w-full bg-primary-900 text-white py-3 text-sm hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "লগইন করুন"}
+            {loginMutation.isPending ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "লগইন করুন"}
           </button>
         </form>
 
