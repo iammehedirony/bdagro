@@ -75,6 +75,8 @@ export async function disburseLoan(project: HydratedDocument<IProject>): Promise
 
   await Installment.insertMany(installments);
 
+  project.expectedHarvestDate = installments[installments.length - 1].dueDate;
+
   await Transaction.create({
     user: application.farmer,
     type: TransactionType.LOAN_DISBURSEMENT,

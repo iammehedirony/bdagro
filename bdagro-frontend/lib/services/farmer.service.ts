@@ -35,6 +35,42 @@ export async function getFarmerDashboard(api: AxiosInstance) {
   return response.data;
 }
 
+export interface FarmerProfitDistributionSettlement {
+  id: string;
+  project: string;
+  date: string;
+  sales: number;
+  profit: number;
+  share: number;
+  sharePercent: number;
+  status: string;
+}
+
+export interface FarmerProfitDistributionData {
+  stats: {
+    activeFundingAmount: number;
+    profitDistributionRate: number;
+    expectedHarvestDate: string | null;
+    completedSettlements: number;
+  };
+  readyProjects: FarmerProfitDistributionProject[];
+  settlements: FarmerProfitDistributionSettlement[];
+}
+
+export interface FarmerProfitDistributionProject {
+  id: string;
+  title: string;
+  fundingAmount: number;
+  durationMonths: number;
+  profitShare: number;
+  expectedHarvestDate: string;
+}
+
+export async function getFarmerProfitDistribution(api: AxiosInstance) {
+  const response = await api.get<FarmerProfitDistributionData>("/farmers/profit-distribution");
+  return response.data;
+}
+
 export async function submitFarmerNid(api: AxiosInstance, data: FarmerNidFormValues) {
   const formData = new FormData();
 
@@ -134,4 +170,18 @@ export async function getFarmerApplication(api: AxiosInstance, id: string) {
 export async function getFarmerProjectDetails(api: AxiosInstance, id: string) {
   const response = await api.get<{ project: FarmerApplicationDetails & { marketplaceProject: FarmerApprovedProjectDetails | null; investments: FarmerProjectInvestor[] } }>(`/farmers/projects/${id}`);
   return response.data.project;
+}
+
+export interface SaveFarmerProfitReportInput {
+  totalSales: number;
+  productionCost: number;
+}
+
+export async function saveFarmerProjectProfitReport(
+  api: AxiosInstance,
+  projectId: string,
+  data: SaveFarmerProfitReportInput,
+) {
+  const response = await api.post(`/farmers/projects/${projectId}/profit-report`, data);
+  return response.data;
 }

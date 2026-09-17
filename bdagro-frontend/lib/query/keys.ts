@@ -10,6 +10,7 @@ export const queryKeys = {
   farmer: {
     submitNid: ["farmer", "submit-nid"] as const,
     dashboard: ["farmer", "dashboard"] as const,
+    profitDistribution: ["farmer", "profit-distribution"] as const,
     projects: ["farmer", "projects"] as const,
     project: (id: string) => ["farmer", "project", id] as const,
     projectDetails: (id: string) => ["farmer", "project-details", id] as const,

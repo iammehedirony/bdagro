@@ -45,3 +45,9 @@ export const updateFarmerProjectSchema = z.object({
   cropType: z.string().trim().optional(),
 });
 export type UpdateFarmerProjectInput = z.infer<typeof updateFarmerProjectSchema>;
+
+export const saveProjectProfitReportSchema = z.object({
+  totalSales: z.coerce.number().positive("Total sales must be greater than 0"),
+  productionCost: z.coerce.number().min(0, "Production cost cannot be negative"),
+});
+export type SaveProjectProfitReportInput = z.infer<typeof saveProjectProfitReportSchema>;

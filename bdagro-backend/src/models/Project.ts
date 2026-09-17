@@ -19,6 +19,15 @@ export interface IProject extends Document {
   fundedAmount: number;
   status: ProjectStatus;
   fundingDeadline: Date | null;
+  expectedHarvestDate: Date | null;
+  profitReport: {
+    totalSales: number;
+    productionCost: number;
+    netProfit: number;
+    profitSharePercent: number;
+    investorShareAmount: number;
+    submittedAt: Date;
+  } | null;
   imageUrls: string[];
   remainingAmount?: number; // virtual
   createdAt: Date;
@@ -48,6 +57,15 @@ const projectSchema = new Schema<IProject>(
       index: true,
     },
     fundingDeadline: { type: Date, default: null },
+    expectedHarvestDate: { type: Date, default: null, index: true },
+    profitReport: {
+      totalSales: { type: Number, min: 0 },
+      productionCost: { type: Number, min: 0 },
+      netProfit: { type: Number, min: 0 },
+      profitSharePercent: { type: Number, min: 0, max: 100 },
+      investorShareAmount: { type: Number, min: 0 },
+      submittedAt: { type: Date },
+    },
     imageUrls: { type: [String], default: [] },
   },
   { timestamps: true }

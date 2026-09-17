@@ -4,7 +4,7 @@ import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
 import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
-import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
+import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, saveProjectProfitReportSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
 import { submitProfitReportSchema, markPaidSchema } from "../validators/installment.validator";
 import { updateFarmerSettingsSchema } from "../validators/settings.validator";
 import * as notificationCtrl from "../controllers/notification.controller";
@@ -49,10 +49,12 @@ router.post("/installments/:id/mark-paid", validate(markPaidSchema), farmerCtrl.
 // --- Projects (Farmer perspective of Loan Applications & Marketplace Projects) ---
 router.get("/projects", farmerCtrl.listMyProjects);
 router.get("/projects/:id", farmerCtrl.getMyProjectById);
+router.post("/projects/:id/profit-report", validate(saveProjectProfitReportSchema), farmerCtrl.saveProjectProfitReport);
 router.post("/projects", validate(createLoanApplicationSchema), farmerCtrl.createMyProject);
 router.put("/projects/:id", validate(updateFarmerProjectSchema), farmerCtrl.updateMyProject);
 
 // --- Transactions ---
+router.get("/profit-distribution", farmerCtrl.getProfitDistribution);
 router.get("/transactions", farmerCtrl.listFarmerTransactions);
 
 // --- Notifications ---

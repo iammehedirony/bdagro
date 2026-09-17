@@ -4,7 +4,7 @@ import { Project } from "../models/Project";
 import { Investment } from "../models/Investment";
 import { Notification } from "../models/Notification";
 import { InstallmentStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, VerificationStatus } from "../utils/constants";
-import { CreateLoanApplicationInput, InitiatePaymentInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
+import { CreateLoanApplicationInput, InitiatePaymentInput, SaveProjectProfitReportInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
 import { clerkClient, getAuth } from "@clerk/express";
 import { AppError } from "../middlewares/errorHandler";
 import { FarmerProfile, Installment, LoanProduct, Transaction } from "../models";
@@ -663,6 +663,156 @@ export async function listFarmerTransactions(req: Request, res: Response): Promi
   ]);
 
   res.json({ transactions, meta: buildMeta(total, pagination) });
+}
+
+// ************** profit distribution ************
+
+export async function getProfitDistribution(req: Request, res: Response): Promise<void> {
+  const farmerId = req.user!._id;
+  const activeProjectStatuses = [ProjectStatus.OPEN, ProjectStatus.PARTIALLY_FUNDED];
+  const readyHarvestCutoff = new Date();
+  readyHarvestCutoff.setDate(readyHarvestCutoff.getDate() + 30);
+
+  const [activeProjects, applications, settlementTransactions, readyProjects] = await Promise.all([
+    Project.find({ farmer: farmerId, status: { $in: activeProjectStatuses } }).lean(),
+    LoanApplication.find({ farmer: farmerId }).populate("loanProduct", "profitSharePercent").lean(),
+    Transaction.find({
+      user: farmerId,
+      type: TransactionType.LOAN_REPAYMENT,
+      relatedInstallment: { $ne: null },
+    })
+      .populate("relatedLoanApplication", "projectTitle")
+      .populate("relatedInstallment")
+      .sort({ createdAt: -1 })
+      .lean(),
+    Project.find({
+      farmer: farmerId,
+      status: { $in: [ProjectStatus.FULLY_FUNDED, ProjectStatus.CLOSED] },
+      expectedHarvestDate: { $ne: null, $lte: readyHarvestCutoff },
+      profitReport: null,
+      $expr: { $gte: ["$fundedAmount", "$fundingGoal"] },
+    })
+      .populate({
+        path: "loanApplication",
+        match: { status: LoanApplicationStatus.APPROVED },
+        select: "projectTitle durationMonths loanProduct",
+        populate: { path: "loanProduct", select: "profitSharePercent" },
+      })
+      .lean(),
+  ]);
+
+  const activeApplicationIds = activeProjects.map((project) => project.loanApplication.toString());
+  const activeApplications = applications.filter((application) =>
+    activeApplicationIds.includes(application._id.toString())
+  );
+  const activeFundingAmount = activeProjects.reduce((sum, project) => sum + project.fundedAmount, 0);
+  const profitDistributionRate = activeApplications[0]?.loanProduct
+    ? (activeApplications[0].loanProduct as any).profitSharePercent
+    : 0;
+
+  const activeInstallments = await Installment.find({
+    farmer: farmerId,
+    loanApplication: { $in: activeProjects.map((project) => project.loanApplication) },
+  })
+    .sort({ dueDate: 1 })
+    .limit(1)
+    .lean();
+
+  const settlements = settlementTransactions
+    .filter((transaction) => {
+      const installment = transaction.relatedInstallment as any;
+      return Boolean(installment?.metadata?.profitReport);
+    })
+    .map((transaction) => {
+      const installment = transaction.relatedInstallment as any;
+      const profitReport = installment.metadata.profitReport;
+      const application = transaction.relatedLoanApplication as any;
+
+      return {
+        id: transaction._id,
+        project: application?.projectTitle ?? "প্রকল্প",
+        date: transaction.createdAt,
+        sales: profitReport.totalSales,
+        profit: profitReport.netProfit,
+        share: profitReport.investorShareAmount,
+        sharePercent: profitReport.profitSharePercent,
+        status: transaction.status,
+      };
+    });
+
+  res.json({
+    stats: {
+      activeFundingAmount,
+      profitDistributionRate,
+      expectedHarvestDate: readyProjects.find((project) => project.expectedHarvestDate)?.expectedHarvestDate
+        ?? activeInstallments[0]?.dueDate
+        ?? null,
+      completedSettlements: settlements.filter((settlement) => settlement.status === TransactionStatus.SUCCESS).length,
+    },
+    readyProjects: readyProjects
+      .filter((project) => project.loanApplication)
+      .map((project) => {
+        const application = project.loanApplication as any;
+        return {
+          id: project._id,
+          title: project.title,
+          fundingAmount: project.fundedAmount,
+          durationMonths: application.durationMonths,
+          profitShare: application.loanProduct.profitSharePercent,
+          expectedHarvestDate: project.expectedHarvestDate,
+        };
+      }),
+    settlements,
+  });
+}
+
+export async function saveProjectProfitReport(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid project id", 400);
+  }
+
+  const body = req.body as SaveProjectProfitReportInput;
+  const project = await Project.findOne({
+    _id: id,
+    farmer: req.user!._id,
+    status: { $in: [ProjectStatus.FULLY_FUNDED, ProjectStatus.CLOSED] },
+    $expr: { $gte: ["$fundedAmount", "$fundingGoal"] },
+  });
+  if (!project) {
+    throw new AppError("Eligible funded project not found", 404);
+  }
+  if (project.profitReport) {
+    throw new AppError("A profit report has already been saved for this project", 409);
+  }
+
+  const application = await LoanApplication.findOne({
+    _id: project.loanApplication,
+    farmer: req.user!._id,
+    status: LoanApplicationStatus.APPROVED,
+  }).populate("loanProduct", "profitSharePercent");
+  if (!application) {
+    throw new AppError("Approved loan application not found", 404);
+  }
+
+  const profitSharePercent = (application.loanProduct as any).profitSharePercent;
+  const netProfit = body.totalSales - body.productionCost;
+  if (netProfit < 0) {
+    throw new AppError("Net profit cannot be negative", 400);
+  }
+
+  const investorShareAmount = (netProfit * profitSharePercent) / 100;
+  project.profitReport = {
+    totalSales: body.totalSales,
+    productionCost: body.productionCost,
+    netProfit,
+    profitSharePercent,
+    investorShareAmount,
+    submittedAt: new Date(),
+  };
+  await project.save();
+
+  res.status(201).json({ project, profitReport: project.profitReport });
 }
 
 
