@@ -1,4 +1,5 @@
 import { Banknote, CalendarClock, ChevronRight, HandCoins, LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 export interface LoanCardProps {
   loan: {
@@ -63,10 +64,10 @@ export function LoanCard({ loan }: LoanCardProps) {
           </div>
         </div>
 
-        <button className="mt-5 w-full border border-stone-300 py-2 text-sm text-stone-800 hover:border-emerald-800 hover:text-emerald-900 transition-colors flex items-center justify-center gap-1">
-          বিস্তারিত দেখুন
+        <Link href="/loans/application" className="mt-5 w-full border border-stone-300 py-2 text-sm text-white hover:bg-emerald-800 transition-colors bg-emerald-900 flex items-center justify-center gap-1">
+           আবেদন করুন
           <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        </Link>
       </div>
     </div>
   );

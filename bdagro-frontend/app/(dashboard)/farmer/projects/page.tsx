@@ -1,104 +1,105 @@
-import { Sprout, MapPin, Pencil, Eye } from "lucide-react";
+"use client";
+
+import { Eye, MapPin, Pencil, Sprout } from "lucide-react";
+import Link from "next/link";
 import StatusTag from "@/components/ui/StatusTag";
 import ProgressBar from "@/components/ui/ProgressBar";
+import { useFarmerProjectsQuery } from "@/hooks/queries/useFarmerProjectQueries";
+import type { FarmerProjectApplication } from "@/lib/services/farmer.service";
 
-const projects = [
-  {
-    name: "সবুজ ধানখেত",
-    location: "কুমিল্লা",
-    crop: "ধান",
-    goal: "৫,০০,০০০",
-    raised: "৩,৭৫,০০০",
-    percent: 75,
-    status: "Approved" as const,
-    tone: "emerald" as const,
-  },
-  {
-    name: "নতুন সবজি খামার",
-    location: "কুমিল্লা",
-    crop: "সবজি",
-    goal: "৩,৫০,০০০",
-    raised: "০",
-    percent: 0,
-    status: "Processing" as const,
-    tone: "amber" as const,
-  },
-  {
-    name: "শীতকালীন আলু চাষ",
-    location: "কুমিল্লা",
-    crop: "আলু",
-    goal: "২,৮০,০০০",
-    raised: "০",
-    percent: 0,
-    status: "Pending" as const,
-    tone: "amber" as const,
-  },
-  {
-    name: "পুকুরে মাছ চাষ",
-    location: "কুমিল্লা",
-    crop: "মৎস্য",
-    goal: "৩,০০,০০০",
-    raised: "০",
-    percent: 0,
-    status: "Rejected" as const,
-    tone: "amber" as const,
-  },
-];
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
+
+function getProgress(project: FarmerProjectApplication) {
+  const funding = project.marketplaceProject;
+  if (!funding || funding.fundingGoal <= 0) return 0;
+  return Math.min(Math.round((funding.fundedAmount / funding.fundingGoal) * 100), 100);
+}
+
+function getTone(status: FarmerProjectApplication["status"]) {
+  return status === "Approved" ? "emerald" : "amber";
+}
 
 export default function FarmerMyProjectsPage() {
+  const { data, isLoading, isError, refetch } = useFarmerProjectsQuery();
+  const projects = data?.projects ?? [];
+
+  if (isLoading) return <div className="p-8 text-sm text-neutral-500">প্রকল্পগুলো লোড হচ্ছে...</div>;
+
+  if (isError) {
+    return (
+      <div className="p-8">
+        <div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+          প্রকল্পগুলোর তথ্য লোড করা যায়নি।
+          <button className="ml-3 underline" onClick={() => refetch()}>আবার চেষ্টা করুন</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white min-h-screen flex">
+    <div className="min-h-screen bg-white">
+      <div className="p-8">
+        <div className="mb-5 flex items-center justify-between">
+          <span className="text-sm text-neutral-400">{projects.length}টি প্রকল্প</span>
+        </div>
 
-      {/* MAIN */}
-      <div className="flex-1 min-w-0">
-
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-sm text-neutral-400">৪টি প্রকল্প</span>
-          </div>
-
-          <div className="border border-neutral-200">
+        <div className="border border-neutral-200">
+          {projects.length === 0 ? (
+            <div className="p-8 text-center text-sm text-neutral-500">আপনার কোনো প্রকল্পের আবেদন নেই।</div>
+          ) : (
             <div className="divide-y divide-neutral-200">
-              {projects.map((p) => (
-                <div key={p.name} className="p-6 flex items-center gap-6 flex-wrap">
-                  <div className="w-14 h-14 bg-primary-900 flex items-center justify-center shrink-0">
-                    <Sprout className="w-6 h-6 text-white/70" />
-                  </div>
+              {projects.map((project) => {
+                const marketplaceProject = project.marketplaceProject;
+                const fundingGoal = marketplaceProject?.fundingGoal ?? project.requestedAmount;
+                const fundedAmount = marketplaceProject?.fundedAmount ?? 0;
+                const progress = getProgress(project);
 
-                  <div className="flex-1 min-w-[180px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-neutral-900">{p.name}</span>
-                      <StatusTag status={p.status} />
+                return (
+                  <div key={project._id} className="flex flex-wrap items-center gap-6 p-6">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center bg-primary-900">
+                      <Sprout className="h-6 w-6 text-white/70" />
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-neutral-400 mt-1">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {p.location}
-                      </span>
-                      <span>·</span>
-                      <span>{p.crop}</span>
-                    </div>
-                  </div>
 
-                  <div className="w-40">
-                    <ProgressBar percent={p.percent} tone={p.tone} />
-                    <div className="mt-1.5 text-xs text-neutral-400">
-                      ৳{p.raised} / ৳{p.goal}
+                    <div className="min-w-[180px] flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-neutral-900">{project.projectTitle}</span>
+                        <StatusTag status={project.status} />
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-neutral-400">
+                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{project.cropType || "-"}</span>
+                        <span>·</span>
+                        <span>{formatCurrency(project.requestedAmount)} আবেদন</span>
+                      </div>
+                    </div>
+
+                    <div className="w-40">
+                      {marketplaceProject ? (
+                        <>
+                          <ProgressBar percent={progress} tone={getTone(project.status)} />
+                          <div className="mt-1.5 text-xs text-neutral-400">{formatCurrency(fundedAmount)} / {formatCurrency(fundingGoal)}</div>
+                        </>
+                      ) : (
+                        <div className="text-xs text-neutral-400">
+                          {project.status === "Rejected" ? "আবেদন প্রত্যাখ্যাত" : "অনুমোদনের অপেক্ষায়"}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link href={`/farmer/projects/${project._id}`} aria-label="প্রকল্প দেখুন" className="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                      <button aria-label="প্রকল্প সম্পাদনা করুন" className="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
+                        <Pencil className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button className="w-9 h-9 flex items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="w-9 h-9 flex items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

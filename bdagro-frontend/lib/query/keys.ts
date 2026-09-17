@@ -9,8 +9,17 @@ export const queryKeys = {
   },
   farmer: {
     submitNid: ["farmer", "submit-nid"] as const,
+    dashboard: ["farmer", "dashboard"] as const,
+    projects: ["farmer", "projects"] as const,
+    project: (id: string) => ["farmer", "project", id] as const,
+    projectDetails: (id: string) => ["farmer", "project-details", id] as const,
   },
   investor: {
     createProfile: ["investor", "create-profile"] as const,
+  },
+  loan: {
+    products: ["loan", "products"] as const,
+    applications: ["loan", "applications"] as const,
+    createApplication: ["loan", "create-application"] as const,
   },
 };

@@ -1,196 +1,109 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { Calendar, HandCoins, MapPin, Pencil, Ruler, Sprout, Users, Wheat } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 import StatusStep from "@/components/ui/StatusStep";
-import {
-  Sprout,
-  MapPin,
-  Ruler,
-  Wheat,
-  Calendar,
-  Users,
-  HandCoins,
-  Pencil,
-} from "lucide-react";
+import { useFarmerApplicationQuery, useFarmerApprovedProjectQuery } from "@/hooks/queries/useFarmerProjectDetailsQueries";
+import type { FarmerProjectApplication } from "@/lib/services/farmer.service";
 
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
 
-const investors = [
-  { name: "রাহাত ক.", amount: "১০,০০০", date: "১২ জুন ২০২৬", initial: "র" },
-  { name: "তানভীর আ.", amount: "১৫,০০০", date: "১৫ জুন ২০২৬", initial: "ত" },
-  { name: "সুমাইয়া হ.", amount: "৫,০০০", date: "১৮ জুন ২০২৬", initial: "সু" },
-  { name: "কামরুল ই.", amount: "২০,০০০", date: "২২ জুন ২০২৬", initial: "কা" },
-  { name: "নাজমুল হ.", amount: "৮,০০০", date: "২৮ জুন ২০২৬", initial: "না" },
-];
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function statusClasses(status: FarmerProjectApplication["status"]) {
+  if (status === "Approved") return "border-emerald-600 bg-emerald-50 text-emerald-800";
+  if (status === "Rejected") return "border-red-600 bg-red-50 text-red-800";
+  return "border-amber-600 bg-amber-50 text-amber-800";
+}
+
+function statusIndex(status: FarmerProjectApplication["status"]) {
+  return ["Pending", "Processing", "Approved"].indexOf(status);
+}
 
 export default function FarmerProjectDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const applicationQuery = useFarmerApplicationQuery(id);
+  const application = applicationQuery.data;
+  const approvedQuery = useFarmerApprovedProjectQuery(id, application?.status === "Approved");
+  const marketplaceProject = approvedQuery.data?.marketplaceProject;
+  const investments = approvedQuery.data?.investments ?? [];
+  const fundingGoal = marketplaceProject?.fundingGoal ?? 0;
+  const fundedAmount = marketplaceProject?.fundedAmount ?? 0;
+  const fundingPercent = fundingGoal > 0 ? Math.min(Math.round((fundedAmount / fundingGoal) * 100), 100) : 0;
+
+  if (applicationQuery.isLoading) return <div className="p-8 text-sm text-stone-500">প্রকল্পের তথ্য লোড হচ্ছে...</div>;
+
+  if (applicationQuery.isError || !application) {
+    return <div className="p-8"><div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">প্রকল্পের তথ্য লোড করা যায়নি। <button className="ml-3 underline" onClick={() => applicationQuery.refetch()}>আবার চেষ্টা করুন</button></div></div>;
+  }
+
+  if (application.status === "Approved" && approvedQuery.isError) {
+    return <div className="p-8"><div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">বিনিয়োগের তথ্য লোড করা যায়নি। <button className="ml-3 underline" onClick={() => approvedQuery.refetch()}>আবার চেষ্টা করুন</button></div></div>;
+  }
+
+  const currentStatusIndex = statusIndex(application.status);
+  const statusSteps = ["Pending", "Processing", "Approved"] as const;
+
   return (
-    <div className="bg-white min-h-screen flex">
-      {/* MAIN */}
-      <div className="flex-1 min-w-0">
-        <div className="p-8">
-          <div className="grid lg:grid-cols-[1fr_340px] gap-10">
-            {/* LEFT: PROJECT CONTENT */}
-            <div>
-              <div className="h-64 bg-emerald-900 flex items-center justify-center">
-                <Sprout className="w-12 h-12 text-white/60" strokeWidth={1.5} />
-              </div>
+    <div className="min-h-screen bg-white">
+      <div className="p-8">
+        <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
+          <div>
+            <div className="flex h-64 items-center justify-center bg-emerald-900"><Sprout className="h-12 w-12 text-white/60" strokeWidth={1.5} /></div>
 
-              <div className="mt-6 flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-stone-400 mb-2">
-                    <span className="border border-emerald-600 text-emerald-800 bg-emerald-50 px-2 py-0.5">
-                      Approved
-                    </span>
-                    <span>·</span>
-                    <span>ধান</span>
-                  </div>
-                  <h1 className="text-3xl text-stone-900">
-                    সবুজ ধানখেত
-                  </h1>
-                  <div className="flex items-center gap-1 text-sm text-stone-400 mt-2">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>বুড়িচং, কুমিল্লা</span>
-                  </div>
-                </div>
-                <button className="border border-stone-300 text-stone-700 px-4 py-2 text-sm hover:border-emerald-800 hover:text-emerald-900 flex items-center gap-1.5">
-                  <Pencil className="w-3.5 h-3.5" />
-                  প্রকল্প এডিট করুন
-                </button>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs text-stone-400"><span className={`border px-2 py-0.5 ${statusClasses(application.status)}`}>{application.status}</span><span>·</span><span>{application.cropType || "-"}</span></div>
+                <h1 className="text-3xl text-stone-900">{application.projectTitle}</h1>
+                <div className="mt-2 flex items-center gap-1 text-sm text-stone-400"><MapPin className="h-3.5 w-3.5" /><span>কৃষকের আবেদন</span></div>
               </div>
-
-              {/* DESCRIPTION */}
-              <div className="mt-10">
-                <h2 className="text-xl text-stone-900 mb-3">
-                  প্রকল্পের বিবরণ
-                </h2>
-                <p className="text-sm text-stone-600 leading-relaxed">
-                  বুড়িচং উপজেলার ৩ বিঘা জমিতে উচ্চ ফলনশীল বোরো ধান চাষের
-                  পরিকল্পনা। বীজ, সার, সেচ ও শ্রমিক খরচের জন্য মূলধন প্রয়োজন।
-                  গত মৌসুমে একই জমিতে বিঘাপ্রতি ২২ মণ ফলন পাওয়া গিয়েছিল।
-                </p>
-              </div>
-
-              {/* FARM DETAILS */}
-              <div className="mt-10">
-                <h2 className="text-xl text-stone-900 mb-4">
-                  খামারের বিবরণ
-                </h2>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="border border-stone-200 p-4 flex items-center gap-3">
-                    <Ruler className="w-4 h-4 text-stone-400" />
-                    <div>
-                      <div className="text-xs text-stone-400">জমির পরিমাণ</div>
-                      <div className="text-sm text-stone-800">৩ বিঘা</div>
-                    </div>
-                  </div>
-                  <div className="border border-stone-200 p-4 flex items-center gap-3">
-                    <Wheat className="w-4 h-4 text-stone-400" />
-                    <div>
-                      <div className="text-xs text-stone-400">ফসলের ধরন</div>
-                      <div className="text-sm text-stone-800">বোরো ধান</div>
-                    </div>
-                  </div>
-                  <div className="border border-stone-200 p-4 flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-stone-400" />
-                    <div>
-                      <div className="text-xs text-stone-400">মেয়াদ</div>
-                      <div className="text-sm text-stone-800">৪ মাস</div>
-                    </div>
-                  </div>
-                  <div className="border border-stone-200 p-4 flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-stone-400" />
-                    <div>
-                      <div className="text-xs text-stone-400">
-                        প্রত্যাশিত ফসল কাটার তারিখ
-                      </div>
-                      <div className="text-sm text-stone-800">মার্চ ২০২৭</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* STATUS TIMELINE */}
-              <div className="mt-10">
-                <h2 className="text-xl text-stone-900 mb-4">
-                  প্রকল্পের অবস্থা
-                </h2>
-                <div className="border border-stone-200 p-6 flex flex-wrap gap-x-8 gap-y-3">
-                  <StatusStep label="Pending" done />
-                  <StatusStep label="Processing" done />
-                  <StatusStep label="Approved" done current />
-                  <StatusStep label="ফসল সংগ্রহ ও মুনাফা বণ্টন" />
-                </div>
-              </div>
+              <button className="flex items-center gap-1.5 border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:border-emerald-800 hover:text-emerald-900"><Pencil className="h-3.5 w-3.5" />প্রকল্প এডিট করুন</button>
             </div>
 
-            {/* RIGHT: FUNDING & INVESTORS */}
-            <div className="lg:sticky lg:top-6 h-fit space-y-6">
-              {/* PROGRESS */}
-              <div className="border border-stone-200 p-6">
-                <div className="flex items-center justify-between text-sm text-stone-700 mb-1.5">
-                  <span className="text-stone-900">৳৩,৭৫,০০০</span>
-                  <span className="text-stone-400">লক্ষ্য ৳৫,০০,০০০</span>
-                </div>
-                <ProgressBar percent={75} />
-                <div className="flex items-center justify-between text-xs text-stone-400 mt-2">
-                  <span>৭৫% পূর্ণ হয়েছে</span>
-                  <span>১৮ দিন বাকি</span>
-                </div>
+            <div className="mt-10"><h2 className="mb-3 text-xl text-stone-900">প্রকল্পের বিবরণ</h2><p className="text-sm leading-relaxed text-stone-600">{application.projectDescription}</p></div>
 
-                <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-stone-200">
-                  <div>
-                    <div className="text-xs text-stone-400">মুনাফা বণ্টন</div>
-                    <div className="text-lg text-emerald-800">
-                      ২৫%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-stone-400">বিনিয়োগকারী</div>
-                    <div className="text-lg text-stone-900">
-                      ৬২ জন
-                    </div>
-                  </div>
-                </div>
+            <div className="mt-10"><h2 className="mb-4 text-xl text-stone-900">খামারের বিবরণ</h2><div className="grid gap-5 sm:grid-cols-2">
+              <DetailItem icon={<Wheat className="h-4 w-4 text-stone-400" />} label="ফসলের ধরন" value={application.cropType || "-"} />
+              <DetailItem icon={<Ruler className="h-4 w-4 text-stone-400" />} label="আবেদনের পরিমাণ" value={formatCurrency(application.requestedAmount)} />
+              <DetailItem icon={<Calendar className="h-4 w-4 text-stone-400" />} label="মেয়াদ" value={`${application.durationMonths} মাস`} />
+              <DetailItem icon={<Calendar className="h-4 w-4 text-stone-400" />} label="আবেদনের তারিখ" value={formatDate(application.createdAt)} />
+            </div></div>
 
-                <button className="mt-5 w-full bg-emerald-900 text-white py-3 text-sm hover:bg-emerald-800 flex items-center justify-center gap-2">
-                  <HandCoins className="w-4 h-4" />
-                  মুনাফা রিপোর্ট জমা দিন
-                </button>
-              </div>
+            <div className="mt-10"><h2 className="mb-4 text-xl text-stone-900">প্রকল্পের অবস্থা</h2><div className="flex flex-wrap gap-x-8 gap-y-3 border border-stone-200 p-6">
+              {statusSteps.map((status, index) => <StatusStep key={status} label={status} done={application.status !== "Rejected" && index < currentStatusIndex} current={application.status !== "Rejected" && index === currentStatusIndex} />)}
+              {application.status === "Rejected" && <StatusStep label="Rejected" current />}
+              {application.status === "Approved" && <StatusStep label="ফসল সংগ্রহ ও মুনাফা বণ্টন" />}
+            </div>{application.status === "Rejected" && application.rejectionReason && <p className="mt-3 text-sm text-red-700">কারণ: {application.rejectionReason}</p>}</div>
+          </div>
 
-              {/* INVESTORS LIST */}
-              <div className="border border-stone-200">
-                <div className="p-5 border-b border-stone-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-stone-900">
-                    <Users className="w-4 h-4" />
-                    <span>বিনিয়োগকারীগণ</span>
-                  </div>
-                  <span className="text-xs text-stone-400">৬২ জনের মধ্যে ৫টি</span>
-                </div>
-                <div className="divide-y divide-stone-100">
-                  {investors.map((inv) => (
-                    <div key={inv.name} className="p-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-sm shrink-0">
-                          {inv.initial}
-                        </div>
-                        <div>
-                          <div className="text-sm text-stone-800">{inv.name}</div>
-                          <div className="text-xs text-stone-400 mt-0.5">{inv.date}</div>
-                        </div>
-                      </div>
-                      <div className="text-sm text-stone-800 shrink-0">৳{inv.amount}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-4 text-center border-t border-stone-200">
-                  <span className="text-sm text-emerald-900 cursor-pointer">
-                    সব বিনিয়োগকারী দেখুন
-                  </span>
-                </div>
-              </div>
+          <div className="h-fit space-y-6 lg:sticky lg:top-6">
+            <div className="border border-stone-200 p-6">
+              {approvedQuery.isLoading && application.status === "Approved" ? <div className="text-sm text-stone-500">বিনিয়োগের তথ্য লোড হচ্ছে...</div> : <>
+                <div className="mb-1.5 flex items-center justify-between text-sm text-stone-700"><span className="text-stone-900">{formatCurrency(fundedAmount)}</span><span className="text-stone-400">লক্ষ্য {formatCurrency(fundingGoal)}</span></div>
+                <ProgressBar percent={fundingPercent} />
+                <div className="mt-2 flex items-center justify-between text-xs text-stone-400"><span>{fundingPercent}% পূর্ণ হয়েছে</span><span>{application.status === "Approved" && marketplaceProject?.fundingDeadline ? formatDate(marketplaceProject.fundingDeadline) : "-"}</span></div>
+                <div className="mt-5 grid grid-cols-2 gap-4 border-t border-stone-200 pt-5"><div><div className="text-xs text-stone-400">মুনাফা বণ্টন</div><div className="text-lg text-emerald-800">{marketplaceProject?.expectedROIPercent ?? 0}%</div></div><div><div className="text-xs text-stone-400">বিনিয়োগকারী</div><div className="text-lg text-stone-900">{investments.length} জন</div></div></div>
+                <button disabled={application.status !== "Approved"} className="mt-5 flex w-full items-center justify-center gap-2 bg-emerald-900 py-3 text-sm text-white enabled:hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"><HandCoins className="h-4 w-4" />মুনাফা রিপোর্ট জমা দিন</button>
+              </>}
+            </div>
+
+            <div className="border border-stone-200"><div className="flex items-center justify-between border-b border-stone-200 p-5"><div className="flex items-center gap-2 text-stone-900"><Users className="h-4 w-4" /><span>বিনিয়োগকারীগণ</span></div><span className="text-xs text-stone-400">{investments.length} জন</span></div>
+              {investments.length === 0 ? <div className="p-5 text-sm text-stone-500">এখনো কোনো বিনিয়োগকারী নেই।</div> : <div className="divide-y divide-stone-100">{investments.map((investment) => <div key={investment._id} className="flex items-center justify-between gap-3 p-4"><div className="flex items-center gap-3"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm text-stone-500">{investment.investor?.name?.[0] || "-"}</div><div><div className="text-sm text-stone-800">{investment.investor?.name || "বিনিয়োগকারী"}</div><div className="mt-0.5 text-xs text-stone-400">{formatDate(investment.createdAt)}</div></div></div><div className="shrink-0 text-sm text-stone-800">{formatCurrency(investment.amount)}</div></div>)}</div>}
+              <div className="border-t border-stone-200 p-4 text-center"><span className="text-sm text-emerald-900">সব বিনিয়োগকারী দেখুন</span></div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <div className="flex items-center gap-3 border border-stone-200 p-4"><span>{icon}</span><div><div className="text-xs text-stone-400">{label}</div><div className="text-sm text-stone-800">{value}</div></div></div>;
 }

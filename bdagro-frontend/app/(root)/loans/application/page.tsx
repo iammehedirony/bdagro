@@ -1,211 +1,133 @@
-import React from "react";
-import {
-  Sprout,
-  Wheat,
-  ChevronRight,
-  Upload,
-  HandCoins,
-  CalendarClock,
-  Banknote,
-  Info,
-} from "lucide-react";
-import { TenureOption } from "@/components/ui/TenureOption";
-import UploadBox from "@/components/ui/UploadBox";
+"use client";
 
+import { useEffect } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Banknote, CalendarClock, ChevronRight, HandCoins, Info, Loader2, Wheat } from "lucide-react";
+import UploadBox from "@/components/ui/UploadBox";
+import Field from "@/components/ui/Field";
+import { FieldError } from "@/components/ui/FieldError";
+import { useCreateLoanApplicationMutation } from "@/hooks/mutations/useLoanMutations";
+import { useLoanProductsQuery } from "@/hooks/queries/useLoanQueries";
+import { loanApplicationSchema, type LoanApplicationFormValues } from "@/lib/schemas/loan";
+
+const defaultValues: LoanApplicationFormValues = {
+  loanProduct: "",
+  requestedAmount: 5000,
+  durationMonths: 6,
+  projectTitle: "",
+  projectDescription: "",
+  cropType: "",
+  landDeed: null,
+  incomeProof: null,
+  terms: true,
+};
+
+function getErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) return response.data.message;
+  }
+  return error instanceof Error ? error.message : "আবেদন জমা দেওয়া যায়নি। আবার চেষ্টা করুন।";
+}
+
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
 
 export default function LoanApplicationPage() {
+  const productsQuery = useLoanProductsQuery();
+  const applicationMutation = useCreateLoanApplicationMutation();
+  const products = productsQuery.data ?? [];
+  const { register, control, handleSubmit, reset, setValue, formState: { errors } } = useForm<LoanApplicationFormValues>({
+    resolver: zodResolver(loanApplicationSchema),
+    mode: "onBlur",
+    defaultValues,
+  });
+  const selectedProductId = useWatch({ control, name: "loanProduct" });
+  const amount = useWatch({ control, name: "requestedAmount" });
+  const duration = useWatch({ control, name: "durationMonths" });
+  const selectedProduct = products.find((product) => product._id === selectedProductId);
+  const isPending = applicationMutation.isPending;
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    if (Number(amount) < selectedProduct.minAmount || Number(amount) > selectedProduct.maxAmount) {
+      setValue("requestedAmount", selectedProduct.minAmount, { shouldValidate: true });
+    }
+    if (Number(duration) > selectedProduct.maxDurationMonths) {
+      setValue("durationMonths", selectedProduct.maxDurationMonths, { shouldValidate: true });
+    }
+  }, [amount, duration, selectedProduct, setValue]);
+
+  const onSubmit = async (data: LoanApplicationFormValues) => {
+    await applicationMutation.mutateAsync(data);
+    reset({ ...defaultValues, loanProduct: data.loanProduct });
+  };
+
   return (
-    <div className="bg-white min-h-screen">
-
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* BREADCRUMB */}
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex items-center gap-1.5 text-xs text-stone-400">
-          <span>হোম</span>
-          <ChevronRight className="w-3 h-3" />
-          <span>ফান্ডিং এক্সপ্লোরার</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-stone-600">বীজ ক্রয় ফান্ডিং · আবেদন</span>
+          <span>হোম</span><ChevronRight className="h-3 w-3" /><span>ফান্ডিং এক্সপ্লোরার</span>
+          <ChevronRight className="h-3 w-3" /><span className="text-stone-600">ফান্ডিং আবেদন</span>
+        </div>
+        <h1 className="mt-4 text-3xl text-stone-900">ফান্ডিং আবেদন করুন</h1>
+        <p className="mt-2 text-sm text-stone-500">প্রয়োজনীয় তথ্য পূরণ করুন, অ্যাডমিন যাচাইয়ের পর সিদ্ধান্ত জানানো হবে।</p>
+
+        <div className="mt-4 flex max-w-2xl items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+          <p className="text-xs leading-relaxed text-emerald-800">এটি সুদভিত্তিক ঋণ নয়। ফসল বা প্রকল্প থেকে লাভ হলে তার একটি নির্দিষ্ট অংশ বিনিয়োগকারীকে দিতে হবে।</p>
         </div>
 
-        <h1 className="mt-4 text-3xl text-stone-900">
-          ফান্ডিং আবেদন করুন
-        </h1>
-        <p className="mt-2 text-stone-500 text-sm">
-          প্রয়োজনীয় তথ্য পূরণ করুন, অ্যাডমিন যাচাইয়ের পর সিদ্ধান্ত জানানো হবে।
-        </p>
+        {applicationMutation.error && <div className="mt-6 max-w-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(applicationMutation.error)}</div>}
+        {applicationMutation.isSuccess && <div className="mt-6 max-w-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">আপনার আবেদন সফলভাবে জমা হয়েছে।</div>}
+        {productsQuery.error && <div className="mt-6 max-w-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(productsQuery.error)}</div>}
 
-        <div className="mt-4 flex items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3 max-w-2xl">
-          <Info className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-          <p className="text-xs text-emerald-800 leading-relaxed">
-            এটি সুদভিত্তিক ঋণ নয়। ফসল বা প্রকল্প থেকে লাভ হলে তার একটি
-            নির্দিষ্ট অংশ বিনিয়োগকারীকে দিতে হবে। লোকসান হলে কোনো সুদ বা
-            জরিমানা প্রযোজ্য নয় — ঝুঁকি উভয়পক্ষ ভাগ করে নেয়।
-          </p>
-        </div>
-
-        <div className="mt-8 grid lg:grid-cols-[1fr_340px] gap-10">
-          {/* LEFT: FORM */}
-          <div className="space-y-8">
-            {/* PROJECT LINK */}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 grid gap-10 lg:grid-cols-[1fr_340px]">
+          <div className="space-y-7">
             <div>
-              <label className="text-sm text-stone-700">
-                কোন প্রকল্পের জন্য আবেদন করছেন
-              </label>
-              <select className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:border-emerald-700">
-                <option>সবুজ ধানখেত — কুমিল্লা</option>
-                <option>নতুন প্রকল্প যোগ করুন</option>
+              <label className="text-sm text-stone-700">কোন ফান্ডিং প্রোডাক্টের জন্য আবেদন করছেন</label>
+              <select {...register("loanProduct")} disabled={isPending || productsQuery.isLoading} className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 focus:border-emerald-700 focus:outline-none">
+                <option value="">প্রোডাক্ট নির্বাচন করুন</option>
+                {products.map((product) => <option key={product._id} value={product._id}>{product.name}</option>)}
               </select>
-              <div className="mt-1.5 text-xs text-stone-400">
-                বিদ্যমান প্রকল্প নির্বাচন করলে ভেরিফিকেশন দ্রুত সম্পন্ন হয়
-              </div>
+              <FieldError error={errors.loanProduct} />
             </div>
 
-            {/* AMOUNT */}
             <div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-stone-700">ফান্ডিংয়ের পরিমাণ</label>
-                <span className="text-sm text-stone-900">৳৩৫,০০০</span>
-              </div>
-              <input
-                type="range"
-                min="5000"
-                max="50000"
-                defaultValue="35000"
-                className="mt-3 w-full accent-emerald-800"
-              />
-              <div className="flex items-center justify-between text-xs text-stone-400 mt-1">
-                <span>সর্বনিম্ন ৳৫,০০০</span>
-                <span>সর্বোচ্চ ৳৫০,০০০</span>
-              </div>
+              <div className="flex items-center justify-between"><label className="text-sm text-stone-700">ফান্ডিংয়ের পরিমাণ</label><span className="text-sm text-stone-900">{formatCurrency(Number(amount) || 0)}</span></div>
+              <input {...register("requestedAmount", { valueAsNumber: true })} type="range" min={selectedProduct?.minAmount ?? 5000} max={selectedProduct?.maxAmount ?? 50000} step="1000" disabled={isPending || !selectedProduct} className="mt-3 w-full accent-emerald-800" />
+              <div className="mt-1 flex justify-between text-xs text-stone-400"><span>সর্বনিম্ন {formatCurrency(selectedProduct?.minAmount ?? 5000)}</span><span>সর্বোচ্চ {formatCurrency(selectedProduct?.maxAmount ?? 50000)}</span></div>
+              <FieldError error={errors.requestedAmount} />
             </div>
 
-            {/* TENURE */}
             <div>
               <label className="text-sm text-stone-700">প্রকল্পের মেয়াদ</label>
-              <div className="mt-2 grid grid-cols-4 gap-3">
-                <TenureOption label="৩ মাস" />
-                <TenureOption label="৬ মাস" selected />
-                <TenureOption label="৯ মাস" />
-                <TenureOption label="১২ মাস" />
-              </div>
+              <select {...register("durationMonths", { valueAsNumber: true })} disabled={isPending} className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 focus:border-emerald-700 focus:outline-none">
+                {[3, 6, 9, 12, 18, 24, 36].filter((months) => months <= (selectedProduct?.maxDurationMonths ?? 36)).map((months) => <option key={months} value={months}>{months} মাস</option>)}
+              </select>
+              <FieldError error={errors.durationMonths} />
             </div>
 
-            {/* PURPOSE */}
+            <div><Field label="প্রকল্পের নাম" placeholder="যেমন: কুমিল্লায় বোরো ধান চাষ" readOnly={isPending} {...register("projectTitle")} /><FieldError error={errors.projectTitle} /></div>
+            <div><label className="text-sm text-stone-700">ফান্ডিংয়ের উদ্দেশ্য</label><textarea {...register("projectDescription")} rows={4} disabled={isPending} placeholder="যেমন: ৩ বিঘা জমিতে বোরো ধানের জন্য উচ্চ ফলনশীল বীজ ক্রয়" className="mt-1.5 w-full resize-none border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700" /><FieldError error={errors.projectDescription} /></div>
+            <div><Field label="ফসলের ধরন (ঐচ্ছিক)" placeholder="যেমন: বোরো ধান" readOnly={isPending} {...register("cropType")} /><FieldError error={errors.cropType} /></div>
+
             <div>
-              <label className="text-sm text-stone-700">ফান্ডিংয়ের উদ্দেশ্য</label>
-              <textarea
-                rows={4}
-                placeholder="যেমন: ৩ বিঘা জমিতে বোরো ধানের জন্য উচ্চ ফলনশীল বীজ ক্রয়"
-                className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700 resize-none"
-              />
-            </div>
-
-            {/* GUARANTOR */}
-            <div>
-              <label className="text-sm text-stone-700 mb-2 block">
-                জামিনদারের তথ্য (ঐচ্ছিক)
-              </label>
-              <div className="grid sm:grid-cols-2 gap-5">
-                <input
-                  type="text"
-                  placeholder="জামিনদারের নাম"
-                  className="border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700"
-                />
-                <input
-                  type="text"
-                  placeholder="ফোন নম্বর"
-                  className="border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700"
-                />
+              <label className="mb-2 block text-sm text-stone-700">সংযুক্তি</label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><Controller name="landDeed" control={control} render={({ field }) => <UploadBox label="জমির দলিল / লিজ কাগজ" hint="PDF, JPG · সর্বোচ্চ ৫MB" accept="image/*,.pdf" file={field.value} onChange={field.onChange} />} /><FieldError error={errors.landDeed} /></div>
+                <div><Controller name="incomeProof" control={control} render={({ field }) => <UploadBox label="আয়ের প্রমাণ (ঐচ্ছিক)" hint="PDF, JPG · সর্বোচ্চ ৫MB" accept="image/*,.pdf" file={field.value} onChange={field.onChange} />} /><FieldError error={errors.incomeProof} /></div>
               </div>
             </div>
 
-            {/* DOCUMENTS */}
-            <div>
-              <label className="text-sm text-stone-700 mb-2 block">
-                সংযুক্তি
-              </label>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <UploadBox label="জমির দলিল / লিজ কাগজ" hint="PDF, JPG · সর্বোচ্চ ৫MB" />
-                <UploadBox label="আয়ের প্রমাণ (ঐচ্ছিক)" hint="PDF, JPG · সর্বোচ্চ ৫MB" />
-              </div>
-              <div className="mt-2 text-xs text-stone-400">
-                NID ইতিমধ্যে যাচাইকৃত থাকায় আলাদা করে জমা দিতে হবে না
-              </div>
-            </div>
-
-            <label className="flex items-start gap-2 text-xs text-stone-500">
-              <input
-                type="checkbox"
-                className="accent-emerald-800 mt-0.5"
-                defaultChecked
-              />
-              <span>
-                আমি নিশ্চিত করছি প্রদত্ত সকল তথ্য সঠিক এবং মুনাফা বণ্টনের
-                শর্তাবলীতে সম্মত
-              </span>
-            </label>
-
-            <div className="flex items-center gap-3">
-              <button className="text-sm text-stone-500 hover:text-stone-800">
-                পরে সম্পন্ন করুন
-              </button>
-              <button className="ml-auto bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800">
-                আবেদন জমা দিন
-              </button>
-            </div>
+            <div><label className="flex items-start gap-2 text-xs text-stone-500"><input {...register("terms")} type="checkbox" disabled={isPending} className="mt-0.5 accent-emerald-800" /><span>আমি নিশ্চিত করছি প্রদত্ত সকল তথ্য সঠিক এবং মুনাফা বণ্টনের শর্তাবলীতে সম্মত</span></label><FieldError error={errors.terms} /></div>
+            <button type="submit" disabled={isPending || productsQuery.isLoading || products.length === 0} className="flex items-center gap-2 bg-emerald-900 px-6 py-3 text-sm text-white hover:bg-emerald-800 disabled:opacity-70">{isPending && <Loader2 className="h-4 w-4 animate-spin" />}আবেদন জমা দিন</button>
           </div>
 
-          {/* RIGHT: SUMMARY */}
-          <div className="lg:sticky lg:top-6 h-fit">
-            <div className="border border-stone-200">
-              <div className="p-5 flex items-start gap-4 border-b border-stone-200">
-                <div className="w-11 h-11 bg-emerald-900 flex items-center justify-center shrink-0">
-                  <Wheat className="w-5 h-5 text-white/80" />
-                </div>
-                <div>
-                  <div className="text-xs text-stone-400">বীজ ফান্ডিং</div>
-                  <div className="text-stone-900">
-                    বীজ ক্রয় ফান্ডিং
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-stone-400">
-                    <HandCoins className="w-3.5 h-3.5" />
-                    মুনাফা বণ্টন
-                  </span>
-                  <span className="text-stone-800">২৫% বিনিয়োগকারীর অংশ</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-stone-400">
-                    <Banknote className="w-3.5 h-3.5" />
-                    আবেদনকৃত পরিমাণ
-                  </span>
-                  <span className="text-stone-800">৳৩৫,০০০</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-stone-400">
-                    <CalendarClock className="w-3.5 h-3.5" />
-                    মেয়াদ
-                  </span>
-                  <span className="text-stone-800">৬ মাস</span>
-                </div>
-
-                <div className="pt-4 border-t border-stone-200 text-xs text-stone-500 leading-relaxed">
-                  ফসল বিক্রির পর লাভ হলে তার <span className="text-stone-800">২৫%</span> বিনিয়োগকারীকে
-                  দিতে হবে। লোকসান হলে কোনো নির্দিষ্ট অর্থ পরিশোধের বাধ্যবাধকতা
-                  নেই — কোনো সুদ বা জরিমানা প্রযোজ্য নয়।
-                </div>
-
-                <div className="text-xs text-stone-400 pt-2 border-t border-stone-200">
-                  আবেদন পর্যালোচনায় সাধারণত ২–৩ কার্যদিবস সময় লাগে
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          <div className="h-fit lg:sticky lg:top-6"><div className="border border-stone-200"><div className="flex items-start gap-4 border-b border-stone-200 p-5"><div className="flex h-11 w-11 shrink-0 items-center justify-center bg-emerald-900"><Wheat className="h-5 w-5 text-white/80" /></div><div><div className="text-xs text-stone-400">ফান্ডিং প্রোডাক্ট</div><div className="text-stone-900">{selectedProduct?.name ?? "প্রোডাক্ট নির্বাচন করুন"}</div></div></div><div className="space-y-4 p-5"><div className="flex items-center justify-between text-sm"><span className="flex items-center gap-1.5 text-stone-400"><HandCoins className="h-3.5 w-3.5" />মুনাফা/সুদের হার</span><span className="text-stone-800">{selectedProduct ? `${selectedProduct.profitSharePercent}%` : "-"}</span></div><div className="flex items-center justify-between text-sm"><span className="flex items-center gap-1.5 text-stone-400"><Banknote className="h-3.5 w-3.5" />আবেদনকৃত পরিমাণ</span><span className="text-stone-800">{formatCurrency(Number(amount) || 0)}</span></div><div className="flex items-center justify-between text-sm"><span className="flex items-center gap-1.5 text-stone-400"><CalendarClock className="h-3.5 w-3.5" />মেয়াদ</span><span className="text-stone-800">{duration || 0} মাস</span></div><div className="border-t border-stone-200 pt-4 text-xs leading-relaxed text-stone-500">{selectedProduct?.description ?? "প্রোডাক্ট নির্বাচন করলে তার শর্তাবলী এখানে দেখা যাবে।"}</div></div></div></div>
+        </form>
       </div>
     </div>
   );

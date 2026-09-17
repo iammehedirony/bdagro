@@ -4,7 +4,7 @@
     // লক্ষ্য করুন: আইকনগুলোকে কম্পোনেন্ট হিসেবে < /> দিয়ে পাস করা হয়েছে
     { label: "ওভারভিউ", href: "/farmer", icon: <LayoutDashboard /> },
     { label: "আমার প্রকল্প", href: "/farmer/projects", icon: <Sprout /> },
-    { label: "মুনাফা বণ্টন", href: "/farmer/installments", icon: <Wallet /> },
+    { label: "মুনাফা বণ্টন", href: "/farmer/profit-distribution", icon: <Wallet /> },
      { label: "লেনদেন", href: "/farmer/transactions", icon: <ArrowLeftRight /> },
     { label: "নোটিফিকেশন", href: "/farmer/notifications", icon: <Bell /> },
     { label: "সেটিংস", href: "/farmer/settings", icon: <Settings /> },
@@ -33,7 +33,7 @@
 
      export const farmerHeaderConfig = [
     { pathMatch: '/farmer/projects', title: 'আমার প্রকল্পসমূহ', buttonText: 'নতুন প্রকল্প পোস্ট করুন'},
-    { pathMatch: '/farmer/installments', title: 'মুনাফা বণ্টন' },
+    { pathMatch: '/farmer/profit-distribution', title: 'মুনাফা বণ্টন' },
     { pathMatch: '/farmer/transactions', title: 'লেনদেন' },
     { pathMatch: '/farmer/notifications', title: 'নোটিফিকেশন' },
     { pathMatch: '/farmer/settings', title: 'অ্যাকাউন্ট সেটিংস' }

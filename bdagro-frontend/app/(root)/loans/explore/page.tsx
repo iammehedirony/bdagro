@@ -1,155 +1,134 @@
-import { LoanCard, LoanCardProps } from "@/components/loan/LoanCard";
+"use client";
+
+import { useState } from "react";
 import {
-  Sprout,
-  Wheat,
-  Truck,
-  PawPrint,
   Droplets,
   Leaf,
-  Info,
+  PawPrint,
+  Sprout,
+  Tractor,
+  Wheat,
+  type LucideIcon,
 } from "lucide-react";
+import { LoanCard, type LoanCardProps } from "@/components/loan/LoanCard";
+import { useLoanProductsQuery } from "@/hooks/queries/useLoanQueries";
+import type { LoanProduct } from "@/lib/services/loan.service";
 
-const categories = [
-  { label: "সব ক্যাটাগরি", icon: Sprout, active: true },
-  { label: "বীজ ঋণ", icon: Wheat },
-  { label: "ট্রাক্টর ও যন্ত্রপাতি", icon: Truck },
-  { label: "গবাদিপশু পালন", icon: PawPrint },
-  { label: "সেচ", icon: Droplets },
-  { label: "সার ও কীটনাশক", icon: Leaf },
-];
+const categoryConfig: Record<string, { label: string; icon: LucideIcon; tone: LoanCardProps["loan"]["tone"] }> = {
+  seed_purchase: { label: "বীজ ঋণ", icon: Wheat, tone: "emerald" },
+  tractor_purchase: { label: "ট্রাক্টর ও যন্ত্রপাতি", icon: Tractor, tone: "amber" },
+  livestock_farming: { label: "গবাদিপশু পালন", icon: PawPrint, tone: "orange" },
+  irrigation: { label: "সেচ", icon: Droplets, tone: "emerald" },
+  other: { label: "অন্যান্য", icon: Leaf, tone: "amber" },
+};
 
-const loans: LoanCardProps["loan"][] = [
-  {
-    name: "বীজ ক্রয় ফান্ডিং",
-    category: "বীজ ঋণ",
-    icon: Wheat,
-    tone: "emerald",
-    share: "২৫% মুনাফা",
-    max: "৳৫০,০০০",
-    tenure: "৬ মাস",
-    note: "উচ্চ ফলনশীল জাতের বীজ ক্রয়ের জন্য মূলধন। ফসল বিক্রির পর লাভ হলে তার ২৫% বিনিয়োগকারীকে দেওয়া হবে, লোকসান হলে কোনো সুদ বা জরিমানা নেই।",
-  },
-  {
-    name: "ট্রাক্টর ক্রয় ফান্ডিং",
-    category: "ট্রাক্টর ও যন্ত্রপাতি",
-    icon: Truck,
-    tone: "amber",
-    share: "৩০% মুনাফা",
-    max: "৳৮,০০,০০০",
-    tenure: "৩৬ মাস",
-    note: "নতুন বা পুনর্ব্যবহৃত কৃষি যন্ত্রপাতি ক্রয়ের জন্য মূলধন। যন্ত্র ব্যবহার করে অর্জিত অতিরিক্ত আয়ের ৩০% বিনিয়োগকারীর সাথে ভাগ করা হবে।",
-  },
-  {
-    name: "গবাদিপশু পালন ফান্ডিং",
-    category: "গবাদিপশু পালন",
-    icon: PawPrint,
-    tone: "orange",
-    share: "৩৫% মুনাফা",
-    max: "৳৩,০০,০০০",
-    tenure: "১২ মাস",
-    note: "গরু, ছাগল ইত্যাদি ক্রয় ও পালন খরচের জন্য মূলধন। বিক্রয়ের পর লাভের ৩৫% বিনিয়োগকারীকে প্রদান করতে হবে।",
-  },
-  {
-    name: "সেচ যন্ত্র ফান্ডিং",
-    category: "সেচ",
-    icon: Droplets,
-    tone: "emerald",
-    share: "২০% মুনাফা",
-    max: "৳১,৫০,০০০",
-    tenure: "১৮ মাস",
-    note: "শ্যালো মেশিন ও সেচ ব্যবস্থা স্থাপনের জন্য মূলধন। সেচ থেকে অতিরিক্ত ফলনের লাভের ২০% বিনিয়োগকারীর সাথে ভাগ হবে।",
-  },
-  {
-    name: "সার ও কীটনাশক ফান্ডিং",
-    category: "সার ও কীটনাশক",
-    icon: Leaf,
-    tone: "amber",
-    share: "২২% মুনাফা",
-    max: "৳৪০,০০০",
-    tenure: "৪ মাস",
-    note: "মৌসুমভিত্তিক সার ও কীটনাশক ক্রয়ের জন্য মূলধন। ফসল বিক্রির লাভের ২২% বিনিয়োগকারীকে দেওয়া হবে।",
-  },
-  {
-    name: "পোল্ট্রি খামার ফান্ডিং",
-    category: "গবাদিপশু পালন",
-    icon: PawPrint,
-    tone: "orange",
-    share: "৩৩% মুনাফা",
-    max: "৳২,৫০,০০০",
-    tenure: "১০ মাস",
-    note: "মুরগি খামার স্থাপন ও সম্প্রসারণের জন্য মূলধন। খামারের লাভের ৩৩% বিনিয়োগকারীর সাথে ভাগ করা হবে।",
-  },
-];
+const fallbackCategory = { label: "অন্যান্য", icon: Sprout, tone: "orange" as const };
 
+function getCategoryConfig(category: string) {
+  return categoryConfig[category] ?? fallbackCategory;
+}
+
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
+
+function toLoanCard(product: LoanProduct): LoanCardProps["loan"] {
+  const category = getCategoryConfig(product.category);
+
+  return {
+    name: product.name,
+    category: category.label,
+    icon: category.icon,
+    tone: category.tone,
+    share: `${product.profitSharePercent}%`,
+    max: formatCurrency(product.maxAmount),
+    tenure: `${product.maxDurationMonths} মাস`,
+    note: product.description ?? "কৃষি প্রকল্পের জন্য উপযুক্ত ফান্ডিং প্রোডাক্ট।",
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "ফান্ডিং প্রোডাক্ট লোড করা যায়নি। আবার চেষ্টা করুন।";
+}
 
 export default function LoanExplorerPage() {
-  return (
-    <div className="bg-white min-h-screen">
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const { data: products = [], isLoading, error, refetch } = useLoanProductsQuery();
+  const categories = Array.from(new Set(products.map((product) => product.category)));
+  const filteredProducts = selectedCategory === "all"
+    ? products
+    : products.filter((product) => product.category === selectedCategory);
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <h1 className="text-3xl text-stone-900">
-          ফান্ডিং প্রোডাক্ট এক্সপ্লোরার
-        </h1>
-        <p className="mt-2 text-stone-500 text-sm max-w-lg">
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <h1 className="text-3xl text-stone-900">ফান্ডিং প্রোডাক্ট এক্সপ্লোরার</h1>
+        <p className="mt-2 max-w-lg text-sm text-stone-500">
           বীজ, যন্ত্রপাতি, গবাদিপশু বা সেচ — প্রয়োজন অনুযায়ী উপযুক্ত ফান্ডিং
           প্রোডাক্ট খুঁজে নিন এবং শর্তাবলী দেখুন।
         </p>
 
-        <div className="mt-5 flex items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3 max-w-xl">
-          <Info className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-          <p className="text-xs text-emerald-800 leading-relaxed">
-            এই ফান্ডিং সুদভিত্তিক নয় — মুনাফা বণ্টন মডেলে কাজ করে। কৃষক
-            লাভবান হলে তার একটি নির্দিষ্ট অংশ বিনিয়োগকারীকে দেওয়া হয়; কোনো
-            নির্দিষ্ট সুদ বা জরিমানা প্রযোজ্য নয়।
-          </p>
-        </div>
 
-        {/* CATEGORY SELECTOR */}
         <div className="mt-8 flex gap-3 overflow-x-auto pb-1">
-          {categories.map((c) => (
-            <button
-              key={c.label}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap border ${
-                c.active
-                  ? "bg-emerald-900 text-white border-emerald-900"
-                  : "border-stone-300 text-stone-600 hover:border-emerald-700"
-              }`}
-            >
-              <c.icon className="w-4 h-4" />
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        {/* RESULTS INFO */}
-        <div className="mt-8 flex items-center justify-between">
-          <span className="text-sm text-stone-400">৬টি ফান্ডিং প্রোডাক্ট পাওয়া গেছে</span>
-          <div className="flex items-center gap-2 text-sm text-stone-600 border border-stone-300 px-3 py-2 w-fit">
-            <span className="text-stone-400">সাজান:</span>
-            <span>সর্বনিম্ন মুনাফা বণ্টন</span>
-          </div>
-        </div>
-
-        {/* LOAN GRID */}
-        <div className="mt-6 grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          {loans.map((loan) => (
-            <LoanCard key={loan.name} loan={loan} />
-          ))}
-        </div>
-
-        {/* HELP BANNER */}
-        <div className="mt-12 border border-stone-200 bg-stone-50 p-6 flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div className="text-stone-900">
-              কোন ফান্ডিং প্রোডাক্টটি আপনার জন্য উপযুক্ত বুঝতে পারছেন না?
-            </div>
-            <div className="text-sm text-stone-500 mt-1">
-              আপনার খামারের ধরন ও প্রয়োজন অনুযায়ী পরামর্শ নিন।
-            </div>
-          </div>
-          <button className="bg-amber-500 text-emerald-950 px-5 py-2.5 text-sm hover:bg-amber-400 whitespace-nowrap">
-            পরামর্শ নিন
+          <button
+            type="button"
+            onClick={() => setSelectedCategory("all")}
+            className={`flex items-center gap-2 whitespace-nowrap border px-4 py-2.5 text-sm ${selectedCategory === "all" ? "border-emerald-900 bg-emerald-900 text-white" : "border-stone-300 text-stone-600 hover:border-emerald-700"}`}
+          >
+            <Sprout className="h-4 w-4" /> সব ক্যাটাগরি
           </button>
+          {categories.map((category) => {
+            const config = getCategoryConfig(category);
+            const Icon = config.icon;
+            return (
+              <button
+                type="button"
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`flex items-center gap-2 whitespace-nowrap border px-4 py-2.5 text-sm ${selectedCategory === category ? "border-emerald-900 bg-emerald-900 text-white" : "border-stone-300 text-stone-600 hover:border-emerald-700"}`}
+              >
+                <Icon className="h-4 w-4" /> {config.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex items-center justify-between">
+          <span className="text-sm text-stone-400">
+            {isLoading ? "প্রোডাক্ট লোড হচ্ছে..." : `${filteredProducts.length}টি ফান্ডিং প্রোডাক্ট পাওয়া গেছে`}
+          </span>
+        </div>
+
+        {error && (
+          <div className="mt-6 border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p>{getErrorMessage(error)}</p>
+            <button type="button" onClick={() => refetch()} className="mt-2 underline">আবার চেষ্টা করুন</button>
+          </div>
+        )}
+
+        {isLoading && !error && (
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((item) => <div key={item} className="h-64 animate-pulse border border-stone-200 bg-stone-50" />)}
+          </div>
+        )}
+
+        {!isLoading && !error && filteredProducts.length > 0 && (
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredProducts.map((product) => <LoanCard key={product._id} loan={toLoanCard(product)} />)}
+          </div>
+        )}
+
+        {!isLoading && !error && filteredProducts.length === 0 && (
+          <div className="mt-6 border border-stone-200 bg-stone-50 p-8 text-center text-sm text-stone-500">এই ক্যাটাগরিতে কোনো ফান্ডিং প্রোডাক্ট পাওয়া যায়নি।</div>
+        )}
+
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border border-stone-200 bg-stone-50 p-6">
+          <div>
+            <div className="text-stone-900">কোন ফান্ডিং প্রোডাক্টটি আপনার জন্য উপযুক্ত বুঝতে পারছেন না?</div>
+            <div className="mt-1 text-sm text-stone-500">আপনার খামারের ধরন ও প্রয়োজন অনুযায়ী পরামর্শ নিন।</div>
+          </div>
+          <button type="button" className="whitespace-nowrap bg-amber-500 px-5 py-2.5 text-sm text-emerald-950 hover:bg-amber-400">পরামর্শ নিন</button>
         </div>
       </div>
     </div>

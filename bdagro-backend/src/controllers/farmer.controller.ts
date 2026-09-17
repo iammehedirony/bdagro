@@ -701,6 +701,10 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
   ).length;
 
   const totalFundsRaised = projects.reduce((sum, p) => sum + p.fundedAmount, 0);
+  const expectedProfit = projects.reduce(
+    (sum, p) => sum + (p.fundedAmount * p.expectedROIPercent) / 100,
+    0
+  );
 
   // Get unique investors across all farmer's projects
   const projectIds = projects.map((p) => p._id);
@@ -748,18 +752,30 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     .slice(0, 10);
 
-  // Get project summaries for dashboard display
+  // Every loan application is a dashboard project row. Approved applications
+  // are enriched with their marketplace project's funding information.
+  const projectByApplicationId = new Map(
+    projects.map((project) => [project.loanApplication.toString(), project])
+  );
   const projectSummaries = await Promise.all(
-    projects.slice(0, 5).map(async (project) => {
-      const investorCount = await Investment.countDocuments({ project: project._id });
+    applications.map(async (application) => {
+      const project = projectByApplicationId.get(application._id.toString());
+      const investorCount = project
+        ? await Investment.countDocuments({ project: project._id })
+        : 0;
+      const fundingGoal = project?.fundingGoal ?? application.requestedAmount;
+      const fundedAmount = project?.fundedAmount ?? 0;
+
       return {
-        _id: project._id,
-        title: project.title,
-        cropType: project.cropType,
-        fundingGoal: project.fundingGoal,
-        fundedAmount: project.fundedAmount,
-        fundingPercent: Math.round((project.fundedAmount / project.fundingGoal) * 100),
-        status: project.status,
+        _id: application._id,
+        title: application.projectTitle,
+        cropType: project?.cropType ?? application.cropType ?? "-",
+        fundingGoal,
+        fundedAmount,
+        fundingPercent: project && fundingGoal > 0
+          ? Math.round((fundedAmount / fundingGoal) * 100)
+          : 0,
+        status: application.status,
         investorCount,
       };
     })
@@ -771,6 +787,7 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
       pendingApplicationsCount,
       totalFundsRaised,
       totalInvestorsCount,
+      expectedProfit,
     },
     projectSummaries,
     activityFeed,
