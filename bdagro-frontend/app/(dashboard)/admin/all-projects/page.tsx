@@ -1,87 +1,114 @@
-import { Sprout, Eye, MapPin } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Eye, MapPin, Sprout } from "lucide-react";
 import StatusTag from "@/components/ui/StatusTag";
 import ProgressBar from "@/components/ui/ProgressBar";
+import { useAdminAllProjectsQuery } from "@/hooks/queries/useAdminQueries";
+import type { AdminAllProject } from "@/lib/services/admin.service";
 
-const projects = [
-  { name: "সবুজ ধানখেত", farmer: "আব্দুল করিম", location: "কুমিল্লা", goal: "৫,০০,০০০", percent: 75, status: "Approved" as const, tone: "emerald" as const },
-  { name: "আম বাগান প্রকল্প", farmer: "সালমা বেগম", location: "রাজশাহী", goal: "৮,০০,০০০", percent: 50, status: "Approved" as const, tone: "emerald" as const },
-  { name: "মাছ চাষ প্রকল্প", farmer: "রফিকুল ইসলাম", location: "খুলনা", goal: "৬,৫০,০০০", percent: 74, status: "Approved" as const, tone: "emerald" as const },
-  { name: "লিচু বাগান সম্প্রসারণ", farmer: "মনির হোসেন", location: "দিনাজপুর", goal: "৪,৫০,০০০", percent: 0, status: "Pending" as const, tone: "amber" as const },
-  { name: "পোল্ট্রি খামার", farmer: "শিরিন আক্তার", location: "গাজীপুর", goal: "৩,০০,০০০", percent: 0, status: "Pending" as const, tone: "amber" as const },
-  { name: "নতুন সবজি খামার", farmer: "আব্দুল করিম", location: "কুমিল্লা", goal: "৩,৫০,০০০", percent: 0, status: "Processing" as const, tone: "amber" as const },
-  { name: "পুকুরে মাছ চাষ", farmer: "আব্দুল করিম", location: "কুমিল্লা", goal: "৩,০০,০০০", percent: 0, status: "Rejected" as const, tone: "amber" as const },
-];
+const tabs = ["সব", "Approved", "Pending", "Rejected"] as const;
+type ProjectTab = (typeof tabs)[number];
+
+type DisplayStatus = "Approved" | "Pending" | "Processing" | "Rejected";
+
+function getDisplayStatus(item: AdminAllProject): DisplayStatus {
+  if (item.application.status === "Approved") return "Approved";
+  if (item.application.status === "Rejected") return "Rejected";
+  return item.application.status === "Processing" ? "Processing" : "Pending";
+}
+
+function getProgress(item: AdminAllProject) {
+  if (!item.project || item.project.fundingGoal <= 0) return null;
+  return Math.min(Math.round((item.project.fundedAmount / item.project.fundingGoal) * 100), 100);
+}
+
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) return response.data.message;
+  }
+  return "আবার চেষ্টা করুন।";
+}
 
 export default function AdminAllProjectsPage() {
+  const [activeTab, setActiveTab] = useState<ProjectTab>("সব");
+  const projectsQuery = useAdminAllProjectsQuery();
+  const applications = projectsQuery.data?.applications ?? [];
+  const filteredApplications = applications.filter((item) => {
+    const status = getDisplayStatus(item);
+    return activeTab === "সব" || status === activeTab || (activeTab === "Pending" && status === "Processing");
+  });
+
+  if (projectsQuery.isLoading) return <div className="p-8 text-sm text-neutral-500">প্রকল্পের তালিকা লোড হচ্ছে...</div>;
+
+  if (projectsQuery.error) {
+    return <div className="p-8"><div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">প্রকল্পের তালিকা লোড করা যায়নি। {getErrorMessage(projectsQuery.error)}</div></div>;
+  }
+
   return (
-    <div className="bg-white min-h-screen flex">
-
-      {/* MAIN */}
-      <div className="flex-1 min-w-0">
-
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-5 flex-wrap gap-4">
-            <div className="flex gap-2">
-              {["সব", "Approved", "Processing", "Pending", "Rejected"].map((t, i) => (
-                <button
-                  key={t}
-                  className={`px-4 py-2 text-sm border ${
-                    i === 0
-                      ? "bg-primary-900 text-white border-primary-900"
-                      : "border-neutral-300 text-neutral-600 hover:border-primary-700"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            <span className="text-sm text-neutral-400">৭টি প্রকল্প</span>
+    <div className="min-h-screen bg-white">
+      <div className="p-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`border px-4 py-2 text-sm ${activeTab === tab ? "border-primary-900 bg-primary-900 text-white" : "border-neutral-300 text-neutral-600 hover:border-primary-700"}`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
+          <span className="text-sm text-neutral-400">{filteredApplications.length}টি প্রকল্প</span>
+        </div>
 
-          <div className="border border-neutral-200">
+        <div className="border border-neutral-200">
+          {filteredApplications.length === 0 ? (
+            <div className="p-8 text-center text-sm text-neutral-500">এই স্ট্যাটাসে কোনো প্রকল্প নেই।</div>
+          ) : (
             <div className="divide-y divide-neutral-200">
-              {projects.map((p) => (
-                <div key={p.name + p.farmer} className="p-5 flex items-center gap-6 flex-wrap">
-                  <div
-                    className={`w-11 h-11 flex items-center justify-center shrink-0 ${
-                      p.tone === "emerald" ? "bg-primary-900" : p.tone === "amber" ? "bg-accent-700" : "bg-neutral-300"
-                    }`}
-                  >
-                    <Sprout className="w-5 h-5 text-white/80" />
-                  </div>
+              {filteredApplications.map((item) => {
+                const status = getDisplayStatus(item);
+                const progress = getProgress(item);
+                const target = item.project?.fundingGoal ?? item.application.requestedAmount;
+                const tone = status === "Approved" ? "emerald" : "amber";
 
-                  <div className="flex-1 min-w-45">
-                    <div className="flex items-center gap-2">
-                      <span className="text-neutral-900 text-sm">{p.name}</span>
-                      <StatusTag status={p.status} />
+                return (
+                  <div key={item.application._id} className="flex flex-wrap items-center gap-6 p-5">
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center ${status === "Approved" ? "bg-primary-900" : "bg-accent-700"}`}>
+                      <Sprout className="h-5 w-5 text-white/80" />
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-neutral-400 mt-1">
-                      <span>কৃষক: {p.farmer}</span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {p.location}
-                      </span>
+                    <div className="min-w-45 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-neutral-900">{item.application.projectTitle}</span>
+                        <StatusTag status={status} />
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-neutral-400">
+                        <span>কৃষক: {item.farmer.name}</span><span>·</span>
+                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{item.farmer.district || "-"}</span>
+                      </div>
                     </div>
+                    <div className="w-40">
+                      {progress === null ? (
+                        <div className="text-xs text-neutral-400">ফান্ডিং শুরু হয়নি</div>
+                      ) : (
+                        <><ProgressBar percent={progress} tone={tone} /><div className="mt-1 text-xs text-neutral-400">{progress}% ফান্ডেড</div></>
+                      )}
+                    </div>
+                    <div className="w-28 shrink-0 text-right"><div className="text-sm text-neutral-800">{formatCurrency(target)}</div><div className="text-xs text-neutral-400">লক্ষ্যমাত্রা</div></div>
+                    <button type="button" aria-label={`${item.application.projectTitle} দেখুন`} className="flex h-9 w-9 shrink-0 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900"><Eye className="h-4 w-4" /></button>
                   </div>
-
-                  <div>
-                    <ProgressBar percent={p.percent} tone={p.tone} />
-                    <div className="mt-1 text-xs text-neutral-400">{p.percent}% ফান্ডেড</div>
-                  </div>
-
-                  <div className="text-right w-28 shrink-0">
-                    <div className="text-sm text-neutral-800">৳{p.goal}</div>
-                    <div className="text-xs text-neutral-400">লক্ষ্যমাত্রা</div>
-                  </div>
-
-                  <button className="w-9 h-9 flex items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900 shrink-0">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

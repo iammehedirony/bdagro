@@ -30,6 +30,7 @@ router.post("/verifications/:id/reject", validate(rejectSchema), dashboardCtrl.r
 
 // --- Loan approval system (approve -> creates the marketplace Project) ---
 router.get("/loan-applications", dashboardCtrl.listLoanApplications);
+router.get("/all-projects", dashboardCtrl.listAllProjects);
 router.get("/loan-applications/:id", dashboardCtrl.getLoanApplicationById);
 router.post("/loan-applications/:id/process", dashboardCtrl.markProcessing);
 router.post(

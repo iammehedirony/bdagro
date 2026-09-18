@@ -226,7 +226,22 @@ export async function listUsers(req: Request, res: Response): Promise<void> {
     User.countDocuments(filter),
   ]);
 
-  res.json({ users, meta: buildMeta(total, pagination) });
+  const farmerIds = users.filter((user) => user.role === UserRole.FARMER).map((user) => user._id);
+  const farmerProfiles = await FarmerProfile.find(
+    { user: { $in: farmerIds } },
+    "user verificationStatus"
+  ).lean();
+  const verificationByUserId = new Map(
+    farmerProfiles.map((profile) => [profile.user.toString(), profile.verificationStatus ?? null])
+  );
+  const usersWithVerification = users.map((user) => ({
+    ...user.toObject(),
+    nidVerificationStatus: user.role === UserRole.FARMER
+      ? verificationByUserId.get(user._id.toString()) ?? null
+      : null,
+  }));
+
+  res.json({ users: usersWithVerification, meta: buildMeta(total, pagination) });
 }
 
 /**
@@ -343,6 +358,72 @@ export async function listLoanApplications(req: Request, res: Response): Promise
   ]);
 
   res.json({ applications, meta: buildMeta(total, pagination) });
+}
+
+/**
+ * GET /api/admin/all-projects?status=&page=&limit=
+ * Combines every loan application with its marketplace project, when one
+ * exists, so the admin project screen can show pending and rejected items too.
+ */
+export async function listAllProjects(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as { status?: LoanApplicationStatus };
+  const pagination = getPagination(req);
+
+  const filter: Record<string, unknown> = {};
+  if (status) {
+    if (!Object.values(LoanApplicationStatus).includes(status)) {
+      throw new AppError("Invalid status filter", 400);
+    }
+    filter.status = status;
+  }
+
+  const [applications, total] = await Promise.all([
+    LoanApplication.find(filter)
+      .populate("farmer", "name email phone")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit)
+      .lean(),
+    LoanApplication.countDocuments(filter),
+  ]);
+
+  const applicationIds = applications.map((application) => application._id);
+  const farmerIds = applications.map((application) => application.farmer._id);
+  const [projects, farmerProfiles] = await Promise.all([
+    Project.find({ loanApplication: { $in: applicationIds } })
+      .select("loanApplication fundedAmount fundingGoal")
+      .lean(),
+    FarmerProfile.find({ user: { $in: farmerIds } })
+      .select("user address")
+      .lean(),
+  ]);
+
+  const projectByApplicationId = new Map(projects.map((project) => [project.loanApplication.toString(), project]));
+  const districtByFarmerId = new Map(
+    farmerProfiles.map((profile) => [profile.user.toString(), profile.address?.district ?? null])
+  );
+
+  const combined = applications.map((application) => {
+    const project = projectByApplicationId.get(application._id.toString());
+    const farmer = application.farmer as unknown as { _id: mongoose.Types.ObjectId; name: string; email?: string; phone?: string };
+
+    return {
+      application,
+      farmer: {
+        ...farmer,
+        district: districtByFarmerId.get(farmer._id.toString()) ?? null,
+      },
+      project: project
+        ? {
+            _id: project._id,
+            fundedAmount: project.fundedAmount,
+            fundingGoal: project.fundingGoal,
+          }
+        : null,
+    };
+  });
+
+  res.json({ applications: combined, meta: buildMeta(total, pagination) });
 }
 
 /**

@@ -23,4 +23,12 @@ export const queryKeys = {
     applications: ["loan", "applications"] as const,
     createApplication: ["loan", "create-application"] as const,
   },
+  admin: {
+    dashboard: ["admin", "dashboard"] as const,
+    verifications: ["admin", "verifications"] as const,
+    loanApplications: ["admin", "loan-applications"] as const,
+    allProjects: ["admin", "all-projects"] as const,
+    users: ["admin", "users"] as const,
+    allUsers: ["admin", "users", "all"] as const,
+  },
 };
