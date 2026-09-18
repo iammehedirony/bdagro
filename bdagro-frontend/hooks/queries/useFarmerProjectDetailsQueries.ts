@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/lib/useApi";
 import { queryKeys } from "@/lib/query/keys";
-import { getFarmerApplication, getFarmerProjectDetails } from "@/lib/services/farmer.service";
+import { getFarmerApplication, getFarmerProjectDetails, getFarmerProjectPayouts } from "@/lib/services/farmer.service";
 
 export function useFarmerApplicationQuery(id: string) {
   const api = useApi();
@@ -22,5 +22,15 @@ export function useFarmerApprovedProjectQuery(id: string, enabled: boolean) {
     queryKey: queryKeys.farmer.projectDetails(id),
     queryFn: () => getFarmerProjectDetails(api, id),
     enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useFarmerProjectPayoutsQuery(id: string) {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: queryKeys.farmer.projectPayouts(id),
+    queryFn: () => getFarmerProjectPayouts(api, id),
+    enabled: Boolean(id),
   });
 }

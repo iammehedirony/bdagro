@@ -52,6 +52,7 @@ export interface FarmerProfitDistributionData {
     profitDistributionRate: number;
     expectedHarvestDate: string | null;
     completedSettlements: number;
+    completedSettlementAmount: number;
   };
   readyProjects: FarmerProfitDistributionProject[];
   settlements: FarmerProfitDistributionSettlement[];
@@ -185,5 +186,49 @@ export async function saveFarmerProjectProfitReport(
   data: SaveFarmerProfitReportInput,
 ) {
   const response = await api.post(`/farmers/projects/${projectId}/profit-report`, data);
+  return response.data;
+}
+
+export interface FarmerPayoutInvestment {
+  _id: string;
+  amount: number;
+  status: string;
+  returnAmount: number;
+  returnedAt: string | null;
+  investor: { _id: string; name?: string };
+  paymentMethod: string;
+}
+
+export interface FarmerProjectPayoutData {
+  project: {
+    _id: string;
+    title: string;
+    fundingGoal: number;
+    profitReport: {
+      netProfit: number;
+      profitSharePercent: number;
+      investorShareAmount: number;
+    };
+  };
+  investments: FarmerPayoutInvestment[];
+}
+
+export async function getFarmerProjectPayouts(api: AxiosInstance, projectId: string) {
+  const response = await api.get<FarmerProjectPayoutData>(`/projects/${projectId}/payouts`);
+  return response.data;
+}
+
+export async function markFarmerInvestmentPayout(
+  api: AxiosInstance,
+  projectId: string,
+  investmentId: string,
+  transactionId: string,
+) {
+  const response = await api.patch(`/projects/${projectId}/payouts/${investmentId}`, { transactionId });
+  return response.data;
+}
+
+export async function completeFarmerProjectPayout(api: AxiosInstance, projectId: string) {
+  const response = await api.put(`/projects/${projectId}/complete-payout`, { confirmPaid: true });
   return response.data;
 }

@@ -11,3 +11,9 @@ export const profitReportSchema = z
   });
 
 export type ProfitReportFormValues = z.infer<typeof profitReportSchema>;
+
+export const manualPayoutSchema = z.object({
+  transactionId: z.string().trim().min(1, "ট্রানজেকশন আইডি দিন").max(120, "ট্রানজেকশন আইডি অনেক বড়"),
+});
+
+export type ManualPayoutFormValues = z.infer<typeof manualPayoutSchema>;

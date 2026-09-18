@@ -8,6 +8,7 @@ export interface IProfitDistribution extends Document {
   _id: Types.ObjectId;
   project: Types.ObjectId;
   farmer: Types.ObjectId;
+  investor: Types.ObjectId | null;
   distributionNumber: number;
   dueDate: Date;
   amount: number;
@@ -23,6 +24,7 @@ const profitDistributionSchema = new Schema<IProfitDistribution>(
   {
     project: { type: Schema.Types.ObjectId, ref: "Project", required: true, index: true },
     farmer: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    investor: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
     distributionNumber: { type: Number, required: true },
     dueDate: { type: Date, required: true },
     amount: { type: Number, required: true },

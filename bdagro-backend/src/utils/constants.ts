@@ -58,6 +58,7 @@ export enum InvestmentType {
 export enum InvestmentStatus {
   PENDING = "pending",
   COMPLETED = "completed",
+  RETURNED = "returned",
   FAILED = "failed",
   REFUNDED = "refunded",
 }
@@ -66,6 +67,7 @@ export enum TransactionType {
   LOAN_DISBURSEMENT = "loan_disbursement",
   LOAN_REPAYMENT = "loan_repayment",
   PROFIT_DISTRIBUTION = "profit_distribution",
+  PAYOUT = "payout",
   INVESTMENT = "investment",
   REFUND = "refund",
 }
@@ -79,6 +81,7 @@ export enum TransactionStatus {
 export enum PaymentMethod {
   SSLCOMMERZ = "sslcommerz",
   STRIPE = "stripe",
+  MANUAL = "manual",
 }
 
 export enum ProfitDistributionStatus {

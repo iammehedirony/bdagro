@@ -92,7 +92,11 @@ export default function FarmerProfitSharingPage() {
             <StatCard label="সক্রিয় ফান্ডিং" value={stats ? formatCurrency(stats.activeFundingAmount) : "..."} sub="সক্রিয় প্রকল্পসমূহ" />
             <StatCard label="মুনাফা বণ্টন হার" value={stats ? `${stats.profitDistributionRate}%` : "..."} tone="amber" sub="বিনিয়োগকারীর অংশ" />
             <StatCard label="প্রত্যাশিত ফসল সংগ্রহ" value={stats ? formatDate(stats.expectedHarvestDate) : "..."} sub="নিষ্পত্তির পূর্বে" />
-            <StatCard label="সম্পন্ন নিষ্পত্তি" value={stats ? `${stats.completedSettlements}টি` : "..."} sub="সফল নিষ্পত্তি" />
+            <StatCard
+              label="সম্পন্ন নিষ্পত্তি"
+              value={stats ? `${stats.completedSettlements}টি` : "..."}
+              sub={stats ? `মোট ${formatCurrency(stats.completedSettlementAmount)} প্রদত্ত` : "..."}
+            />
           </div>
 
           {isError && (

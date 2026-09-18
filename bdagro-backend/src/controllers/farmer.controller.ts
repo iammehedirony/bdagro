@@ -682,17 +682,15 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
   const readyHarvestCutoff = new Date();
   readyHarvestCutoff.setDate(readyHarvestCutoff.getDate() + 30);
 
-  const [activeProjects, applications, settlementTransactions, readyProjects] = await Promise.all([
+  const [activeProjects, applications, closedProjects, readyProjects] = await Promise.all([
     Project.find({ farmer: farmerId, status: { $in: activeProjectStatuses } }).lean(),
     LoanApplication.find({ farmer: farmerId }).populate("loanProduct", "profitSharePercent").lean(),
-    Transaction.find({
-      user: farmerId,
-      type: TransactionType.PROFIT_DISTRIBUTION,
-      relatedProfitDistribution: { $ne: null },
+    Project.find({
+      farmer: farmerId,
+      status: ProjectStatus.CLOSED,
+      "profitReport.submittedAt": { $type: "date" },
     })
-      .populate("relatedLoanApplication", "projectTitle")
-      .populate("relatedProfitDistribution")
-      .sort({ createdAt: -1 })
+      .sort({ "profitReport.submittedAt": -1 })
       .lean(),
     Project.find({
       farmer: farmerId,
@@ -727,27 +725,16 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
     .limit(1)
     .lean();
 
-  const settlements = settlementTransactions
-    .filter((transaction) => {
-      const distribution = transaction.relatedProfitDistribution as any;
-      return Boolean(distribution?.metadata?.profitReport);
-    })
-    .map((transaction) => {
-      const distribution = transaction.relatedProfitDistribution as any;
-      const profitReport = distribution.metadata.profitReport;
-      const application = transaction.relatedLoanApplication as any;
-
-      return {
-        id: transaction._id,
-        project: application?.projectTitle ?? "প্রকল্প",
-        date: transaction.createdAt,
-        sales: profitReport.totalSales,
-        profit: profitReport.netProfit,
-        share: profitReport.investorShareAmount,
-        sharePercent: profitReport.profitSharePercent,
-        status: transaction.status,
-      };
-    });
+  const settlements = closedProjects.map((project) => ({
+    id: project._id,
+    project: project.title,
+    date: project.profitReport!.submittedAt,
+    sales: project.profitReport!.totalSales,
+    profit: project.profitReport!.netProfit,
+    share: project.profitReport!.investorShareAmount,
+    sharePercent: project.profitReport!.profitSharePercent,
+    status: "success",
+  }));
 
   res.json({
     stats: {
@@ -756,7 +743,11 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
       expectedHarvestDate: readyProjects.find((project) => project.expectedHarvestDate)?.expectedHarvestDate
         ?? activeDistributions[0]?.dueDate
         ?? null,
-      completedSettlements: settlements.filter((settlement) => settlement.status === TransactionStatus.SUCCESS).length,
+      completedSettlements: closedProjects.length,
+      completedSettlementAmount: closedProjects.reduce(
+        (sum, project) => sum + (project.profitReport?.investorShareAmount ?? 0),
+        0,
+      ),
     },
     readyProjects: readyProjects
       .filter((project) => project.loanApplication)

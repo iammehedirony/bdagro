@@ -4,9 +4,12 @@ import { Project } from "../models/Project";
 import { FarmerProfile } from "../models/FarmerProfile";
 import { Investment } from "../models/Investment";
 import { LoanApplication } from "../models/LoanApplication";
-import { InvestmentStatus, ProjectStatus, RiskLevel } from "../utils/constants";
+import { ProfitDistribution } from "../models/ProfitDistribution";
+import { Transaction } from "../models/Transaction";
+import { InvestmentStatus, ProjectStatus, RiskLevel, TransactionStatus, TransactionType, PaymentMethod, ProfitDistributionStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { getPagination, buildMeta } from "../utils/pagination";
+import type { ManualPayoutInput } from "../validators/payout.validator";
 
 /**
  * GET /api/projects?cropType=&riskLevel=&status=&location=&minROI=&maxROI=&search=&sort=&page=&limit=
@@ -158,4 +161,126 @@ export async function getProjectById(req: Request, res: Response): Promise<void>
       landAreaAcres: farmerProfile?.farmSizeAcres ?? null,
     },
   });
+}
+
+function getInvestorReturn(project: { fundingGoal: number; profitReport: { investorShareAmount: number } | null }, investment: { amount: number }) {
+  if (!project.profitReport || project.fundingGoal <= 0) return 0;
+  return (investment.amount / project.fundingGoal) * project.profitReport.investorShareAmount;
+}
+
+async function getFarmerOwnedPayoutProject(projectId: string, farmerId: mongoose.Types.ObjectId) {
+  if (!mongoose.isValidObjectId(projectId)) {
+    throw new AppError("Invalid project id", 400);
+  }
+
+  const project = await Project.findOne({ _id: projectId, farmer: farmerId }).lean();
+  if (!project) throw new AppError("Project not found", 404);
+  if (!project.profitReport) throw new AppError("Profit report has not been saved for this project", 409);
+  return project;
+}
+
+/** GET /api/projects/:id/payouts */
+export async function getProjectPayouts(req: Request, res: Response): Promise<void> {
+  const projectId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const project = await getFarmerOwnedPayoutProject(projectId, req.user!._id);
+  const investments = await Investment.find({ project: project._id })
+    .populate("investor", "name")
+    .populate("transaction", "paymentMethod")
+    .sort({ createdAt: 1 })
+    .lean();
+
+  res.json({
+    project: {
+      _id: project._id,
+      title: project.title,
+      fundingGoal: project.fundingGoal,
+      profitReport: project.profitReport,
+    },
+    investments: investments.map((investment: any) => ({
+      _id: investment._id,
+      amount: investment.amount,
+      status: investment.status,
+      returnAmount: investment.status === InvestmentStatus.RETURNED
+        ? investment.returnAmount
+        : getInvestorReturn(project, investment),
+      returnedAt: investment.returnedAt,
+      investor: investment.investor,
+      paymentMethod: investment.transaction?.paymentMethod ?? "manual",
+    })),
+  });
+}
+
+/** PATCH /api/projects/:id/payouts/:investmentId */
+export async function markInvestmentPayout(req: Request, res: Response): Promise<void> {
+  const projectId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const investmentId = Array.isArray(req.params.investmentId) ? req.params.investmentId[0] : req.params.investmentId;
+  const project = await getFarmerOwnedPayoutProject(projectId, req.user!._id);
+  const { transactionId } = req.body as ManualPayoutInput;
+  if (!mongoose.isValidObjectId(investmentId)) {
+    throw new AppError("Invalid investment id", 400);
+  }
+
+  const investment = await Investment.findOne({ _id: investmentId, project: project._id })
+    .populate("investor", "name")
+    .lean();
+  if (!investment) throw new AppError("Investment not found for this project", 404);
+  if (investment.status === InvestmentStatus.RETURNED) {
+    throw new AppError("This investment has already been paid", 409);
+  }
+
+  const returnAmount = getInvestorReturn(project, investment);
+  const investorId = (investment.investor as any)._id ?? investment.investor;
+  const transaction = await Transaction.create({
+    user: investorId,
+    type: TransactionType.PAYOUT,
+    amount: returnAmount,
+    paymentMethod: PaymentMethod.MANUAL,
+    gatewayTransactionId: transactionId,
+    status: TransactionStatus.SUCCESS,
+    relatedProfitDistribution: project._id,
+  });
+
+  const updatedInvestment = await Investment.findOneAndUpdate(
+    { _id: investment._id, project: project._id, status: { $ne: InvestmentStatus.RETURNED } },
+    { $set: { status: InvestmentStatus.RETURNED, returnAmount, returnedAt: new Date(), transaction: transaction._id } },
+    { new: true },
+  );
+  if (!updatedInvestment) throw new AppError("This investment has already been paid", 409);
+
+  await ProfitDistribution.findOneAndUpdate(
+    { project: project._id, investor: investorId },
+    {
+      $set: {
+        farmer: project.farmer,
+        amount: returnAmount,
+        status: ProfitDistributionStatus.PAID,
+        paidAt: new Date(),
+        transaction: transaction._id,
+      },
+      $setOnInsert: {
+        distributionNumber: 0,
+        dueDate: project.expectedHarvestDate ?? new Date(),
+      },
+    },
+    { upsert: true, new: true },
+  );
+
+  res.json({ investment: updatedInvestment, transaction });
+}
+
+/** PUT /api/projects/:id/complete-payout */
+export async function completeProjectPayout(req: Request, res: Response): Promise<void> {
+  const projectId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const project = await getFarmerOwnedPayoutProject(projectId, req.user!._id);
+  const investments = await Investment.find({ project: project._id }).select("status").lean();
+  if (investments.length === 0 || investments.some((investment) => investment.status !== InvestmentStatus.RETURNED)) {
+    throw new AppError("All investors must be marked as paid before closing this project", 409);
+  }
+
+  const updatedProject = await Project.findOneAndUpdate(
+    { _id: project._id, farmer: req.user!._id },
+    { $set: { status: ProjectStatus.CLOSED } },
+    { new: true },
+  );
+  res.json({ project: updatedProject, message: "All investor payouts completed" });
 }
