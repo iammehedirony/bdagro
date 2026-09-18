@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRole, UserStatus, RiskLevel } from "../utils/constants";
+import { UserRole, UserStatus, RiskLevel, NotificationType } from "../utils/constants";
 
 export const rejectSchema = z.object({
   rejectionReason: z.string().trim().min(5, "rejectionReason is required"),
@@ -39,7 +39,7 @@ export const sendNotificationSchema = z
     role: z.enum(UserRole).optional(),
     title: z.string().trim().min(1),
     message: z.string().trim().min(1),
-    type: z.string().trim().optional(),
+    type: z.enum(NotificationType).optional(),
   })
   .refine((data) => (data.userIds && data.userIds.length > 0) || !!data.role, {
     message: "Provide either userIds or role to target recipients",

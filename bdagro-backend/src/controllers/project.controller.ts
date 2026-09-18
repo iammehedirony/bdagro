@@ -6,10 +6,11 @@ import { Investment } from "../models/Investment";
 import { LoanApplication } from "../models/LoanApplication";
 import { ProfitDistribution } from "../models/ProfitDistribution";
 import { Transaction } from "../models/Transaction";
-import { InvestmentStatus, ProjectStatus, RiskLevel, TransactionStatus, TransactionType, PaymentMethod, ProfitDistributionStatus } from "../utils/constants";
+import { InvestmentStatus, NotificationType, ProjectStatus, RiskLevel, TransactionStatus, TransactionType, PaymentMethod, ProfitDistributionStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { getPagination, buildMeta } from "../utils/pagination";
 import type { ManualPayoutInput } from "../validators/payout.validator";
+import { notifyUser } from "../services/notification.service";
 
 /**
  * GET /api/projects?cropType=&riskLevel=&status=&location=&minROI=&maxROI=&search=&sort=&page=&limit=
@@ -264,6 +265,13 @@ export async function markInvestmentPayout(req: Request, res: Response): Promise
     },
     { upsert: true, new: true },
   );
+
+  await notifyUser(investorId, {
+    title: "Profit payment received",
+    message: `You received a profit payment of ${returnAmount}.`,
+    type: NotificationType.PAYMENT,
+    meta: { projectId: project._id, investmentId: investment._id, transactionId: transaction._id },
+  });
 
   res.json({ investment: updatedInvestment, transaction });
 }

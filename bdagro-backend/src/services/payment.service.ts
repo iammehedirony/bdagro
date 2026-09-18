@@ -1,8 +1,9 @@
 import type { HydratedDocument } from "mongoose";
 import { ITransaction } from "../models/Transaction";
 import { ProfitDistribution } from "../models/ProfitDistribution";
-import { TransactionStatus, TransactionType, ProfitDistributionStatus } from "../utils/constants";
+import { NotificationType, TransactionStatus, TransactionType, ProfitDistributionStatus } from "../utils/constants";
 import { confirmInvestment } from "./investment.service";
+import { notifyUser } from "./notification.service";
 
 /**
  * Applies the domain-specific effects of a successful payment, shared by
@@ -24,6 +25,13 @@ export async function markTransactionSuccess(
     transaction.gatewayTransactionId = gatewayTransactionId;
   }
   await transaction.save();
+
+  await notifyUser(transaction.user, {
+    title: "Payment successful",
+    message: `Your ${transaction.type.replaceAll("_", " ")} payment was completed successfully.`,
+    type: NotificationType.PAYMENT,
+    meta: { transactionId: transaction._id, transactionType: transaction.type },
+  });
 
   if (transaction.type === TransactionType.INVESTMENT && transaction.relatedInvestment) {
     await confirmInvestment(transaction.relatedInvestment.toString());

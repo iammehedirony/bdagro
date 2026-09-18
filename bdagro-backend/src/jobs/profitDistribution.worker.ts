@@ -1,7 +1,7 @@
 import { Worker, Job } from "bullmq";
 import { redisConnection } from "../config/redis";
 import { ProfitDistribution } from "../models/ProfitDistribution";
-import { ProfitDistributionStatus } from "../utils/constants";
+import { NotificationType, ProfitDistributionStatus } from "../utils/constants";
 import { notifyUser } from "../services/notification.service";
 import { PROFIT_DISTRIBUTION_QUEUE_NAME } from "./profitDistribution.queue";
 
@@ -27,7 +27,7 @@ async function processProfitDistributionChecks(): Promise<CheckResult> {
     await notifyUser(distribution.farmer, {
       title: "Profit distribution overdue",
       message: `Profit distribution #${distribution.distributionNumber} (amount ${distribution.amount}) is now overdue.`,
-      type: "profit_distribution_overdue",
+      type: NotificationType.PROFIT_DISTRIBUTION,
       meta: { profitDistributionId: distribution._id },
     });
   }
@@ -47,7 +47,7 @@ async function processProfitDistributionChecks(): Promise<CheckResult> {
     await notifyUser(distribution.farmer, {
       title: "Profit distribution due soon",
       message: `Profit distribution #${distribution.distributionNumber} (amount ${distribution.amount}) is due on ${distribution.dueDate.toDateString()}.`,
-      type: "profit_distribution_reminder",
+      type: NotificationType.PROFIT_DISTRIBUTION,
       meta: { profitDistributionId: distribution._id },
     });
   }

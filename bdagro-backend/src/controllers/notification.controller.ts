@@ -3,6 +3,17 @@ import { Notification } from "../models/Notification";
 import { AppError } from "../middlewares/errorHandler";
 import { getPagination, buildMeta } from "../utils/pagination";
 import mongoose from "mongoose";
+import { NotificationType } from "../utils/constants";
+
+const legacyTypeMap: Record<string, NotificationType> = {
+  loan_status: NotificationType.PROJECT,
+  investment_update: NotificationType.INVESTMENT,
+  profit_distribution_overdue: NotificationType.PROFIT_DISTRIBUTION,
+  profit_distribution_reminder: NotificationType.PROFIT_DISTRIBUTION,
+  account_status: NotificationType.GENERAL,
+  account_role: NotificationType.GENERAL,
+  notification: NotificationType.GENERAL,
+};
 
 /**
  * GET user's notifications
@@ -17,6 +28,15 @@ export async function listMyNotifications(req: Request, res: Response): Promise<
   if (isRead !== undefined) {
     filter.isRead = isRead === "true";
   }
+
+  await Promise.all(
+    Object.entries(legacyTypeMap).map(([legacyType, type]) =>
+      Notification.updateMany(
+        { user: req.user!._id, type: legacyType as NotificationType },
+        { $set: { type } },
+      ),
+    ),
+  );
 
   const [notifications, total] = await Promise.all([
     Notification.find(filter)

@@ -61,29 +61,6 @@ export default function FarmerSettingsPage() {
             </div>
           </div>
 
-          {/* PAYMENT RECEIVING METHOD */}
-          <div>
-            <h2 className="text-xl text-stone-900 mb-1">
-              পেমেন্ট গ্রহণের মাধ্যম
-            </h2>
-            <p className="text-xs text-stone-400 mb-4">
-              বিনিয়োগকারীরা যেসব মাধ্যমে সরাসরি আপনাকে পেমেন্ট করতে পারবেন
-            </p>
-            <div className="border border-stone-200 p-6 grid sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className="text-sm text-stone-700">গ্রহণযোগ্য পেমেন্ট গেটওয়ে</label>
-                <select className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:border-emerald-700">
-                  <option>SSLCommerz (বিকাশ/নগদ/কার্ড)</option>
-                  <option>Stripe (আন্তর্জাতিক কার্ড)</option>
-                  <option>উভয়</option>
-                </select>
-              </div>
-              <Field label="বিকাশ নম্বর" value="০১৭১২-৩৪৫৬৭৮" placeholder="০১XXXXXXXXX" />
-              <Field label="নগদ নম্বর (ঐচ্ছিক)" placeholder="০১XXXXXXXXX" />
-              <Field label="ব্যাংক অ্যাকাউন্ট (ঐচ্ছিক)" placeholder="ব্যাংকের নাম ও অ্যাকাউন্ট নম্বর" />
-            </div>
-          </div>
-
           {/* PASSWORD */}
           <div>
             <h2 className="text-xl text-stone-900 mb-4">

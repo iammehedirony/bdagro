@@ -41,23 +41,6 @@ export default function InvestorSettingsPage() {
             </div>
           </div>
 
-          {/* PAYMENT METHOD */}
-          <div>
-            <h2 className="text-xl text-neutral-900 mb-4">
-              পেমেন্ট মাধ্যম
-            </h2>
-            <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
-              <div>
-                <label className="text-sm text-neutral-700">ডিফল্ট পেমেন্ট গেটওয়ে</label>
-                <select className="mt-1.5 w-full border border-neutral-300 px-3 py-2.5 text-sm text-neutral-700 focus:outline-none focus:border-primary-700">
-                  <option>SSLCommerz (বিকাশ/নগদ/কার্ড)</option>
-                  <option>Stripe (আন্তর্জাতিক কার্ড)</option>
-                </select>
-              </div>
-              <Field label="রিটার্নের জন্য অ্যাকাউন্ট নম্বর" placeholder="০১XXXXXXXXX" />
-            </div>
-          </div>
-
           {/* PASSWORD */}
           <div>
             <h2 className="text-xl text-neutral-900 mb-4">

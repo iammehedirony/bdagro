@@ -1,11 +1,12 @@
 import type { Types } from "mongoose";
 import { Notification } from "../models/Notification";
 import { getIo } from "../realtime/io";
+import { NotificationType } from "../utils/constants";
 
 interface NotifyPayload {
   title: string;
   message: string;
-  type?: string;
+  type?: NotificationType;
   meta?: Record<string, unknown>;
 }
 
@@ -26,7 +27,7 @@ export async function notifyUser(
     user: userId,
     title: payload.title,
     message: payload.message,
-    type: payload.type ?? "general",
+    type: payload.type ?? NotificationType.GENERAL,
     meta: payload.meta ?? {},
   });
 

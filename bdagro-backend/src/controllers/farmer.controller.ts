@@ -3,21 +3,32 @@ import { LoanApplication } from "../models/LoanApplication";
 import { Project } from "../models/Project";
 import { Investment } from "../models/Investment";
 import { Notification } from "../models/Notification";
-import { ProfitDistributionStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, VerificationStatus } from "../utils/constants";
+import { NotificationType, ProfitDistributionStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, UserRole, VerificationStatus } from "../utils/constants";
 import { CreateLoanApplicationInput, InitiatePaymentInput, SaveProjectProfitReportInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
 import { clerkClient, getAuth } from "@clerk/express";
 import { AppError } from "../middlewares/errorHandler";
-import { FarmerProfile, ProfitDistribution, LoanProduct, Transaction } from "../models";
+import { FarmerProfile, ProfitDistribution, LoanProduct, Transaction, User } from "../models";
 import { uploadToCloudinary } from "../middlewares/upload";
 import mongoose from "mongoose";
 import { buildMeta, getPagination } from "../utils/pagination";
 import { MarkPaidInput, SubmitProfitReportInput } from "../validators/profitDistribution.validator";
 import { UpdateFarmerSettingsInput } from "../validators/settings.validator";
+import { notifyUser } from "../services/notification.service";
 
 
 // ****************** farmer profile ****************
 
 type UploadedFiles = { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+async function notifyAdmins(message: string, meta: Record<string, unknown>, type: NotificationType): Promise<void> {
+  const admins = await User.find({ role: UserRole.ADMIN }).select("_id").lean();
+  await Promise.all(admins.map((admin) => notifyUser(admin._id, {
+    title: "New farmer activity",
+    message,
+    type,
+    meta,
+  })));
+}
 
 /**
  * GET /api/farmers/profile/me
@@ -97,8 +108,11 @@ export async function submitProfile(req: Request, res: Response): Promise<void> 
     runValidators: true,
   });
 
-  // TODO once Admin routes exist: notify admins (Notification + Socket.io
-  // `verification:new_submission`) that a new/updated profile needs review.
+  await notifyAdmins(
+    `${req.user!.name} submitted documents for verification.`,
+    { farmerId: req.user!._id, profileId: profile!._id },
+    NotificationType.VERIFICATION,
+  );
 
   res.status(existing ? 200 : 201).json({ profile });
 }
@@ -168,8 +182,11 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     status: LoanApplicationStatus.PENDING,
   });
 
-  // TODO once Admin routes exist: emit `loan:new_application` to the admin
-  // room and create a Notification, so the review queue updates live.
+  await notifyAdmins(
+    `${req.user!.name} submitted a new project for review.`,
+    { farmerId: req.user!._id, loanApplicationId: application._id },
+    NotificationType.PROJECT,
+  );
 
   res.status(201).json({ application });
 }
@@ -350,6 +367,12 @@ export async function createMyProject(req: Request, res: Response): Promise<void
     status: LoanApplicationStatus.PENDING,
   });
 
+  await notifyAdmins(
+    `${req.user!.name} submitted a new project for review.`,
+    { farmerId: req.user!._id, loanApplicationId: application._id },
+    NotificationType.PROJECT,
+  );
+
   res.status(201).json({ project: application });
 }
 
@@ -522,6 +545,14 @@ export async function submitProfitReport(req: Request, res: Response): Promise<v
   };
   await profitDistribution.save();
 
+  const investments = await Investment.find({ project: profitDistribution.project }).select("investor").lean();
+  await Promise.all(investments.map((investment) => notifyUser(investment.investor, {
+    title: "Profit report submitted",
+    message: "A profit report is available for one of your investments.",
+    type: NotificationType.PROFIT_DISTRIBUTION,
+    meta: { profitDistributionId: profitDistribution._id },
+  })));
+
   res.json({
     profitDistribution,
     profitReport: {
@@ -563,6 +594,14 @@ export async function markAsPaid(req: Request, res: Response): Promise<void> {
   profitDistribution.status = ProfitDistributionStatus.PAID;
   profitDistribution.paidAt = new Date();
   await profitDistribution.save();
+
+  const investments = await Investment.find({ project: profitDistribution.project }).select("investor").lean();
+  await Promise.all(investments.map((investment) => notifyUser(investment.investor, {
+    title: "Profit distribution completed",
+    message: "Your profit distribution has been marked as paid.",
+    type: NotificationType.PROFIT_DISTRIBUTION,
+    meta: { profitDistributionId: profitDistribution._id },
+  })));
 
   res.json({
     profitDistribution,

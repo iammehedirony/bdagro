@@ -15,6 +15,7 @@ import {
   TransactionStatus,
   ProjectStatus,
   UserStatus,
+  NotificationType,
 } from "../utils/constants";
 import { buildMeta, getPagination } from "../utils/pagination";
 import { AppError } from "../middlewares/errorHandler";
@@ -158,7 +159,7 @@ export async function approveVerification(req: Request, res: Response): Promise<
   await notifyUser(profile.user, {
     title: "Document verification approved",
     message: "Your NID and land document have been verified. You can now apply for a loan.",
-    type: "verification",
+    type: NotificationType.VERIFICATION,
   });
 
   res.json({ profile });
@@ -192,7 +193,7 @@ export async function rejectVerification(req: Request, res: Response): Promise<v
   await notifyUser(profile.user, {
     title: "Document verification rejected",
     message: `Your submission was rejected: ${rejectionReason}`,
-    type: "verification",
+    type: NotificationType.VERIFICATION,
   });
 
   res.json({ profile });
@@ -288,7 +289,7 @@ export async function updateUserStatus(req: Request, res: Response): Promise<voi
     await notifyUser(user._id, {
       title: "Account status changed",
       message: `Your account has been ${status}${reason ? `: ${reason}` : ""}.`,
-      type: "account_status",
+      type: NotificationType.GENERAL,
     });
   }
 
@@ -325,7 +326,7 @@ export async function updateUserRole(req: Request, res: Response): Promise<void>
   await notifyUser(user._id, {
     title: "Account role updated",
     message: `Your account role has been changed to ${role}.`,
-    type: "account_role",
+    type: NotificationType.GENERAL,
   });
 
   res.json({ user });
@@ -455,7 +456,7 @@ async function broadcastStatusUpdate(
   await notifyUser(application.farmer, {
     title: "Loan application update",
     message,
-    type: "loan_status",
+    type: NotificationType.PROJECT,
     meta: { loanApplicationId: application._id, status: application.status },
   });
 
@@ -633,7 +634,7 @@ export async function disburseProject(req: Request, res: Response): Promise<void
   await notifyUser(project.farmer, {
     title: "Loan disbursed",
     message: "Your loan has been disbursed and your repayment schedule is ready.",
-    type: "loan_status",
+    type: NotificationType.PROJECT,
     meta: { projectId: project._id },
   });
 

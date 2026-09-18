@@ -1,4 +1,4 @@
-import { CheckCircle2, TrendingUp, Clock, Banknote } from "lucide-react";
+import { AlertTriangle, Banknote, CheckCircle2, Clock, FileText, ShieldCheck, TrendingUp } from "lucide-react";
 
 interface NotificationRowProps {
   icon: string;
@@ -13,6 +13,9 @@ const iconMap = {
   "trending-up": TrendingUp,
   "clock": Clock,
   "banknote": Banknote,
+  "alert-triangle": AlertTriangle,
+  "file-text": FileText,
+  "shield-check": ShieldCheck,
 };
 
 export function NotificationRow({ icon, tone, text, time, unread }: NotificationRowProps) {

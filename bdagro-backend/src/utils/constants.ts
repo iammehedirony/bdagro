@@ -20,6 +20,18 @@ export enum VerificationStatus {
   REJECTED = "rejected",
 }
 
+export enum NotificationType {
+  PROJECT = "project",
+  PROFIT_DISTRIBUTION = "profit_distribution",
+  VERIFICATION = "verification",
+  INVESTMENT = "investment",
+  FUNDING = "funding",
+  PAYMENT = "payment",
+  TRANSACTION = "transaction",
+  GENERAL = "general",
+  SYSTEM = "system",
+}
+
 // Farmer loan application lifecycle, named explicitly in the PRD
 // (Pending, Processing, Approved, Rejected) for real-time status tracking.
 export enum LoanApplicationStatus {

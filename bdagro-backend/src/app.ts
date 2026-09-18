@@ -12,6 +12,7 @@ import loanProductRoutes from "./routes/loan.routes";
 import projectRoutes from "./routes/project.routes";
 import investorRoutes from "./routes/investor.routes";
 import adminRoutes from "./routes/admin.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 const app: Express = express();
 
@@ -60,6 +61,7 @@ app.use("/api/loan-products", loanProductRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/investors", investorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // --- 404 + error handling (must be last) ---
 app.use(notFound);

@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { NotificationType } from "../utils/constants";
 
 /**
  * Real-time notifications/alerts (Admin feature: "নির্দিষ্ট ইভেন্টে
@@ -11,7 +12,7 @@ export interface INotification extends Document {
   user: Types.ObjectId;
   title: string;
   message: string;
-  type: string;
+  type: NotificationType;
   isRead: boolean;
   meta: Record<string, unknown>;
   createdAt: Date;
@@ -23,7 +24,7 @@ const notificationSchema = new Schema<INotification>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     title: { type: String, required: true },
     message: { type: String, required: true },
-    type: { type: String, default: "general", index: true }, // loan_status, investment_update, verification, system
+    type: { type: String, enum: Object.values(NotificationType), default: NotificationType.GENERAL, index: true },
     isRead: { type: Boolean, default: false, index: true },
     meta: { type: Schema.Types.Mixed, default: {} },
   },

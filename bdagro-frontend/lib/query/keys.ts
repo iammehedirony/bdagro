@@ -1,4 +1,5 @@
 export const queryKeys = {
+  notifications: ["notifications"] as const,
   user: {
     profile: ["user", "profile"] as const,
   },
