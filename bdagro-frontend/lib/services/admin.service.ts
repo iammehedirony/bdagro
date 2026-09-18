@@ -36,6 +36,17 @@ export interface AdminAllProject {
 export interface AdminAllProjectResponse { applications: AdminAllProject[]; meta: { total: number } }
 export interface AdminUser { _id: string; name: string; phone?: string; role: AdminUserRole; status: AdminUserStatus; nidVerificationStatus: AdminVerificationStatus | null; createdAt: string }
 export interface AdminUserResponse { users: AdminUser[]; meta: { total: number } }
+export interface AdminTransaction {
+  _id: string;
+  type: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  investor: { _id: string; name: string } | null;
+  farmer: { _id: string; name: string } | null;
+  project: { _id: string; title: string } | null;
+}
+export interface AdminTransactionResponse { transactions: AdminTransaction[]; meta: { total: number } }
 export interface ApproveLoanApplicationInput { riskLevel: "low" | "medium" | "high"; expectedROIPercent: number; fundingGoal?: number; cropType?: string }
 
 export async function getAdminDashboard(api: AxiosInstance) { const response = await api.get<AdminDashboardData>("/admin/dashboard"); return response.data; }
@@ -43,6 +54,7 @@ export async function listAdminVerifications(api: AxiosInstance) { const respons
 export async function listAdminLoanApplications(api: AxiosInstance) { const response = await api.get<AdminLoanApplicationResponse>("/admin/loan-applications", { params: { limit: 100 } }); return response.data; }
 export async function listAdminAllProjects(api: AxiosInstance) { const response = await api.get<AdminAllProjectResponse>("/admin/all-projects", { params: { limit: 50 } }); return response.data; }
 export async function listAdminUsers(api: AxiosInstance, limit = 4) { const response = await api.get<AdminUserResponse>("/admin/users", { params: { limit } }); return response.data; }
+export async function listAdminTransactions(api: AxiosInstance) { const response = await api.get<AdminTransactionResponse>("/admin/transactions"); return response.data; }
 export async function approveAdminVerification(api: AxiosInstance, id: string) { const response = await api.post(`/admin/verifications/${id}/approve`); return response.data; }
 export async function rejectAdminVerification(api: AxiosInstance, id: string, rejectionReason: string) { const response = await api.post(`/admin/verifications/${id}/reject`, { rejectionReason }); return response.data; }
 export async function approveAdminLoanApplication(api: AxiosInstance, id: string, data: ApproveLoanApplicationInput) { const response = await api.post(`/admin/loan-applications/${id}/approve`, data); return response.data; }

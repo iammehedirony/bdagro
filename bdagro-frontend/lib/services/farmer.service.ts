@@ -232,3 +232,46 @@ export async function completeFarmerProjectPayout(api: AxiosInstance, projectId:
   const response = await api.put(`/projects/${projectId}/complete-payout`, { confirmPaid: true });
   return response.data;
 }
+
+export type FarmerTransactionType = "investment" | "profit_distribution" | "payout" | "refund";
+export type FarmerTransactionStatus = "pending" | "success" | "failed";
+
+export interface FarmerTransaction {
+  _id: string;
+  type: FarmerTransactionType;
+  amount: number;
+  paymentMethod: "sslcommerz" | "stripe" | "manual";
+  status: FarmerTransactionStatus;
+  createdAt: string;
+  project: { _id: string; title: string; location: string } | null;
+  counterparty: { _id: string; name: string } | null;
+}
+
+export interface FarmerTransactionsResponse {
+  transactions: FarmerTransaction[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
+export async function listFarmerTransactions(api: AxiosInstance) {
+  const response = await api.get<FarmerTransactionsResponse>("/farmers/transactions", {
+    params: { page: 1, limit: 50 },
+  });
+  const firstPage = response.data;
+  if (firstPage.meta.totalPages <= 1) return firstPage;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.meta.totalPages - 1 }, (_, index) =>
+      api.get<FarmerTransactionsResponse>("/farmers/transactions", {
+        params: { page: index + 2, limit: 50 },
+      }),
+    ),
+  );
+
+  return {
+    ...firstPage,
+    transactions: [
+      ...firstPage.transactions,
+      ...remainingPages.flatMap((page) => page.data.transactions),
+    ],
+  };
+}

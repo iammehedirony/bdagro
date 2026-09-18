@@ -1,38 +1,59 @@
-import React from "react";
+"use client";
+
 import {
-  Sprout,
-  LayoutDashboard,
-  Wallet,
-  TrendingUp,
-  Search,
-  Bell,
-  Settings,
-  ArrowLeftRight,
   ArrowUpFromLine,
   ArrowDownToLine,
-  CheckCircle2,
-  XCircle,
-  Info,
   Banknote,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import StatCard from "@/components/ui/StatCard";
 import StatusTag from "@/components/ui/StatusTag";
+import { useInvestorTransactionsQuery } from "@/hooks/queries/useInvestorQueries";
+import type { InvestorTransaction } from "@/lib/services/investor.service";
 
+const currency = new Intl.NumberFormat("bn-BD", { maximumFractionDigits: 0 });
+const transactionTypes = new Set(["profit_distribution", "payout"]);
 
-const transactions = [
-  { type: "বিনিয়োগ", icon: ArrowUpFromLine, project: "সবুজ ধানখেত", amount: "৫০,০০০", method: "SSLCommerz · bKash", date: "১২ জুন ২০২৬", status: "সফল" },
-  { type: "মুনাফা প্রাপ্তি", icon: ArrowDownToLine, project: "মাছ চাষ প্রকল্প", amount: "৬,৬০০", method: "SSLCommerz · নগদ", date: "২০ আগস্ট ২০২৫", status: "সফল" },
-  { type: "বিনিয়োগ", icon: ArrowUpFromLine, project: "আম বাগান প্রকল্প", amount: "৭৫,০০০", method: "Stripe · কার্ড", date: "৩ জুলাই ২০২৬", status: "সফল" },
-  { type: "মুনাফা প্রাপ্তি", icon: ArrowDownToLine, project: "গরু মোটাতাজাকরণ", amount: "৭,২০০", method: "Stripe · কার্ড", date: "১০ জানুয়ারি ২০২৬", status: "সফল" },
-];
+function formatCurrency(value: number) {
+  return `৳${currency.format(Math.max(0, value))}`;
+}
 
-const payouts = [
-  { project: "গরু মোটাতাজাকরণ", amount: "৭,২৮০", date: "১০ জানুয়ারি ২০২৬", method: "SSLCommerz · bKash" },
-  { project: "মাছ চাষ প্রকল্প", amount: "৬,৬০০", date: "২০ আগস্ট ২০২৫", method: "SSLCommerz · নগদ" },
-  { project: "আম বাগান প্রকল্প", amount: "৩,১০০", date: "৫ মে ২০২৫", method: "Stripe · কার্ড" },
-];
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("bn-BD", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function paymentMethodLabel(method: InvestorTransaction["paymentMethod"]) {
+  return method === "sslcommerz" ? "SSLCommerz" : method === "stripe" ? "Stripe" : "Manual";
+}
+
+function statusLabel(status: InvestorTransaction["status"]) {
+  return status === "success" ? "সফল" : status === "failed" ? "ব্যর্থ" : "প্রক্রিয়াধীন";
+}
+
+function transactionLabel(transaction: InvestorTransaction) {
+  return transactionTypes.has(transaction.type) ? "মুনাফা প্রাপ্তি" : "বিনিয়োগ";
+}
+
+function transactionIcon(transaction: InvestorTransaction): ComponentType<{ className?: string }> {
+  return transactionTypes.has(transaction.type) ? ArrowDownToLine : ArrowUpFromLine;
+}
 
 export default function InvestorTransactionsPage() {
+  const { data, isLoading, isError } = useInvestorTransactionsQuery();
+  const transactions = data?.transactions ?? [];
+  const investmentTransactions = transactions.filter((transaction) => transaction.type === "investment");
+  const profitTransactions = transactions.filter((transaction) => transactionTypes.has(transaction.type));
+  const failedTransactions = transactions.filter((transaction) => transaction.status === "failed" || (transaction.status as string) === "cancelled");
+
+  const stats = {
+    totalInvestment: investmentTransactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+    totalProfit: profitTransactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+  };
+
   return (
     <div className="bg-white min-h-screen flex">
 
@@ -45,10 +66,10 @@ export default function InvestorTransactionsPage() {
 
           {/* STATS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="সর্বমোট লেনদেন" value="৪টি" sub="সব ধরনের মিলিয়ে" />
-            <StatCard label="সর্বমোট বিনিয়োগ" value="৳১,২৫,০০০" sub="২টি লেনদেনে" />
-            <StatCard label="সর্বমোট মুনাফা প্রাপ্তি" value="৳১৩,৮০০" sub="২টি পরিশোধে" />
-            <StatCard label="ব্যর্থ লেনদেন" value="০টি" sub="এই মাসে" />
+            <StatCard label="সর্বমোট লেনদেন" value={`${transactions.length}টি`} sub="সব ধরনের মিলিয়ে" />
+            <StatCard label="সর্বমোট বিনিয়োগ" value={formatCurrency(stats.totalInvestment)} sub={`${investmentTransactions.length}টি লেনদেনে`} />
+            <StatCard label="সর্বমোট মুনাফা প্রাপ্তি" value={formatCurrency(stats.totalProfit)} sub={`${profitTransactions.length}টি পরিশোধে`} />
+            <StatCard label="ব্যর্থ লেনদেন" value={`${failedTransactions.length}টি`} sub="ব্যর্থ বা বাতিল" />
           </div>
 
           {/* TRANSACTION HISTORY */}
@@ -59,23 +80,29 @@ export default function InvestorTransactionsPage() {
               </h3>
             </div>
             <div className="divide-y divide-stone-200">
-              {transactions.map((t, i) => (
-                <div key={i} className="p-5 flex items-center gap-4 flex-wrap">
+              {isLoading && <div className="p-6 text-sm text-stone-400">লেনদেন লোড হচ্ছে...</div>}
+              {isError && <div className="p-6 text-sm text-red-600">লেনদেনের তথ্য লোড করা যায়নি।</div>}
+              {!isLoading && !isError && transactions.map((transaction) => {
+                const Icon = transactionIcon(transaction);
+                return (
+                <div key={transaction._id} className="p-5 flex items-center gap-4 flex-wrap">
                   <div className="w-9 h-9 flex items-center justify-center bg-stone-100 text-stone-500 shrink-0">
-                    <t.icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <div className="flex-1 min-w-[160px]">
+                  <div className="flex-1 min-w-40">
                     <div className="text-sm text-stone-800">
-                      {t.type} — {t.project}
+                      {transactionLabel(transaction)} — {transaction.project?.title ?? "অজানা প্রকল্প"}
                     </div>
                     <div className="text-xs text-stone-400 mt-0.5">
-                      {t.method} · {t.date}
+                      {paymentMethodLabel(transaction.paymentMethod)} · {formatDate(transaction.createdAt)}
                     </div>
                   </div>
-                  <div className="text-sm text-stone-800 shrink-0">৳{t.amount}</div>
-                  <StatusTag status={t.status} />
+                  <div className="text-sm text-stone-800 shrink-0">{formatCurrency(transaction.amount)}</div>
+                  <StatusTag status={statusLabel(transaction.status)} />
                 </div>
-              ))}
+                );
+              })}
+              {!isLoading && !isError && transactions.length === 0 && <div className="p-6 text-sm text-stone-400">কোনো লেনদেন পাওয়া যায়নি।</div>}
             </div>
           </div>
 
@@ -86,20 +113,21 @@ export default function InvestorTransactionsPage() {
             </h3>
             <div className="border border-stone-200">
               <div className="divide-y divide-stone-200">
-                {payouts.map((p, i) => (
-                  <div key={i} className="p-5 flex items-center gap-3">
+                {!isLoading && !isError && profitTransactions.map((transaction) => (
+                  <div key={transaction._id} className="p-5 flex items-center gap-3">
                     <Banknote className="w-4 h-4 text-emerald-700 shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm text-stone-700">
-                        ৳{p.amount} — {p.project}
+                        {formatCurrency(transaction.amount)} — {transaction.project?.title ?? "অজানা প্রকল্প"}
                       </div>
                       <div className="text-xs text-stone-400 mt-1">
-                        {p.date} · {p.method}
+                        {formatDate(transaction.createdAt)} · {paymentMethodLabel(transaction.paymentMethod)}
                       </div>
                     </div>
                     <StatusTag status="সফল" />
                   </div>
                 ))}
+                {!isLoading && !isError && profitTransactions.length === 0 && <div className="p-6 text-sm text-stone-400">কোনো মুনাফা প্রাপ্তি পাওয়া যায়নি।</div>}
               </div>
             </div>
           </div>

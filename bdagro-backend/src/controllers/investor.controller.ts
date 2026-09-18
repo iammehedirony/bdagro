@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { Investment } from "../models/Investment";
 import { Project } from "../models/Project";
 import { Transaction } from "../models/Transaction";
+import { ProfitDistribution } from "../models/ProfitDistribution";
 import {
   ProjectStatus,
   InvestmentType,
@@ -50,6 +51,8 @@ interface PortfolioAggregate {
   projectIds: unknown[];
 }
 
+const excludedInvestmentStatuses = [InvestmentStatus.FAILED, InvestmentStatus.REFUNDED];
+
 /**
  * GET /api/investors/portfolio
  * The "পোর্টফোলিও ড্যাশবোর্ড" — total invested, distinct running projects,
@@ -60,7 +63,7 @@ export async function getPortfolio(req: Request, res: Response): Promise<void> {
   const investorId = req.user!._id;
 
   const [totals] = await Investment.aggregate<PortfolioAggregate>([
-    { $match: { investor: investorId, status: InvestmentStatus.COMPLETED } },
+    { $match: { investor: investorId, status: { $nin: excludedInvestmentStatuses } } },
     {
       $group: {
         _id: null,
@@ -71,18 +74,27 @@ export async function getPortfolio(req: Request, res: Response): Promise<void> {
     },
   ]);
 
-  const recentInvestments = await Investment.find({ investor: investorId })
-    .populate("project", "title cropType riskLevel expectedROIPercent status")
-    .sort({ createdAt: -1 })
-    .limit(5);
+  const investments = await Investment.find({
+    investor: investorId,
+    status: { $nin: excludedInvestmentStatuses },
+  })
+    .populate("project", "title location cropType riskLevel expectedROIPercent status fundingGoal fundedAmount")
+    .sort({ createdAt: -1 });
+
+  const totalInvested = totals?.totalInvested ?? 0;
+  const totalReturned = totals?.totalReturned ?? 0;
 
   res.json({
     portfolio: {
-      totalInvested: totals?.totalInvested ?? 0,
-      totalReturned: totals?.totalReturned ?? 0,
-      activeProjectsCount: totals?.projectIds?.length ?? 0,
+      totalInvested,
+      currentValue: totalInvested + totalReturned,
+      roiPercent: totalInvested > 0 ? (totalReturned / totalInvested) * 100 : 0,
+      activeInvestmentsCount: investments.filter(
+        (investment) => investment.status === InvestmentStatus.PENDING || investment.status === InvestmentStatus.COMPLETED
+      ).length,
+      completedProjectsCount: investments.filter((investment) => investment.status === InvestmentStatus.RETURNED).length,
     },
-    recentInvestments,
+    investments,
   });
 }
 
@@ -221,10 +233,20 @@ interface MonthlyROI {
 interface ProjectROI {
   projectId: string;
   projectTitle: string;
+  location: string;
   invested: number;
   earned: number;
   roi: number;
   status: string;
+}
+
+interface InvestorPayout {
+  id: string;
+  amount: number;
+  paidAt: Date;
+  paymentMethod: string;
+  gatewayTransactionId: string | null;
+  project: { id: string; title: string; location: string } | null;
 }
 
 /**
@@ -234,22 +256,75 @@ interface ProjectROI {
 export async function getROITracking(req: Request, res: Response): Promise<void> {
   const investorId = req.user!._id;
 
-  // Get all investments for this investor
+  // Investment.returnAmount is the source of truth for project-level returns.
   const investments = await Investment.find({ investor: investorId })
-    .populate("project", "title status")
+    .populate("project", "title location status")
     .lean();
 
-  // Get all transactions related to returns (profit distributions)
-  const transactions = await Transaction.find({
+  // Payouts can be created by either manual settlement or a distribution gateway.
+  const payoutTransactions = await Transaction.find({
     user: investorId,
-    type: TransactionType.INVESTMENT,
+    type: { $in: [TransactionType.PAYOUT, TransactionType.PROFIT_DISTRIBUTION] },
     status: TransactionStatus.SUCCESS,
-    relatedInvestment: { $in: investments.map((inv) => inv._id) },
   })
-    .sort({ createdAt: 1 })
+    .populate("relatedInvestment", "project")
+    .sort({ createdAt: -1 })
     .lean();
+  const paidDistributions = await ProfitDistribution.find({
+    investor: investorId,
+    status: "paid",
+  } as Record<string, unknown>)
+    .populate("project", "title location")
+    .lean();
+  const distributionsByTransaction = new Map(
+    paidDistributions
+      .filter((distribution) => distribution.transaction)
+      .map((distribution) => [distribution.transaction!.toString(), distribution]),
+  );
 
-  // Calculate monthly ROI data for the last 12 months
+  const projectROIs: ProjectROI[] = investments.reduce<ProjectROI[]>((rows, investment) => {
+    const project = investment.project as any;
+    if (!project) return rows;
+
+    const existing = rows.find((row) => row.projectId === project._id.toString());
+    if (existing) {
+      existing.invested += investment.amount;
+      existing.earned += investment.returnAmount;
+      existing.roi = existing.invested > 0 ? (existing.earned / existing.invested) * 100 : 0;
+      return rows;
+    }
+
+    rows.push({
+      projectId: project._id.toString(),
+      projectTitle: project.title || "Unknown Project",
+      location: project.location || "",
+      invested: investment.amount,
+      earned: investment.returnAmount,
+      roi: investment.amount > 0 ? (investment.returnAmount / investment.amount) * 100 : 0,
+      status: project.status || investment.status,
+    });
+    return rows;
+  }, []);
+
+  const payouts: InvestorPayout[] = payoutTransactions.map((transaction) => {
+    const investment = transaction.relatedInvestment as any;
+    const distribution = distributionsByTransaction.get(transaction._id.toString()) as any;
+    const project = distribution?.project
+      ?? investments.find((item) => item._id.toString() === investment?._id?.toString())?.project as any;
+
+    return {
+      id: transaction._id.toString(),
+      amount: transaction.amount,
+      paidAt: transaction.updatedAt ?? transaction.createdAt,
+      paymentMethod: transaction.paymentMethod,
+      gatewayTransactionId: transaction.gatewayTransactionId,
+      project: project?._id
+        ? { id: project._id.toString(), title: project.title, location: project.location }
+        : null,
+    };
+  });
+
+  // Calculate monthly payout data for the last 12 months.
   const monthlyData: MonthlyROI[] = [];
   const now = new Date();
 
@@ -257,76 +332,41 @@ export async function getROITracking(req: Request, res: Response): Promise<void>
     const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
     const monthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
-
-    const monthTransactions = transactions.filter(
-      (t) => new Date(t.createdAt) >= monthStart && new Date(t.createdAt) <= monthEnd
-    );
-
-    const monthlyAmount = monthTransactions.reduce((sum, t) => {
-      // Calculate profit portion (difference between return and principal)
-      const investment = investments.find((inv) => inv._id.toString() === t.relatedInvestment?.toString());
-      if (investment) {
-        // Assume transactions include both principal + profit
-        // For ROI tracking, we only want the profit portion
-        const profit = t.amount - investment.amount;
-        return sum + Math.max(profit, 0);
-      }
-      return sum;
-    }, 0);
+    const monthPayouts = payouts.filter((payout) => payout.paidAt >= monthStart && payout.paidAt <= monthEnd);
 
     monthlyData.push({
       month: targetDate.toLocaleString("en-US", { month: "short" }),
       year: targetDate.getFullYear(),
-      amount: Math.round(monthlyAmount),
-      count: monthTransactions.length,
+      amount: Math.round(monthPayouts.reduce((sum, payout) => sum + payout.amount, 0)),
+      count: monthPayouts.length,
     });
   }
 
-  // Calculate per-project ROI
-  const projectROIs: ProjectROI[] = await Promise.all(
-    investments.map(async (investment) => {
-      // Get all return transactions for this investment
-      const returnTransactions = await Transaction.find({
-        user: investorId,
-        relatedInvestment: investment._id,
-        type: TransactionType.INVESTMENT,
-        status: TransactionStatus.SUCCESS,
-      }).lean();
-
-      const totalReturns = returnTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const profit = totalReturns - investment.amount;
-      const roiPercent = investment.amount > 0 ? (profit / investment.amount) * 100 : 0;
-
-      return {
-        projectId: investment.project._id.toString(),
-        projectTitle: (investment.project as any)?.title || "Unknown Project",
-        invested: investment.amount,
-        earned: Math.round(profit),
-        roi: Math.round(roiPercent * 10) / 10, // Round to 1 decimal
-        status: (investment.project as any)?.status || investment.status,
-      };
-    })
-  );
-
-  // Calculate summary stats
-  const totalEarned = projectROIs.reduce((sum, p) => sum + p.earned, 0);
-  const totalInvested = projectROIs.reduce((sum, p) => sum + p.invested, 0);
+  const totalEarned = projectROIs.reduce((sum, project) => sum + project.earned, 0);
+  const totalInvested = projectROIs.reduce((sum, project) => sum + project.invested, 0);
   const averageROI = totalInvested > 0 ? (totalEarned / totalInvested) * 100 : 0;
-  const topPerformer = projectROIs.reduce(
-    (max, p) => (p.roi > max.roi ? p : max),
-    { projectTitle: "N/A", roi: 0 }
+  const topPerformer = projectROIs.reduce<ProjectROI | null>(
+    (max, project) => (!max || project.roi > max.roi ? project : max),
+    null,
   );
 
   res.json({
     summary: {
       totalEarned: Math.round(totalEarned),
       averageROI: Math.round(averageROI * 10) / 10,
-      topPerformer: topPerformer.projectTitle,
-      topPerformerROI: topPerformer.roi,
-      completedPayouts: transactions.length,
+      topPerformer: topPerformer?.projectTitle ?? "N/A",
+      topPerformerROI: Math.round((topPerformer?.roi ?? 0) * 10) / 10,
+      completedPayouts: payouts.length,
+      latestPayoutAt: payouts[0]?.paidAt ?? null,
     },
     monthlyData,
-    projectROIs,
+    projectROIs: projectROIs.map((project) => ({
+      ...project,
+      earned: Math.round(project.earned),
+      roi: Math.round(project.roi * 10) / 10,
+      status: project.status,
+    })),
+    payouts,
   });
 }
 
@@ -362,7 +402,23 @@ export async function listMyTransactions(req: Request, res: Response): Promise<v
     Transaction.countDocuments(filter),
   ]);
 
-  res.json({ transactions, meta: buildMeta(total, pagination) });
+  const projectIds = transactions.flatMap((transaction) => {
+    const investmentProject = (transaction.relatedInvestment as any)?.project?._id;
+    return [transaction.relatedProfitDistribution, investmentProject].filter(Boolean);
+  });
+  const projects = await Project.find({ _id: { $in: projectIds } }).select("title location").lean();
+  const projectsById = new Map(projects.map((project) => [project._id.toString(), project]));
+
+  const normalizedTransactions = transactions.map((transaction) => {
+    const investmentProject = (transaction.relatedInvestment as any)?.project;
+    const project = projectsById.get(
+      (transaction.relatedProfitDistribution ?? investmentProject?._id)?.toString(),
+    ) ?? investmentProject;
+
+    return { ...transaction.toObject(), project: project ?? null };
+  });
+
+  res.json({ transactions: normalizedTransactions, meta: buildMeta(total, pagination) });
 }
 
 /**

@@ -5,6 +5,7 @@ import { ILoanApplication, LoanApplication } from "../models/LoanApplication";
 import { Project } from "../models/Project";
 import { Investment } from "../models/Investment";
 import { Transaction } from "../models/Transaction";
+import { ProfitDistribution } from "../models/ProfitDistribution";
 import {
   UserRole,
   VerificationStatus,
@@ -653,8 +654,6 @@ export async function listAllTransactions(req: Request, res: Response): Promise<
     status?: TransactionStatus;
     userId?: string;
   };
-  const pagination = getPagination(req);
-
   const filter: Record<string, unknown> = {};
   if (type) {
     if (!Object.values(TransactionType).includes(type)) throw new AppError("Invalid type filter", 400);
@@ -672,13 +671,72 @@ export async function listAllTransactions(req: Request, res: Response): Promise<
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)
       .populate("user", "name role")
+      .populate({
+        path: "relatedInvestment",
+        populate: [
+          { path: "investor", select: "name role" },
+          { path: "project", select: "title farmer", populate: { path: "farmer", select: "name role" } },
+        ],
+      })
       .sort({ createdAt: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
+      .lean(),
     Transaction.countDocuments(filter),
   ]);
 
-  res.json({ transactions, meta: buildMeta(total, pagination) });
+  const transactionIds = transactions.map((transaction) => transaction._id);
+  const distributionIds = transactions
+    .map((transaction) => transaction.relatedProfitDistribution)
+    .filter(Boolean);
+  const legacyPayoutProjectIds = transactions
+    .filter((transaction) => transaction.type === TransactionType.PAYOUT)
+    .map((transaction) => transaction.relatedProfitDistribution)
+    .filter(Boolean);
+
+  const [distributions, legacyPayoutProjects] = await Promise.all([
+    ProfitDistribution.find({
+      $or: [{ transaction: { $in: transactionIds } }, { _id: { $in: distributionIds } }],
+    })
+      .populate("farmer", "name role")
+      .populate("investor", "name role")
+      .populate("project", "title farmer")
+      .lean(),
+    Project.find({ _id: { $in: legacyPayoutProjectIds } })
+      .populate("farmer", "name role")
+      .select("title farmer")
+      .lean(),
+  ]);
+
+  const distributionsByTransaction = new Map(
+    distributions.filter((distribution) => distribution.transaction).map((distribution) => [distribution.transaction!.toString(), distribution]),
+  );
+  const distributionsById = new Map(distributions.map((distribution) => [distribution._id.toString(), distribution]));
+  const projectsById = new Map(legacyPayoutProjects.map((project) => [project._id.toString(), project]));
+
+  const normalizedTransactions = transactions.map((transaction) => {
+    const investment = transaction.relatedInvestment as any;
+    const distributionId = transaction.relatedProfitDistribution?.toString();
+    const distribution = distributionsByTransaction.get(transaction._id.toString())
+      ?? (distributionId ? distributionsById.get(distributionId) : undefined);
+    const legacyProject = transaction.relatedProfitDistribution
+      ? projectsById.get(transaction.relatedProfitDistribution.toString())
+      : undefined;
+    const project = investment?.project ?? distribution?.project ?? legacyProject;
+    const investor = investment?.investor ?? distribution?.investor
+      ?? ([TransactionType.INVESTMENT, TransactionType.PAYOUT].includes(transaction.type) ? transaction.user : null);
+    const farmer = project?.farmer ?? distribution?.farmer ?? null;
+
+    return {
+      ...transaction,
+      project: project ? { _id: project._id, title: project.title } : null,
+      investor: investor ? { _id: investor._id, name: investor.name } : null,
+      farmer: farmer ? { _id: farmer._id, name: farmer.name } : null,
+    };
+  });
+
+  res.json({
+    transactions: normalizedTransactions,
+    meta: { total, page: 1, limit: total, totalPages: 1 },
+  });
 }
 
 

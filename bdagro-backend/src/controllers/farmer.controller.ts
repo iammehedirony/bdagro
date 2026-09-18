@@ -647,7 +647,17 @@ export async function listFarmerTransactions(req: Request, res: Response): Promi
   const { type, status } = req.query as { type?: TransactionType; status?: TransactionStatus };
   const pagination = getPagination(req);
 
-  const filter: Record<string, unknown> = { user: req.user!._id };
+  const farmerProjects = await Project.find({ farmer: req.user!._id }).select("_id").lean();
+  const projectIds = farmerProjects.map((project) => project._id);
+  const farmerInvestments = await Investment.find({ project: { $in: projectIds } }).select("_id").lean();
+
+  const filter: Record<string, unknown> = {
+    $or: [
+      { user: req.user!._id },
+      { relatedInvestment: { $in: farmerInvestments.map((investment) => investment._id) } },
+      { relatedProfitDistribution: { $in: projectIds } },
+    ],
+  };
   if (type) {
     if (!Object.values(TransactionType).includes(type)) {
       throw new AppError("Invalid type filter", 400);
@@ -663,15 +673,57 @@ export async function listFarmerTransactions(req: Request, res: Response): Promi
 
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)
-      .populate("relatedLoanApplication", "projectTitle cropType")
-      .populate("relatedProfitDistribution")
+      .populate({
+        path: "relatedInvestment",
+        populate: [
+          { path: "investor", select: "name" },
+          { path: "project", select: "title location" },
+        ],
+      })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit),
     Transaction.countDocuments(filter),
   ]);
 
-  res.json({ transactions, meta: buildMeta(total, pagination) });
+  const transactionIds = transactions.map((transaction) => transaction._id);
+  const [payoutInvestments, distributions, projects] = await Promise.all([
+    Investment.find({ transaction: { $in: transactionIds } })
+      .populate("investor", "name")
+      .populate("project", "title location")
+      .lean(),
+    ProfitDistribution.find({ transaction: { $in: transactionIds } })
+      .populate("investor", "name")
+      .populate("project", "title location")
+      .lean(),
+    Project.find({ _id: { $in: projectIds } }).select("title location").lean(),
+  ]);
+  const payoutInvestmentsByTransaction = new Map(
+    payoutInvestments.filter((investment) => investment.transaction).map((investment) => [investment.transaction!.toString(), investment]),
+  );
+  const distributionsByTransaction = new Map(
+    distributions.filter((distribution) => distribution.transaction).map((distribution) => [distribution.transaction!.toString(), distribution]),
+  );
+  const projectsById = new Map(projects.map((project) => [project._id.toString(), project]));
+
+  const normalizedTransactions = transactions.map((transaction) => {
+    const investment = transaction.relatedInvestment as any;
+    const payoutInvestment = payoutInvestmentsByTransaction.get(transaction._id.toString()) as any;
+    const distribution = distributionsByTransaction.get(transaction._id.toString()) as any;
+    const project = investment?.project ?? payoutInvestment?.project ?? distribution?.project
+      ?? (transaction.relatedProfitDistribution
+        ? projectsById.get(transaction.relatedProfitDistribution.toString())
+        : undefined);
+    const investor = investment?.investor ?? payoutInvestment?.investor ?? distribution?.investor;
+
+    return {
+      ...transaction.toObject(),
+      project: project ? { _id: project._id, title: project.title, location: project.location } : null,
+      counterparty: investor ? { _id: investor._id, name: investor.name } : null,
+    };
+  });
+
+  res.json({ transactions: normalizedTransactions, meta: buildMeta(total, pagination) });
 }
 
 // ************** profit distribution ************

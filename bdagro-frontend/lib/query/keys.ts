@@ -10,6 +10,7 @@ export const queryKeys = {
   farmer: {
     submitNid: ["farmer", "submit-nid"] as const,
     dashboard: ["farmer", "dashboard"] as const,
+    transactions: ["farmer", "transactions"] as const,
     profitDistribution: ["farmer", "profit-distribution"] as const,
     projects: ["farmer", "projects"] as const,
     project: (id: string) => ["farmer", "project", id] as const,
@@ -18,6 +19,10 @@ export const queryKeys = {
   },
   investor: {
     createProfile: ["investor", "create-profile"] as const,
+    portfolio: ["investor", "portfolio"] as const,
+    roiTracking: ["investor", "roi-tracking"] as const,
+    transactions: ["investor", "transactions"] as const,
+    notifications: ["investor", "notifications"] as const,
     projects: (filters: unknown) => ["investor", "projects", filters] as const,
     project: (id: string) => ["investor", "project", id] as const,
   },
@@ -31,6 +36,7 @@ export const queryKeys = {
     verifications: ["admin", "verifications"] as const,
     loanApplications: ["admin", "loan-applications"] as const,
     allProjects: ["admin", "all-projects"] as const,
+    transactions: ["admin", "transactions"] as const,
     users: ["admin", "users"] as const,
     allUsers: ["admin", "users", "all"] as const,
   },

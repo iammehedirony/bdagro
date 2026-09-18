@@ -1,31 +1,52 @@
-import React from "react";
+"use client";
+
 import {
-  Sprout,
-  LayoutDashboard,
-  Wallet,
-  BarChart3,
   ArrowDownToLine,
-  ArrowLeftRight,
-  Bell,
-  Settings,
   ArrowUpFromLine,
-  CheckCircle2,
-  XCircle,
-  Info,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import StatusTag from "@/components/ui/StatusTag";
+import { useFarmerTransactionsQuery } from "@/hooks/queries/useFarmerQueries";
+import type { FarmerTransaction } from "@/lib/services/farmer.service";
 
+const currency = new Intl.NumberFormat("bn-BD", { maximumFractionDigits: 0 });
+const payoutTypes = new Set(["profit_distribution", "payout"]);
 
-const transactions = [
-  { type: "বিনিয়োগ প্রাপ্তি", icon: ArrowDownToLine, project: "সবুজ ধানখেত", from: "রাহাত করিম", amount: "৫০,০০০", method: "SSLCommerz · bKash", date: "১২ জুন ২০২৬", status: "সফল" },
-  { type: "মুনাফা পরিশোধ", icon: ArrowUpFromLine, project: "গরু মোটাতাজাকরণ", from: "তানভীর আলম", amount: "৭,২৮০", method: "বিকাশ", date: "১০ জানুয়ারি ২০২৬", status: "সফল" },
-  { type: "বিনিয়োগ প্রাপ্তি", icon: ArrowDownToLine, project: "সবুজ ধানখেত", from: "সুমাইয়া হক", amount: "১৫,০০০", method: "SSLCommerz · নগদ", date: "১৮ জুন ২০২৬", status: "সফল" },
-  { type: "মুনাফা পরিশোধ", icon: ArrowUpFromLine, project: "সেচ যন্ত্র ফান্ডিং", from: "কামরুল ইসলাম", amount: "৬,৩০০", method: "ব্যাংক ট্রান্সফার", date: "৫ আগস্ট ২০২৫", status: "সফল" },
-  { type: "মুনাফা পরিশোধ", icon: ArrowUpFromLine, project: "সবুজ ধানখেত", from: "নাজমুল হক", amount: "৮,০০০", method: "নগদ", date: "৮ সেপ্টেম্বর ২০২৬", status: "ব্যর্থ" },
-];
+function formatCurrency(value: number) {
+  return `৳${currency.format(Math.max(0, value))}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("bn-BD", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function paymentMethodLabel(method: FarmerTransaction["paymentMethod"]) {
+  return method === "sslcommerz" ? "SSLCommerz" : method === "stripe" ? "Stripe" : "Manual";
+}
+
+function statusLabel(status: FarmerTransaction["status"]) {
+  return status === "success" ? "সফল" : status === "failed" ? "ব্যর্থ" : "প্রক্রিয়াধীন";
+}
+
+function isPayout(transaction: FarmerTransaction) {
+  return payoutTypes.has(transaction.type);
+}
 
 export default function FarmerTransactionsPage() {
+  const { data, isLoading, isError } = useFarmerTransactionsQuery();
+  const transactions = data?.transactions ?? [];
+  const investmentTransactions = transactions.filter((transaction) => transaction.type === "investment");
+  const successfulPayouts = transactions.filter((transaction) => isPayout(transaction) && transaction.status === "success");
+
+  const totalReceivedInvestment = investmentTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalPaidProfit = successfulPayouts.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const failedTransactions = transactions.filter((transaction) => transaction.status === "failed" || (transaction.status as string) === "cancelled");
+
   return (
     <div className="bg-white min-h-screen flex">
      
@@ -40,10 +61,10 @@ export default function FarmerTransactionsPage() {
 
           {/* STATS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="সর্বমোট লেনদেন" value="৫টি" sub="সব ধরনের মিলিয়ে" />
-            <StatCard label="সর্বমোট প্রাপ্ত বিনিয়োগ" value="৳৬৫,০০০" sub="২টি লেনদেনে" />
-            <StatCard label="সর্বমোট পরিশোধিত মুনাফা" value="৳১৩,৫৮০" sub="২টি সফল পরিশোধে" />
-            <StatCard label="ব্যর্থ লেনদেন" value="১টি" sub="এই সপ্তাহে" />
+            <StatCard label="সর্বমোট লেনদেন" value={`${transactions.length}টি`} sub="সব ধরনের মিলিয়ে" />
+            <StatCard label="সর্বমোট প্রাপ্ত বিনিয়োগ" value={formatCurrency(totalReceivedInvestment)} sub={`${investmentTransactions.length}টি লেনদেনে`} />
+            <StatCard label="সর্বমোট পরিশোধিত মুনাফা" value={formatCurrency(totalPaidProfit)} sub={`${successfulPayouts.length}টি সফল পরিশোধে`} />
+            <StatCard label="ব্যর্থ লেনদেন" value={`${failedTransactions.length}টি`} sub="ব্যর্থ বা বাতিল" />
           </div>
 
           {/* TRANSACTION HISTORY */}
@@ -54,23 +75,31 @@ export default function FarmerTransactionsPage() {
               </h3>
             </div>
             <div className="divide-y divide-stone-200">
-              {transactions.map((t, i) => (
-                <div key={i} className="p-5 flex items-center gap-4 flex-wrap">
+              {isLoading && <div className="p-6 text-sm text-stone-400">লেনদেন লোড হচ্ছে...</div>}
+              {isError && <div className="p-6 text-sm text-red-600">লেনদেনের তথ্য লোড করা যায়নি।</div>}
+              {!isLoading && !isError && transactions.map((transaction) => {
+                const payout = isPayout(transaction);
+                const Icon: LucideIcon = payout ? ArrowUpFromLine : ArrowDownToLine;
+
+                return (
+                <div key={transaction._id} className="p-5 flex items-center gap-4 flex-wrap">
                   <div className="w-9 h-9 flex items-center justify-center bg-stone-100 text-stone-500 shrink-0">
-                    <t.icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <div className="flex-1 min-w-[220px]">
+                  <div className="flex-1 min-w-55">
                     <div className="text-sm text-stone-800">
-                      {t.type} — {t.project}
+                      {payout ? "মুনাফা পরিশোধ" : "বিনিয়োগ প্রাপ্তি"} — {transaction.project?.title ?? "অজানা প্রকল্প"}
                     </div>
                     <div className="text-xs text-stone-400 mt-0.5">
-                      {t.type === "বিনিয়োগ প্রাপ্তি" ? `থেকে: ${t.from}` : `প্রতি: ${t.from}`} · {t.method} · {t.date}
+                      {payout ? "প্রতি" : "থেকে"}: {transaction.counterparty?.name ?? "অজানা ব্যবহারকারী"} · {paymentMethodLabel(transaction.paymentMethod)} · {formatDate(transaction.createdAt)}
                     </div>
                   </div>
-                  <div className="text-sm text-stone-800 shrink-0">৳{t.amount}</div>
-                  <StatusTag status={t.status} />
+                  <div className="text-sm text-stone-800 shrink-0">{formatCurrency(transaction.amount)}</div>
+                  <StatusTag status={statusLabel(transaction.status)} />
                 </div>
-              ))}
+                );
+              })}
+              {!isLoading && !isError && transactions.length === 0 && <div className="p-6 text-sm text-stone-400">কোনো লেনদেন পাওয়া যায়নি।</div>}
             </div>
           </div>
         </div>
