@@ -531,7 +531,7 @@ export async function approveLoanApplication(req: Request, res: Response): Promi
     location: body.location || application.location,
     landArea: application.landArea,
     expectedHarvestDate: application.expectedHarvestDate,
-    farmImages: application.farmImages,
+    farmImage: application.farmImage,
     cropType: body.cropType || application.cropType || "unspecified",
     riskLevel: body.riskLevel,
     expectedROIPercent: body.expectedROIPercent,

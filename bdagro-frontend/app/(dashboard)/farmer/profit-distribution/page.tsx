@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
   HandCoins,
@@ -10,9 +11,12 @@ import {
 } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import StatusTag from "@/components/ui/StatusTag";
+import Field from "@/components/ui/Field";
+import { FieldError } from "@/components/ui/FieldError";
 import { useFarmerProfitDistributionQuery } from "@/hooks/queries/useFarmerQueries";
 import { useSaveFarmerProjectProfitReportMutation } from "@/hooks/mutations/useFarmerMutations";
 import type { FarmerProfitDistributionProject } from "@/lib/services/farmer.service";
+import { profitReportSchema, type ProfitReportFormValues } from "@/lib/schemas/farmer";
 
 function formatCurrency(value: number) {
   return `৳${value.toLocaleString("bn-BD")}`;
@@ -27,11 +31,6 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-interface ProfitReportFormValues {
-  totalSales: number;
-  productionCost: number;
-}
-
 export default function FarmerProfitSharingPage() {
   const { data, isLoading, isError, refetch } = useFarmerProfitDistributionQuery();
   const router = useRouter();
@@ -43,14 +42,24 @@ export default function FarmerProfitSharingPage() {
   // State for Modal Management
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<FarmerProfitDistributionProject | null>(null);
-  const { control, register, handleSubmit, reset } = useForm<ProfitReportFormValues>({
+  const { control, register, handleSubmit, reset, formState: { errors } } = useForm<ProfitReportFormValues>({
+    resolver: zodResolver(profitReportSchema),
+    mode: "onBlur",
     defaultValues: { totalSales: 0, productionCost: 0 },
   });
   const formValues = useWatch({ control });
   const totalSales = Number(formValues.totalSales) || 0;
   const productionCost = Number(formValues.productionCost) || 0;
   const netProfit = totalSales - productionCost;
-  const investorShare = selectedProject ? (netProfit * selectedProject.profitShare) / 100 : 0;
+  const investorShare = selectedProject && netProfit >= 0 ? (netProfit * selectedProject.profitShare) / 100 : 0;
+
+  function getErrorMessage(error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (error as { response?: { data?: { message?: string } } }).response;
+      if (response?.data?.message) return response.data.message;
+    }
+    return error instanceof Error ? error.message : "রিপোর্ট সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।";
+  }
 
   const handleOpenModal = (project: FarmerProfitDistributionProject) => {
     setSelectedProject(project);
@@ -68,7 +77,7 @@ export default function FarmerProfitSharingPage() {
     if (!selectedProject) return;
     saveReportMutation.mutate(
       { projectId: selectedProject.id, data: values },
-      { onSuccess: () => router.push(`/farmer/profit-distribution/checkout?projectId=${selectedProject.id}`) },
+      { onSuccess: () => router.push(`/farmer/projects/${selectedProject.id}/payout`) },
     );
   };
 
@@ -196,26 +205,26 @@ export default function FarmerProfitSharingPage() {
             </div>
 
             {/* Modal Body / Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 grid sm:grid-cols-2 gap-5">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="p-6 grid sm:grid-cols-2 gap-5">
               <div>
-                <label className="text-sm text-stone-700">মোট বিক্রয় (৳)</label>
-                <input
+                <Field
+                  label="মোট বিক্রয় (৳)"
                   type="number"
                   min="0"
-                  {...register("totalSales", { valueAsNumber: true, required: true })}
                   placeholder="যেমন: ৭৫,০০০"
-                  className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700"
+                  {...register("totalSales", { valueAsNumber: true })}
                 />
+                <FieldError error={errors.totalSales} />
               </div>
               <div>
-                <label className="text-sm text-stone-700">উৎপাদন খরচ (৳)</label>
-                <input
+                <Field
+                  label="উৎপাদন খরচ (৳)"
                   type="number"
                   min="0"
-                  {...register("productionCost", { valueAsNumber: true, required: true })}
                   placeholder="যেমন: ৪০,০০০"
-                  className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm outline-none placeholder:text-stone-300 focus:border-emerald-700"
+                  {...register("productionCost", { valueAsNumber: true })}
                 />
+                <FieldError error={errors.productionCost} />
               </div>
 
               <div className="sm:col-span-2 border-t border-stone-200 pt-5 flex items-center justify-between">
@@ -235,7 +244,8 @@ export default function FarmerProfitSharingPage() {
 
               {/* Action Buttons inside Modal */}
               <div className="sm:col-span-2 mt-4 flex gap-3">
-                <button 
+                <button
+                  type="button"
                   onClick={closeModal}
                   className="w-full bg-stone-100 text-stone-700 py-3 text-sm font-medium hover:bg-stone-200 transition-colors"
                 >
@@ -250,7 +260,9 @@ export default function FarmerProfitSharingPage() {
                 </button>
               </div>
               {saveReportMutation.isError && (
-                <p className="sm:col-span-2 text-sm text-red-700">রিপোর্ট সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।</p>
+                <p className="sm:col-span-2 text-sm text-red-700" role="alert">
+                  {getErrorMessage(saveReportMutation.error)}
+                </p>
               )}
             </form>
             

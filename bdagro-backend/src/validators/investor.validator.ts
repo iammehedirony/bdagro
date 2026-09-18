@@ -33,5 +33,10 @@ export const createInvestmentSchema = z.object({
   amount: z.coerce.number().positive("amount must be greater than 0"),
   investmentType: z.enum(InvestmentType),
   paymentMethod: z.enum(PaymentMethod).default(PaymentMethod.SSLCOMMERZ),
-});
+  billing: z.object({
+    fullName: z.string().trim().min(1),
+    email: z.string().email(),
+    phone: z.string().trim().min(7),
+  }).strict(),
+}).strict();
 export type CreateInvestmentInput = z.infer<typeof createInvestmentSchema>;

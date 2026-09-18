@@ -22,7 +22,7 @@ const defaultValues: LoanApplicationFormValues = {
   cropType: "",
   landArea: 0,
   expectedHarvestDate: "",
-  farmImages: [],
+  farmImage: null,
   landDeed: null,
   incomeProof: null,
   terms: true,
@@ -131,7 +131,7 @@ export default function LoanApplicationPage() {
           </> : <>
             <div><Field label="ফসলের ধরন (ঐচ্ছিক)" placeholder="যেমন: বোরো ধান" readOnly={isPending} {...register("cropType")} /><FieldError error={errors.cropType} /></div>
             <div className="grid gap-5 sm:grid-cols-2"><div><Field label="জমির পরিমাণ" type="number" placeholder="যেমন: ৩" readOnly={isPending} {...register("landArea", { valueAsNumber: true })} /><FieldError error={errors.landArea} /></div><div><label className="text-sm text-stone-700">প্রত্যাশিত ফসল কাটার তারিখ</label><input type="date" {...register("expectedHarvestDate")} disabled={isPending} className="mt-1.5 w-full border border-stone-300 px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-emerald-700" /><FieldError error={errors.expectedHarvestDate} /></div></div>
-            <div><label className="mb-2 block text-sm text-stone-700">খামারের ছবি</label><Controller name="farmImages" control={control} render={({ field }) => <UploadBox label="খামারের ছবি নির্বাচন করুন" hint="JPG, PNG, WEBP · সর্বোচ্চ ৬টি ছবি" accept="image/jpeg,image/png,image/webp" multiple files={field.value} onFilesChange={field.onChange} />} /><FieldError error={errors.farmImages} /></div>
+            <div><label className="mb-2 block text-sm text-stone-700">খামারের ছবি</label><Controller name="farmImage" control={control} render={({ field }) => <UploadBox label="খামারের ছবি নির্বাচন করুন" hint="JPG, PNG, WEBP · সর্বোচ্চ ৫MB" accept="image/jpeg,image/png,image/webp" file={field.value} onChange={field.onChange} />} /><FieldError error={errors.farmImage} /></div>
 
             <div>
               <label className="mb-2 block text-sm text-stone-700">সংযুক্তি</label>

@@ -21,10 +21,8 @@ interface CreateCheckoutParams {
 }
 
 /**
- * Stripe Checkout doesn't support BDT — settle in USD (or your actual
- * merchant currency) and convert `amount` upstream if it's collected in
- * BDT. Adjust `currency` here to match your Stripe account's settlement
- * currency before going live.
+ * Transaction amounts are stored as whole BDT. Stripe expects the smallest
+ * currency unit, so ৳19,000 becomes 1,900,000 poisha while remaining BDT.
  */
 export async function createStripeCheckoutSession(
   params: CreateCheckoutParams
@@ -38,7 +36,7 @@ export async function createStripeCheckoutSession(
     line_items: [
       {
         price_data: {
-          currency: "usd",
+          currency: "bdt",
           product_data: { name: params.description },
           unit_amount: Math.round(params.amount * 100),
         },
@@ -47,8 +45,8 @@ export async function createStripeCheckoutSession(
     ],
     client_reference_id: params.transactionId,
     customer_email: params.customerEmail,
-    success_url: `${clientUrl}/payments/result?status=success&transactionId=${params.transactionId}`,
-    cancel_url: `${clientUrl}/payments/result?status=cancelled&transactionId=${params.transactionId}`,
+    success_url: `${clientUrl}/payment/success?transactionId=${params.transactionId}`,
+    cancel_url: `${clientUrl}/payment/cancel?transactionId=${params.transactionId}`,
   });
 
   return { sessionId: session.id, url: session.url || "" };

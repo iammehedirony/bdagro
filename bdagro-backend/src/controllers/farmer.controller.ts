@@ -147,9 +147,9 @@ export async function createApplication(req: Request, res: Response): Promise<vo
       ? uploadToCloudinary(files.incomeProof[0], req.user!._id.toString())
       : undefined,
   ]);
-  const farmImageUploads = await Promise.all(
-    (files?.farmImages ?? []).map((file) => uploadToCloudinary(file, req.user!._id.toString()))
-  );
+  const farmImageUpload = files?.farmImage?.[0]
+    ? await uploadToCloudinary(files.farmImage[0], req.user!._id.toString())
+    : undefined;
 
   const application = await LoanApplication.create({
     farmer: req.user!._id,
@@ -161,7 +161,7 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     location: body.location,
     landArea: body.landArea,
     expectedHarvestDate: body.expectedHarvestDate,
-    farmImages: farmImageUploads.map((upload) => upload.secure_url),
+    farmImage: farmImageUpload?.secure_url ?? null,
     cropType: body.cropType,
     landDeedUrl: landDeedUpload?.secure_url,
     incomeProofUrl: incomeProofUpload?.secure_url,
@@ -345,7 +345,7 @@ export async function createMyProject(req: Request, res: Response): Promise<void
     location: body.location,
     landArea: body.landArea,
     expectedHarvestDate: body.expectedHarvestDate,
-    farmImages: [],
+    farmImage: null,
     cropType: body.cropType,
     status: LoanApplicationStatus.PENDING,
   });
@@ -778,6 +778,27 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
   });
 }
 
+export async function getProjectProfitReport(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Invalid project id", 400);
+  }
+
+  const project = await Project.findOne({ _id: id, farmer: req.user!._id })
+    .select("_id title expectedHarvestDate profitReport")
+    .lean();
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  res.json({
+    projectId: project._id,
+    projectTitle: project.title,
+    expectedHarvestDate: project.expectedHarvestDate,
+    profitReport: project.profitReport ?? null,
+  });
+}
+
 export async function saveProjectProfitReport(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
@@ -794,7 +815,8 @@ export async function saveProjectProfitReport(req: Request, res: Response): Prom
   if (!project) {
     throw new AppError("Eligible funded project not found", 404);
   }
-  if (project.profitReport) {
+  const hasSavedProfitReport = Boolean(project.profitReport?.submittedAt);
+  if (hasSavedProfitReport) {
     throw new AppError("A profit report has already been saved for this project", 409);
   }
 

@@ -1,0 +1,1 @@
+export { default } from "@/app/(dashboard)/farmer/profit-distribution/payout/page";

@@ -28,12 +28,13 @@ export async function createCheckoutSession(req: Request, res: Response): Promis
   }
 
   if (transaction.paymentMethod === PaymentMethod.SSLCOMMERZ) {
+    const billing = transaction.metadata.billing as { fullName?: string; email?: string; phone?: string } | undefined;
     const { redirectUrl } = await initSslcommerzSession({
       transactionId: transaction._id.toString(),
       amount: transaction.amount,
-      customerName: req.user!.name,
-      customerEmail: req.user!.email,
-      customerPhone: req.user!.phone,
+      customerName: billing?.fullName || req.user!.name,
+      customerEmail: billing?.email || req.user!.email,
+      customerPhone: billing?.phone || req.user!.phone,
     });
     res.json({ redirectUrl });
     return;
@@ -99,19 +100,19 @@ export async function handleSslcommerzIpn(req: Request, res: Response): Promise<
 export function sslcommerzSuccessRedirect(req: Request, res: Response): void {
   const tranId = (req.body as { tran_id?: string }).tran_id;
   const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-  res.redirect(`${clientUrl}/payments/result?status=success&transactionId=${tranId ?? ""}`);
+  res.redirect(`${clientUrl}/payment/success?transactionId=${tranId ?? ""}`);
 }
 
 export function sslcommerzFailRedirect(req: Request, res: Response): void {
   const tranId = (req.body as { tran_id?: string }).tran_id;
   const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-  res.redirect(`${clientUrl}/payments/result?status=failed&transactionId=${tranId ?? ""}`);
+  res.redirect(`${clientUrl}/payment/failed?transactionId=${tranId ?? ""}`);
 }
 
 export function sslcommerzCancelRedirect(req: Request, res: Response): void {
   const tranId = (req.body as { tran_id?: string }).tran_id;
   const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-  res.redirect(`${clientUrl}/payments/result?status=cancelled&transactionId=${tranId ?? ""}`);
+  res.redirect(`${clientUrl}/payment/cancel?transactionId=${tranId ?? ""}`);
 }
 
 /**

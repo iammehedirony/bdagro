@@ -44,7 +44,6 @@ export default function ProjectDetailsPage() {
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
   const query = useProjectDetailsQuery(projectId);
   const project = query.data;
-  const [activeImage, setActiveImage] = useState(0);
   const [mode, setMode] = useState<InvestmentMode>("partial");
   const [amount, setAmount] = useState(10000);
   const [error, setError] = useState("");
@@ -57,7 +56,6 @@ export default function ProjectDetailsPage() {
   const progress = project.fundingGoal > 0 ? Math.min(Math.round((totalRaised / project.fundingGoal) * 100), 100) : 0;
   const isFundable = project.status === "open" || project.status === "partially_funded";
   const currentStatus = statusIndex(project.status);
-  const images = project.imageUrls ?? [];
 
   const selectMode = (nextMode: InvestmentMode) => {
     setMode(nextMode);
@@ -91,9 +89,8 @@ export default function ProjectDetailsPage() {
         <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_340px]">
           <div>
             <div className="flex h-72 items-center justify-center overflow-hidden bg-emerald-900">
-              {images.length > 0 ? <img src={images[activeImage]} alt={project.title} className="h-full w-full object-cover" /> : <Sprout className="h-14 w-14 text-white/60" strokeWidth={1.5} />}
+              {project.farmImage ? <img src={project.farmImage} alt={project.title} className="h-full w-full object-cover" /> : <Sprout className="h-14 w-14 text-white/60" strokeWidth={1.5} />}
             </div>
-            {images.length > 1 && <div className="mt-2 grid grid-cols-4 gap-2">{images.map((image, index) => <button type="button" key={image} onClick={() => setActiveImage(index)} className={`h-16 overflow-hidden border-2 ${activeImage === index ? "border-emerald-700" : "border-transparent"}`}><img src={image} alt="" className="h-full w-full object-cover" /></button>)}</div>}
 
             <div className="mt-8">
               <div className="mb-2 flex items-center gap-2 text-xs text-stone-400"><span className={`border px-2 py-0.5 ${riskClasses(project.riskLevel)}`}>ঝুঁকি: {riskLabel(project.riskLevel)}</span><span>·</span><span>{project.cropType}</span></div>

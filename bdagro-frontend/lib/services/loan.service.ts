@@ -30,7 +30,7 @@ export async function createLoanApplication(api: AxiosInstance, data: LoanApplic
   if (data.cropType) formData.append("cropType", data.cropType);
   if (data.landDeed) formData.append("landDeed", data.landDeed);
   if (data.incomeProof) formData.append("incomeProof", data.incomeProof);
-  data.farmImages.forEach((image) => formData.append("farmImages", image));
+  if (data.farmImage) formData.append("farmImage", data.farmImage);
 
   const response = await api.post("/farmers/loan-applications", formData, {
     headers: { "Content-Type": "multipart/form-data" },

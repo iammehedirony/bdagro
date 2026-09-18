@@ -132,6 +132,7 @@ export async function createInvestment(req: Request, res: Response): Promise<voi
     amount: body.amount,
     paymentMethod: body.paymentMethod,
     status: TransactionStatus.PENDING,
+    metadata: { billing: body.billing },
   });
 
   const investment = await Investment.create({

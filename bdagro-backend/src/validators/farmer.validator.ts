@@ -31,7 +31,6 @@ export const createLoanApplicationSchema = z.object({
   location: z.string().trim().min(2, "location is too short"),
   landArea: z.coerce.number().positive("landArea must be greater than 0"),
   expectedHarvestDate: z.coerce.date(),
-  farmImages: z.array(z.string()).optional(),
   cropType: z.string().trim().optional(),
 });
 export type CreateLoanApplicationInput = z.infer<typeof createLoanApplicationSchema>;

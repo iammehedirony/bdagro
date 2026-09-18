@@ -10,7 +10,9 @@ export const loanApplicationSchema = z.object({
   cropType: z.string().trim().optional(),
   landArea: z.coerce.number().positive("জমির পরিমাণ দিন"),
   expectedHarvestDate: z.string().min(1, "ফসল কাটার তারিখ নির্বাচন করুন"),
-  farmImages: z.array(z.custom<File>((file) => typeof File !== "undefined" && file instanceof File)).min(1, "খামারের অন্তত একটি ছবি দিন").max(6, "সর্বোচ্চ ৬টি ছবি দিতে পারবেন"),
+  farmImage: z.custom<File>((file) => typeof File !== "undefined" && file instanceof File, "খামারের ছবি দিন").nullable().superRefine((file, context) => {
+    if (!file) context.addIssue({ code: z.ZodIssueCode.custom, message: "খামারের ছবি দিন" });
+  }),
   landDeed: z.custom<File>((file) => typeof File !== "undefined" && file instanceof File, "জমির দলিল বা লিজ কাগজ সংযুক্ত করুন").nullable(),
   incomeProof: z.custom<File>((file) => typeof File !== "undefined" && file instanceof File).nullable(),
   terms: z.literal(true, {

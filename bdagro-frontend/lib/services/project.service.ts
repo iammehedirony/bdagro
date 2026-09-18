@@ -22,7 +22,7 @@ export interface MarketplaceProject {
   status: string;
   expectedHarvestDate: string | null;
   fundingDeadline: string | null;
-  imageUrls: string[];
+  farmImage: string | null;
   durationMonths: number | null;
   landAreaAcres: number | null;
   investmentSummary: { totalRaised: number; investorCount: number; daysLeft: number | null };

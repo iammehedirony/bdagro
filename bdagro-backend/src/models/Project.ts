@@ -1,6 +1,15 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { RiskLevel, ProjectStatus } from "../utils/constants";
 
+export interface IProjectProfitReport {
+  totalSales: number;
+  productionCost: number;
+  netProfit: number;
+  profitSharePercent: number;
+  investorShareAmount: number;
+  submittedAt: Date;
+}
+
 /**
  * Marketplace listing created by Admin from an Approved LoanApplication.
  * Investors browse/filter these by cropType, riskLevel and expectedROI,
@@ -14,7 +23,7 @@ export interface IProject extends Document {
   description: string;
   location: string;
   landArea: number;
-  farmImages: string[];
+  farmImage: string | null;
   cropType: string;
   riskLevel: RiskLevel;
   expectedROIPercent: number;
@@ -23,15 +32,7 @@ export interface IProject extends Document {
   status: ProjectStatus;
   fundingDeadline: Date | null;
   expectedHarvestDate: Date | null;
-  profitReport: {
-    totalSales: number;
-    productionCost: number;
-    netProfit: number;
-    profitSharePercent: number;
-    investorShareAmount: number;
-    submittedAt: Date;
-  } | null;
-  imageUrls: string[];
+  profitReport: IProjectProfitReport | null;
   remainingAmount?: number; // virtual
   createdAt: Date;
   updatedAt: Date;
@@ -45,7 +46,7 @@ const projectSchema = new Schema<IProject>(
     description: { type: String, required: true },
     location: { type: String, required: true, trim: true, index: true },
     landArea: { type: Number, required: true, min: 0 },
-    farmImages: { type: [String], default: [] },
+    farmImage: { type: String, default: null },
     cropType: { type: String, required: true, index: true },
     riskLevel: {
       type: String,
@@ -65,14 +66,19 @@ const projectSchema = new Schema<IProject>(
     fundingDeadline: { type: Date, default: null },
     expectedHarvestDate: { type: Date, default: null, index: true },
     profitReport: {
-      totalSales: { type: Number, min: 0 },
-      productionCost: { type: Number, min: 0 },
-      netProfit: { type: Number, min: 0 },
-      profitSharePercent: { type: Number, min: 0, max: 100 },
-      investorShareAmount: { type: Number, min: 0 },
-      submittedAt: { type: Date },
+      type: new Schema<IProjectProfitReport>(
+        {
+          totalSales: { type: Number, required: true, min: 0 },
+          productionCost: { type: Number, required: true, min: 0 },
+          netProfit: { type: Number, required: true, min: 0 },
+          profitSharePercent: { type: Number, required: true, min: 0, max: 100 },
+          investorShareAmount: { type: Number, required: true, min: 0 },
+          submittedAt: { type: Date, required: true },
+        },
+        { _id: false }
+      ),
+      default: null,
     },
-    imageUrls: { type: [String], default: [] },
   },
   { timestamps: true }
 );
