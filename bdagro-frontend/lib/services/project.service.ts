@@ -7,6 +7,8 @@ export interface ProjectExplorerFilters {
   riskLevels: string[];
   fundingStatus: string[];
   locations: string[];
+  page: number;
+  limit: number;
 }
 
 export interface MarketplaceProject {
@@ -44,7 +46,8 @@ export async function listProjects(api: AxiosInstance, filters: ProjectExplorerF
       riskLevels: filters.riskLevels.join(",") || undefined,
       fundingStatus: filters.fundingStatus.join(",") || undefined,
       locations: filters.locations.join(",") || undefined,
-      limit: 100,
+      page: filters.page,
+      limit: filters.limit,
     },
   });
   return response.data;
