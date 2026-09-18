@@ -34,6 +34,7 @@ export const queryKeys = {
   },
   admin: {
     dashboard: ["admin", "dashboard"] as const,
+    profile: ["admin", "profile"] as const,
     verifications: ["admin", "verifications"] as const,
     loanApplications: ["admin", "loan-applications"] as const,
     allProjects: ["admin", "all-projects"] as const,

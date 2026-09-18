@@ -16,4 +16,5 @@ export function useAdminUsersQuery(limit = 4) {
 		queryKey: limit === 4 ? queryKeys.admin.users : queryKeys.admin.allUsers,
 		queryFn: () => listAdminUsers(api, limit),
 	});
-}
+}import { getAdminProfile } from "@/lib/services/admin.service";
+export function useAdminProfileQuery() { const api = useApi(); return useQuery({ queryKey: queryKeys.admin.profile, queryFn: () => getAdminProfile(api) }); }

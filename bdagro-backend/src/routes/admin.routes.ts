@@ -9,6 +9,7 @@ import {
   updateUserStatusSchema,
   updateUserRoleSchema,
   sendNotificationSchema,
+  updateAdminProfileSchema
 } from "../validators/admin.validator";
 import { updateAdminSettingsSchema } from "../validators/settings.validator";
 import * as dashboardCtrl from "../controllers/admin.controller";
@@ -57,5 +58,9 @@ router.post("/projects/:id/disburse", dashboardCtrl.disburseProject);
 
 // --- Settings ---
 router.put("/settings", validate(updateAdminSettingsSchema), dashboardCtrl.updateAdminSettings);
+
+// --- Profile ---
+router.get("/profile", dashboardCtrl.getAdminProfile);
+router.patch("/profile", validate(updateAdminProfileSchema), dashboardCtrl.updateAdminProfile);
 
 export default router;

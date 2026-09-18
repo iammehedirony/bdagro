@@ -59,3 +59,9 @@ export async function approveAdminVerification(api: AxiosInstance, id: string) {
 export async function rejectAdminVerification(api: AxiosInstance, id: string, rejectionReason: string) { const response = await api.post(`/admin/verifications/${id}/reject`, { rejectionReason }); return response.data; }
 export async function approveAdminLoanApplication(api: AxiosInstance, id: string, data: ApproveLoanApplicationInput) { const response = await api.post(`/admin/loan-applications/${id}/approve`, data); return response.data; }
 export async function rejectAdminLoanApplication(api: AxiosInstance, id: string, rejectionReason: string) { const response = await api.post(`/admin/loan-applications/${id}/reject`, { rejectionReason }); return response.data; }
+export interface AdminProfileData {
+  user: { _id: string; name: string; email?: string; phone?: string; role: string; status: string; };
+}
+export interface UpdateAdminProfileInput { name?: string; email?: string; phone?: string; }
+export async function getAdminProfile(api: AxiosInstance) { const response = await api.get<AdminProfileData>("/admin/profile"); return response.data; }
+export async function updateAdminProfile(api: AxiosInstance, data: UpdateAdminProfileInput) { const response = await api.patch<{ user: any }>("/admin/profile", data); return response.data; }

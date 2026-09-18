@@ -834,3 +834,46 @@ export async function updateAdminSettings(req: Request, res: Response): Promise<
 
   res.json({ settings: user.adminSettings, message: "Platform settings updated successfully" });
 }
+// ****************** profile ****************
+/**
+ * GET /api/admin/profile
+ * Returns the admin's own profile
+ */
+export async function getAdminProfile(req: Request, res: Response): Promise<void> {
+  const user = await User.findById(req.user!._id);
+  if (!user) {
+    throw new AppError("Admin user not found", 404);
+  }
+  res.json({ user });
+}
+
+/**
+ * PATCH /api/admin/profile
+ * Updates the admin's own profile details
+ */
+export async function updateAdminProfile(req: Request, res: Response): Promise<void> {
+  const { name, email, phone } = req.body;
+  const user = await User.findById(req.user!._id);
+  if (!user) {
+    throw new AppError("Admin user not found", 404);
+  }
+
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (phone) user.phone = phone;
+
+  await user.save();
+
+  // If email or name changes, sync back to Clerk implicitly or explicitly
+  // We sync name here
+  if (name) {
+    const firstName = name.split(" ")[0];
+    const lastName = name.substring(firstName.length).trim();
+    await clerkClient.users.updateUser(user.clerkId, {
+      firstName,
+      lastName: lastName || undefined,
+    });
+  }
+
+  res.json({ user });
+}
