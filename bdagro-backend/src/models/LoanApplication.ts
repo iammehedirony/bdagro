@@ -15,6 +15,10 @@ export interface ILoanApplication extends Document {
   durationMonths: number;
   projectTitle: string;
   projectDescription: string;
+  location: string;
+  landArea: number;
+  expectedHarvestDate: Date;
+  farmImages: string[];
   cropType?: string;
   landDeedUrl?: string;
   incomeProofUrl?: string;
@@ -34,6 +38,10 @@ const loanApplicationSchema = new Schema<ILoanApplication>(
     durationMonths: { type: Number, required: true },
     projectTitle: { type: String, required: true, trim: true },
     projectDescription: { type: String, required: true },
+    location: { type: String, required: true, trim: true, index: true },
+    landArea: { type: Number, required: true, min: 0 },
+    expectedHarvestDate: { type: Date, required: true },
+    farmImages: { type: [String], default: [] },
     cropType: { type: String, trim: true },
     landDeedUrl: { type: String },
     incomeProofUrl: { type: String },

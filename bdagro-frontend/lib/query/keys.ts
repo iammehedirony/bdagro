@@ -17,6 +17,8 @@ export const queryKeys = {
   },
   investor: {
     createProfile: ["investor", "create-profile"] as const,
+    projects: (filters: unknown) => ["investor", "projects", filters] as const,
+    project: (id: string) => ["investor", "project", id] as const,
   },
   loan: {
     products: ["loan", "products"] as const,

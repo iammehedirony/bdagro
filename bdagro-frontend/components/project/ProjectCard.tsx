@@ -4,6 +4,7 @@ import RiskBadge from "@/components/ui/RiskBadge";
 import Link from "next/link";
 
 interface ProjectCardProps {
+  id?: string;
   title: string;
   location: string;
   goal: string;
@@ -14,7 +15,7 @@ interface ProjectCardProps {
   tone: "emerald" | "amber" | "orange";
 }
 
-function ProjectCard({ title, location, goal, raised, percent, risk, roi, tone }: ProjectCardProps) {
+function ProjectCard({ id, title, location, goal, raised, percent, risk, roi, tone }: ProjectCardProps) {
   const bgColor =
     tone === "emerald"
       ? "bg-primary-900"
@@ -48,7 +49,7 @@ function ProjectCard({ title, location, goal, raised, percent, risk, roi, tone }
           </span>
         </div>
        <Link
-  href="/projects/1"
+  href={id ? `/projects/${id}` : "/projects"}
   className="mt-5 block text-center w-full border border-neutral-300 py-2 text-sm text-neutral-800 hover:border-primary-800 hover:text-primary-900 transition-colors"
 >
   বিস্তারিত দেখুন

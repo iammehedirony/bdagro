@@ -9,6 +9,12 @@ export const createInvestorProfileSchema = z.object({
 export type CreateInvestorProfileInput = z.infer<typeof createInvestorProfileSchema>;
 
 export const listProjectsQuerySchema = z.object({
+  searchQuery: z.string().trim().optional(),
+  sortBy: z.enum(["highest_roi", "lowest_roi", "newest", "oldest", "highest_funding", "lowest_funding"]).optional(),
+  cropTypes: z.preprocess((value) => Array.isArray(value) ? value.join(",") : value, z.string().trim().optional()),
+  riskLevels: z.preprocess((value) => Array.isArray(value) ? value.join(",") : value, z.string().trim().optional()),
+  fundingStatus: z.preprocess((value) => Array.isArray(value) ? value.join(",") : value, z.string().trim().optional()),
+  locations: z.preprocess((value) => Array.isArray(value) ? value.join(",") : value, z.string().trim().optional()),
   cropType: z.string().trim().optional(),
   riskLevel: z.enum(RiskLevel).optional(),
   status: z.string().optional(), // "open", "partially_funded", "fully_funded"

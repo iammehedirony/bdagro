@@ -1,230 +1,117 @@
-import {
-  Sprout,
-  MapPin,
-  ShieldCheck,
-  Calendar,
-  Ruler,
-  Wheat,
-  User,
-  ChevronRight,
-} from "lucide-react";
-import StatusStep from "@/components/ui/StatusStep";
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Calendar, ChevronRight, MapPin, Ruler, ShieldCheck, Sprout, User, Wheat } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
-import Link from 'next/link';
+import StatusStep from "@/components/ui/StatusStep";
+import { useProjectDetailsQuery } from "@/hooks/queries/useProjectDetailsQuery";
+import type { MarketplaceProject } from "@/lib/services/project.service";
 
+const MIN_INVESTMENT = 5000;
 
+type InvestmentMode = "partial" | "full";
 
+function formatCurrency(value: number) {
+  return `৳${value.toLocaleString("bn-BD")}`;
+}
 
-export default async function ProjectDetailsPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+function formatDate(value: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function riskLabel(value: MarketplaceProject["riskLevel"]) {
+  return value === "low" ? "কম" : value === "medium" ? "মাঝারি" : "বেশি";
+}
+
+function riskClasses(value: MarketplaceProject["riskLevel"]) {
+  return value === "low" ? "border-emerald-600 bg-emerald-50 text-emerald-800" : value === "medium" ? "border-amber-600 bg-amber-50 text-amber-800" : "border-red-600 bg-red-50 text-red-800";
+}
+
+function statusIndex(status: string) {
+  if (status === "closed") return 3;
+  return 2;
+}
+
+function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <div className="flex items-center gap-3 border border-stone-200 p-4"><span>{icon}</span><div><div className="text-xs text-stone-400">{label}</div><div className="text-sm text-stone-800">{value}</div></div></div>;
+}
+
+export default function ProjectDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const query = useProjectDetailsQuery(projectId);
+  const project = query.data;
+  const [activeImage, setActiveImage] = useState(0);
+  const [mode, setMode] = useState<InvestmentMode>("partial");
+  const [amount, setAmount] = useState(10000);
+  const [error, setError] = useState("");
+
+  if (query.isLoading) return <div className="p-8 text-sm text-stone-500">প্রকল্পের তথ্য লোড হচ্ছে...</div>;
+  if (query.isError || !project) return <div className="p-8"><div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">প্রকল্পের তথ্য লোড করা যায়নি। <button className="ml-3 underline" onClick={() => query.refetch()}>আবার চেষ্টা করুন</button></div></div>;
+
+  const totalRaised = project.investmentSummary.totalRaised ?? project.fundedAmount;
+  const remaining = Math.max(project.fundingGoal - totalRaised, 0);
+  const progress = project.fundingGoal > 0 ? Math.min(Math.round((totalRaised / project.fundingGoal) * 100), 100) : 0;
+  const isFundable = project.status === "open" || project.status === "partially_funded";
+  const currentStatus = statusIndex(project.status);
+  const images = project.imageUrls ?? [];
+
+  const selectMode = (nextMode: InvestmentMode) => {
+    setMode(nextMode);
+    setError("");
+    if (nextMode === "full") setAmount(remaining);
+  };
+
+  const submitInvestment = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (amount < MIN_INVESTMENT) {
+      setError(`সর্বনিম্ন বিনিয়োগ ${formatCurrency(MIN_INVESTMENT)}`);
+      return;
+    }
+    if (amount > remaining) {
+      setError(`সর্বোচ্চ বিনিয়োগ ${formatCurrency(remaining)}`);
+      return;
+    }
+    if (mode === "full" && amount !== remaining) {
+      setError("পূর্ণ বিনিয়োগের পরিমাণ পরিবর্তন করা যাবে না");
+      return;
+    }
+    setError("");
+    router.push(`/projects/${project._id}/checkout?amount=${amount}&type=${mode}`);
+  };
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* BREADCRUMB */}
-        <div className="flex items-center gap-1.5 text-xs text-stone-400">
-          <span>হোম</span>
-          <ChevronRight className="w-3 h-3" />
-          <span>প্রজেক্টসমূহ</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-stone-600">সবুজ ধানখেত</span>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex items-center gap-1.5 text-xs text-stone-400"><span>হোম</span><ChevronRight className="h-3 w-3" /><span>প্রজেক্টসমূহ</span><ChevronRight className="h-3 w-3" /><span className="text-stone-600">{project.title}</span></div>
 
-        <div className="mt-6 grid lg:grid-cols-[1fr_340px] gap-10">
-          {/* LEFT: MAIN CONTENT */}
+        <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_340px]">
           <div>
-            {/* GALLERY */}
-            <div className="h-72 bg-emerald-900 flex items-center justify-center">
-              <Sprout className="w-14 h-14 text-white/60" strokeWidth={1.5} />
+            <div className="flex h-72 items-center justify-center overflow-hidden bg-emerald-900">
+              {images.length > 0 ? <img src={images[activeImage]} alt={project.title} className="h-full w-full object-cover" /> : <Sprout className="h-14 w-14 text-white/60" strokeWidth={1.5} />}
             </div>
-            <div className="mt-2 grid grid-cols-4 gap-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`h-16 flex items-center justify-center ${
-                    i === 0 ? "bg-emerald-800" : "bg-stone-100"
-                  }`}
-                >
-                  <Sprout
-                    className={`w-4 h-4 ${
-                      i === 0 ? "text-white/60" : "text-stone-300"
-                    }`}
-                  />
-                </div>
-              ))}
-            </div>
+            {images.length > 1 && <div className="mt-2 grid grid-cols-4 gap-2">{images.map((image, index) => <button type="button" key={image} onClick={() => setActiveImage(index)} className={`h-16 overflow-hidden border-2 ${activeImage === index ? "border-emerald-700" : "border-transparent"}`}><img src={image} alt="" className="h-full w-full object-cover" /></button>)}</div>}
 
-            {/* TITLE */}
             <div className="mt-8">
-              <div className="flex items-center gap-2 text-xs text-stone-400 mb-2">
-                <span className="border border-emerald-600 text-emerald-800 bg-emerald-50 px-2 py-0.5">
-                  ঝুঁকি: কম
-                </span>
-                <span>·</span>
-                <span>ধান</span>
-              </div>
-              <h1 className="text-3xl text-stone-900">
-                সবুজ ধানখেত
-              </h1>
-              <div className="flex items-center gap-1 text-sm text-stone-400 mt-2">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>বুড়িচং, কুমিল্লা</span>
-              </div>
+              <div className="mb-2 flex items-center gap-2 text-xs text-stone-400"><span className={`border px-2 py-0.5 ${riskClasses(project.riskLevel)}`}>ঝুঁকি: {riskLabel(project.riskLevel)}</span><span>·</span><span>{project.cropType}</span></div>
+              <h1 className="text-3xl text-stone-900">{project.title}</h1>
+              <div className="mt-2 flex items-center gap-1 text-sm text-stone-400"><MapPin className="h-3.5 w-3.5" /><span>{project.location}</span></div>
             </div>
 
-            {/* FARMER CARD */}
-            <div className="mt-6 border border-stone-200 p-5 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-full bg-emerald-900 flex items-center justify-center text-white shrink-0">
-                <User className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-stone-900">আব্দুল করিম</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                </div>
-                <div className="text-xs text-stone-400 mt-0.5">
-                  NID যাচাইকৃত কৃষক · যুক্ত হয়েছেন ২০২৪ সালে · ৩টি প্রকল্প সম্পন্ন
-                </div>
-              </div>
-            </div>
+            <div className="mt-6 flex items-center gap-4 border border-stone-200 p-5"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-white"><User className="h-5 w-5" /></div><div className="flex-1"><div className="flex items-center gap-1.5"><span className="text-sm text-stone-900">{project.farmer.name}</span><ShieldCheck className="h-3.5 w-3.5 text-emerald-700" /></div><div className="mt-0.5 text-xs text-stone-400">যাচাইকৃত কৃষক{project.farmer.createdAt ? ` · যুক্ত হয়েছেন ${new Date(project.farmer.createdAt).getFullYear()} সালে` : ""}</div></div></div>
 
-            {/* DESCRIPTION */}
-            <div className="mt-10">
-              <h2 className="text-xl text-stone-900 mb-3">
-                প্রকল্পের বিবরণ
-              </h2>
-              <p className="text-sm text-stone-600 leading-relaxed">
-                বুড়িচং উপজেলার ৩ বিঘা জমিতে উচ্চ ফলনশীল বোরো ধান চাষের
-                পরিকল্পনা। বীজ, সার, সেচ ও শ্রমিক খরচের জন্য মূলধন প্রয়োজন।
-                গত মৌসুমে একই জমিতে বিঘাপ্রতি ২২ মণ ফলন পাওয়া গিয়েছিল।
-                ফসল কাটার পর স্থানীয় পাইকারি বাজারে বিক্রি করে বিনিয়োগকারীদের
-                রিটার্ন পরিশোধ করা হবে।
-              </p>
-            </div>
-
-            {/* FARM DETAILS */}
-            <div className="mt-10">
-              <h2 className="text-xl text-stone-900 mb-4">
-                খামারের বিবরণ
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-5">
-                <div className="border border-stone-200 p-4 flex items-center gap-3">
-                  <Ruler className="w-4 h-4 text-stone-400" />
-                  <div>
-                    <div className="text-xs text-stone-400">জমির পরিমাণ</div>
-                    <div className="text-sm text-stone-800">৩ বিঘা</div>
-                  </div>
-                </div>
-                <div className="border border-stone-200 p-4 flex items-center gap-3">
-                  <Wheat className="w-4 h-4 text-stone-400" />
-                  <div>
-                    <div className="text-xs text-stone-400">ফসলের ধরন</div>
-                    <div className="text-sm text-stone-800">বোরো ধান</div>
-                  </div>
-                </div>
-                <div className="border border-stone-200 p-4 flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-stone-400" />
-                  <div>
-                    <div className="text-xs text-stone-400">মেয়াদ</div>
-                    <div className="text-sm text-stone-800">৪ মাস</div>
-                  </div>
-                </div>
-                <div className="border border-stone-200 p-4 flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-stone-400" />
-                  <div>
-                    <div className="text-xs text-stone-400">
-                      প্রত্যাশিত ফসল কাটার তারিখ
-                    </div>
-                    <div className="text-sm text-stone-800">মার্চ ২০২৭</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* STATUS TIMELINE */}
-            <div className="mt-10">
-              <h2 className="text-xl text-stone-900 mb-4">
-                প্রকল্পের অবস্থা
-              </h2>
-              <div className="border border-stone-200 p-6 flex flex-wrap gap-x-8 gap-y-3">
-                <StatusStep label="Pending" done />
-                <StatusStep label="Processing" done />
-                <StatusStep label="Approved" done current />
-                <StatusStep label="ফসল সংগ্রহ ও রিটার্ন" />
-              </div>
-            </div>
+            <div className="mt-10"><h2 className="mb-3 text-xl text-stone-900">প্রকল্পের বিবরণ</h2><p className="text-sm leading-relaxed text-stone-600">{project.description}</p></div>
+            <div className="mt-10"><h2 className="mb-4 text-xl text-stone-900">খামারের বিবরণ</h2><div className="grid gap-5 sm:grid-cols-2"><DetailItem icon={<Ruler className="h-4 w-4 text-stone-400" />} label="জমির পরিমাণ" value={project.landAreaAcres ? `${project.landAreaAcres} একর` : "-"} /><DetailItem icon={<Wheat className="h-4 w-4 text-stone-400" />} label="ফসলের ধরন" value={project.cropType} /><DetailItem icon={<Calendar className="h-4 w-4 text-stone-400" />} label="মেয়াদ" value={project.durationMonths ? `${project.durationMonths} মাস` : "-"} /><DetailItem icon={<Calendar className="h-4 w-4 text-stone-400" />} label="প্রত্যাশিত ফসল কাটার তারিখ" value={formatDate(project.expectedHarvestDate)} /></div></div>
+            <div className="mt-10"><h2 className="mb-4 text-xl text-stone-900">প্রকল্পের অবস্থা</h2><div className="flex flex-wrap gap-x-8 gap-y-3 border border-stone-200 p-6"><StatusStep label="Pending" done={currentStatus >= 1} /><StatusStep label="Processing" done={currentStatus >= 2} /><StatusStep label="Approved" done={currentStatus >= 2} current={currentStatus === 2} /><StatusStep label="ফসল সংগ্রহ ও রিটার্ন" done={currentStatus >= 3} current={currentStatus === 3} /></div></div>
           </div>
 
-          {/* RIGHT: INVESTMENT PANEL */}
-          <div className="lg:sticky lg:top-6 h-fit">
-            <div className="border border-stone-200 p-6">
-              <div className="flex items-center justify-between text-sm text-stone-700 mb-1.5">
-                <span className="text-stone-900">৳৩,৭৫,০০০</span>
-                <span className="text-stone-400">লক্ষ্য ৳৫,০০,০০০</span>
-              </div>
-              <ProgressBar percent={75} />
-              <div className="flex items-center justify-between text-xs text-stone-400 mt-2">
-                <span>৭৫% পূর্ণ হয়েছে</span>
-                <span>১৮ দিন বাকি</span>
-              </div>
+          <div className="h-fit lg:sticky lg:top-6"><div className="border border-stone-200 p-6"><div className="mb-1.5 flex items-center justify-between text-sm text-stone-700"><span className="text-stone-900">{formatCurrency(totalRaised)}</span><span className="text-stone-400">লক্ষ্য {formatCurrency(project.fundingGoal)}</span></div><ProgressBar percent={progress} /><div className="mt-2 flex items-center justify-between text-xs text-stone-400"><span>{progress}% পূর্ণ হয়েছে</span><span>{project.investmentSummary.daysLeft === null ? "-" : `${project.investmentSummary.daysLeft} দিন বাকি`}</span></div><div className="mt-5 grid grid-cols-2 gap-4 border-t border-stone-200 pt-5"><div><div className="text-xs text-stone-400">প্রত্যাশিত ROI</div><div className="text-lg text-emerald-800">{project.expectedROIPercent}%</div></div><div><div className="text-xs text-stone-400">বিনিয়োগকারী</div><div className="text-lg text-stone-900">{project.investmentSummary.investorCount.toLocaleString("bn-BD")} জন</div></div></div><div className="mt-2 text-xs leading-relaxed text-stone-400">এটি একটি প্রাক্কলন — চূড়ান্ত রিটার্ন ফসল বিক্রির প্রকৃত মুনাফার উপর নির্ভরশীল।</div>
 
-              <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-stone-200">
-                <div>
-                  <div className="text-xs text-stone-400">প্রত্যাশিত ROI</div>
-                  <div className="text-lg text-emerald-800">
-                    ১৫%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-stone-400">বিনিয়োগকারী</div>
-                  <div className="text-lg text-stone-900">
-                    ৬২ জন
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-stone-400 leading-relaxed">
-                এটি একটি প্রাক্কলন — চূড়ান্ত রিটার্ন ফসল বিক্রির প্রকৃত
-                মুনাফার উপর নির্ভরশীল, কোনো নির্দিষ্ট সুদ প্রযোজ্য নয়।
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-stone-200">
-                <div className="text-sm text-stone-700 mb-2">
-                  বিনিয়োগের পরিমাণ
-                </div>
-                <div className="flex gap-2 mb-3">
-                  <button className="flex-1 border border-emerald-800 bg-emerald-50 text-emerald-900 py-2 text-sm">
-                    আংশিক
-                  </button>
-                  <button className="flex-1 border border-stone-300 text-stone-600 py-2 text-sm hover:border-emerald-800">
-                    পূর্ণ (৳১,২৫,০০০)
-                  </button>
-                </div>
-                <div className="flex items-center border border-stone-300">
-                  <span className="px-3 text-stone-400 text-sm">৳</span>
-                  <input
-                    type="text"
-                    defaultValue="১০,০০০"
-                    className="flex-1 py-2.5 pr-3 text-sm outline-none"
-                  />
-                </div>
-                <div className="text-xs text-stone-400 mt-1.5">
-                  সর্বনিম্ন বিনিয়োগ ৳৫,০০০
-                </div>
-
-                <Link 
-  href={`/projects/${id}/checkout`} 
-  className="mt-4 w-full block text-center bg-amber-500 text-emerald-950 py-3 text-sm font-medium hover:bg-amber-400"
->
-  বিনিয়োগ করুন
-</Link>
-
-                <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-400">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>SSLCommerz ও Stripe দ্বারা সুরক্ষিত পেমেন্ট</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            <form onSubmit={submitInvestment} className="mt-6 border-t border-stone-200 pt-6"><div className="mb-2 text-sm text-stone-700">বিনিয়োগের পরিমাণ</div><div className="mb-3 flex gap-2"><button type="button" onClick={() => selectMode("partial")} className={`flex-1 border py-2 text-sm ${mode === "partial" ? "border-emerald-800 bg-emerald-50 text-emerald-900" : "border-stone-300 text-stone-600"}`}>আংশিক</button><button type="button" onClick={() => selectMode("full")} className={`flex-1 border py-2 text-sm ${mode === "full" ? "border-emerald-800 bg-emerald-50 text-emerald-900" : "border-stone-300 text-stone-600"}`}>পূর্ণ ({formatCurrency(remaining)})</button></div><div className="flex items-center border border-stone-300"><span className="px-3 text-sm text-stone-400">৳</span><input type="number" min={MIN_INVESTMENT} max={remaining} step="1" value={amount} onChange={(event) => { setAmount(Number(event.target.value)); setMode("partial"); setError(""); }} className="flex-1 py-2.5 pr-3 text-sm outline-none" /></div><div className="mt-1.5 text-xs text-stone-400">সর্বনিম্ন বিনিয়োগ {formatCurrency(MIN_INVESTMENT)}</div>{error && <div className="mt-2 text-xs text-red-600">{error}</div>}<button type="submit" disabled={!isFundable || remaining < MIN_INVESTMENT} className="mt-4 w-full bg-amber-500 py-3 text-sm font-medium text-emerald-950 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">বিনিয়োগ করুন</button><div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-400"><ShieldCheck className="h-3.5 w-3.5" /><span>SSLCommerz ও Stripe দ্বারা সুরক্ষিত পেমেন্ট</span></div></form>
+          </div></div>
         </div>
       </div>
     </div>

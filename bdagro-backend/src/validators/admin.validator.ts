@@ -17,6 +17,7 @@ export const approveLoanApplicationSchema = z.object({
   expectedROIPercent: z.coerce.number().positive(),
   fundingGoal: z.coerce.number().positive().optional(), // defaults to requestedAmount if omitted
   cropType: z.string().trim().optional(), // override/confirm the crop type shown on the marketplace
+  location: z.string().trim().min(2).optional(),
   fundingDeadline: z.coerce.date().optional(),
 });
 export type ApproveLoanApplicationInput = z.infer<typeof approveLoanApplicationSchema>;

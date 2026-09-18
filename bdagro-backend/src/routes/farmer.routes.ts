@@ -50,7 +50,7 @@ router.post("/installments/:id/mark-paid", validate(markPaidSchema), farmerCtrl.
 router.get("/projects", farmerCtrl.listMyProjects);
 router.get("/projects/:id", farmerCtrl.getMyProjectById);
 router.post("/projects/:id/profit-report", validate(saveProjectProfitReportSchema), farmerCtrl.saveProjectProfitReport);
-router.post("/projects", validate(createLoanApplicationSchema), farmerCtrl.createMyProject);
+router.post("/projects", uploadLoanDocs, validate(createLoanApplicationSchema), farmerCtrl.createMyProject);
 router.put("/projects/:id", validate(updateFarmerProjectSchema), farmerCtrl.updateMyProject);
 
 // --- Transactions ---

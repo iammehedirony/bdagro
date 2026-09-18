@@ -84,4 +84,5 @@ export const uploadFarmerDocs = upload.fields([
 export const uploadLoanDocs = upload.fields([
   { name: "landDeed", maxCount: 1 },
   { name: "incomeProof", maxCount: 1 },
+  { name: "farmImages", maxCount: 6 },
 ]);

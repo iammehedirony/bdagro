@@ -1,118 +1,85 @@
-import {
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-} from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import FilterSection from "@/components/ui/FilterSection";
 import Checkbox from "@/components/ui/Checkbox";
 import ProjectCard from "@/components/project/ProjectCard";
+import { useProjectsQuery } from "@/hooks/queries/useProjectQueries";
+import type { ProjectExplorerFilters } from "@/lib/services/project.service";
 
+const cropOptions = ["ধান", "ফল বাগান", "সবজি", "মৎস্য", "প্রাণিসম্পদ"];
+const riskOptions = [{ label: "কম", value: "low" }, { label: "মাঝারি", value: "medium" }, { label: "বেশি", value: "high" }];
+const statusOptions = [{ label: "খোলা আছে", value: "open" }, { label: "সম্পূর্ণ ফান্ডেড", value: "fully_funded" }];
+const locationOptions = ["কুমিল্লা", "রাজশাহী", "খুলনা", "দিনাজপুর"];
 
+const initialFilters: ProjectExplorerFilters = {
+  searchQuery: "",
+  sortBy: "highest_roi",
+  cropTypes: [],
+  riskLevels: [],
+  fundingStatus: [],
+  locations: [],
+};
 
-const projects = [
-  { title: "সবুজ ধানখেত", location: "কুমিল্লা", crop: "ধান", goal: "৫,০০,০০০", raised: "৩,৭৫,০০০", percent: 75, risk: "কম" as const, roi: "১৫%", tone: "emerald" as const },
-  { title: "আম বাগান প্রকল্প", location: "রাজশাহী", crop: "আম", goal: "৮,০০,০০০", raised: "৪,০০,০০০", percent: 50, risk: "মাঝারি" as const, roi: "২০%", tone: "amber" as const },
-  { title: "মাছ চাষ প্রকল্প", location: "খুলনা", crop: "মৎস্য", goal: "৬,৫০,০০০", raised: "৪,৮০,০০০", percent: 74, risk: "বেশি" as const, roi: "২২%", tone: "orange" as const },
-  { title: "লিচু বাগান", location: "দিনাজপুর", crop: "লিচু", goal: "৪,৫০,০০০", raised: "১,৮০,০০০", percent: 40, risk: "মাঝারি" as const, roi: "১৮%", tone: "amber" as const },
-  { title: "গরু মোটাতাজাকরণ", location: "পাবনা", crop: "প্রাণিসম্পদ", goal: "৭,০০,০০০", raised: "৭,০০,০০০", percent: 100, risk: "কম" as const, roi: "১৬%", tone: "emerald" as const },
-  { title: "সবজি খামার", location: "যশোর", crop: "সবজি", goal: "৩,৫০,০০০", raised: "৯০,০০০", percent: 26, risk: "কম" as const, roi: "১৪%", tone: "emerald" as const },
-];
+function toggleValue(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
- function ProjectBrowsePage() {
+function formatCurrency(value: number) {
+  return value.toLocaleString("bn-BD");
+}
+
+function getRiskLabel(value: "low" | "medium" | "high") {
+  return value === "low" ? "কম" : value === "medium" ? "মাঝারি" : "বেশি";
+}
+
+export default function ProjectBrowsePage() {
+  const [filters, setFilters] = useState(initialFilters);
+  const query = useProjectsQuery(filters);
+  const data = query.data;
+
+  const updateArray = (field: "cropTypes" | "riskLevels" | "fundingStatus" | "locations", value: string) => {
+    setFilters((current) => ({ ...current, [field]: toggleValue(current[field], value) }));
+  };
+
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <h1 className="text-3xl text-neutral-900">
-          খামার প্রকল্প খুঁজুন
-        </h1>
-        <p className="mt-2 text-neutral-500 text-sm">
-          ঝুঁকির মাত্রা, ফসলের ধরন ও প্রত্যাশিত ROI অনুযায়ী প্রকল্প বাছাই করুন
-        </p>
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <h1 className="text-3xl text-neutral-900">খামার প্রকল্প খুঁজুন</h1>
+        <p className="mt-2 text-sm text-neutral-500">ঝুঁকির মাত্রা, ফসলের ধরন ও প্রত্যাশিত ROI অনুযায়ী প্রকল্প বাছাই করুন</p>
 
-        {/* SEARCH + SORT */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 border border-neutral-300 px-3 py-2.5 max-w-sm w-full">
-            <Search className="w-4 h-4 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="প্রকল্প বা এলাকার নাম দিয়ে খুঁজুন"
-              className="flex-1 text-sm outline-none placeholder:text-neutral-300"
-            />
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full max-w-sm items-center gap-2 border border-neutral-300 px-3 py-2.5">
+            <Search className="h-4 w-4 text-neutral-400" />
+            <input value={filters.searchQuery} onChange={(event) => setFilters((current) => ({ ...current, searchQuery: event.target.value }))} type="text" placeholder="প্রকল্প বা এলাকার নাম দিয়ে খুঁজুন" className="flex-1 text-sm outline-none placeholder:text-neutral-300" />
           </div>
-          <div className="flex items-center gap-2 text-sm text-neutral-600 border border-neutral-300 px-3 py-2.5 w-fit">
+          <label className="flex w-fit items-center gap-2 border border-neutral-300 px-3 py-2.5 text-sm text-neutral-600">
             <span className="text-neutral-400">সাজান:</span>
-            <span>সর্বোচ্চ ROI</span>
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-          </div>
+            <select value={filters.sortBy} onChange={(event) => setFilters((current) => ({ ...current, sortBy: event.target.value as ProjectExplorerFilters["sortBy"] }))} className="bg-transparent outline-none">
+              <option value="highest_roi">সর্বোচ্চ ROI</option><option value="lowest_roi">সর্বনিম্ন ROI</option><option value="newest">নতুন</option><option value="oldest">পুরোনো</option><option value="highest_funding">সর্বোচ্চ ফান্ডিং</option>
+            </select>
+          </label>
         </div>
 
-        <div className="mt-8 grid md:grid-cols-[240px_1fr] gap-10">
-          {/* FILTERS */}
+        <div className="mt-8 grid gap-10 md:grid-cols-[240px_1fr]">
           <aside>
-            <div className="flex items-center gap-2 text-neutral-900 mb-1">
-              <SlidersHorizontal className="w-4 h-4" />
-              <span className="text-sm">ফিল্টার</span>
-            </div>
-
-            <FilterSection title="ফসলের ধরন">
-              <Checkbox label="ধান" count={18} defaultChecked />
-              <Checkbox label="ফল বাগান" count={9} />
-              <Checkbox label="সবজি" count={14} />
-              <Checkbox label="মৎস্য" count={7} />
-              <Checkbox label="প্রাণিসম্পদ" count={5} />
-            </FilterSection>
-
-            <FilterSection title="ঝুঁকির মাত্রা">
-              <Checkbox label="কম" count={22} defaultChecked />
-              <Checkbox label="মাঝারি" count={19} />
-              <Checkbox label="বেশি" count={6} />
-            </FilterSection>
-
-            <FilterSection title="ফান্ডিং অবস্থা">
-              <Checkbox label="খোলা আছে" count={31} defaultChecked />
-              <Checkbox label="সম্পূর্ণ ফান্ডেড" count={16} />
-            </FilterSection>
-
-            <FilterSection title="প্রত্যাশিত ROI">
-              <div className="text-xs text-neutral-400 mb-2">১০% – ২৫%</div>
-              <div className="h-1.5 bg-neutral-200 relative">
-                <div className="absolute left-[15%] right-[20%] h-1.5 bg-accent-500" />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="এলাকা">
-              <Checkbox label="কুমিল্লা" count={4} />
-              <Checkbox label="রাজশাহী" count={6} />
-              <Checkbox label="খুলনা" count={5} />
-              <Checkbox label="দিনাজপুর" count={3} />
-            </FilterSection>
+            <div className="mb-1 flex items-center gap-2 text-neutral-900"><SlidersHorizontal className="h-4 w-4" /><span className="text-sm">ফিল্টার</span></div>
+            <FilterSection title="ফসলের ধরন">{cropOptions.map((value) => <Checkbox key={value} label={value} count={data?.facets.cropTypes[value] ?? 0} checked={filters.cropTypes.includes(value)} onChange={() => updateArray("cropTypes", value)} />)}</FilterSection>
+            <FilterSection title="ঝুঁকির মাত্রা">{riskOptions.map((option) => <Checkbox key={option.value} label={option.label} count={data?.facets.riskLevels[option.value] ?? 0} checked={filters.riskLevels.includes(option.value)} onChange={() => updateArray("riskLevels", option.value)} />)}</FilterSection>
+            <FilterSection title="ফান্ডিং অবস্থা">{statusOptions.map((option) => <Checkbox key={option.value} label={option.label} count={data?.facets.fundingStatus[option.value] ?? 0} checked={filters.fundingStatus.includes(option.value)} onChange={() => updateArray("fundingStatus", option.value)} />)}</FilterSection>
+            <FilterSection title="এলাকা">{locationOptions.map((value) => <Checkbox key={value} label={value} count={data?.facets.locations[value] ?? 0} checked={filters.locations.includes(value)} onChange={() => updateArray("locations", value)} />)}</FilterSection>
           </aside>
 
-          {/* RESULTS */}
           <div>
-            <div className="flex items-center justify-between mb-5">
-              <span className="text-sm text-neutral-400">৪৭টি প্রকল্প পাওয়া গেছে</span>
-            </div>
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {projects.map((p) => (
-                <ProjectCard key={p.title} {...p} />
-              ))}
-            </div>
-
-            {/* PAGINATION */}
-            <div className="mt-12 flex items-center justify-center gap-2 text-sm">
-              <button className="w-8 h-8 border border-neutral-300 text-neutral-400 hover:border-primary-800">‹</button>
-              <button className="w-8 h-8 border border-primary-900 bg-primary-900 text-white">১</button>
-              <button className="w-8 h-8 border border-neutral-300 text-neutral-600 hover:border-primary-800">২</button>
-              <button className="w-8 h-8 border border-neutral-300 text-neutral-600 hover:border-primary-800">৩</button>
-              <span className="px-1 text-neutral-300">…</span>
-              <button className="w-8 h-8 border border-neutral-300 text-neutral-600 hover:border-primary-800">৮</button>
-              <button className="w-8 h-8 border border-neutral-300 text-neutral-400 hover:border-primary-800">›</button>
-            </div>
+            <div className="mb-5 flex items-center justify-between"><span className="text-sm text-neutral-400">{data?.meta.total ?? 0}টি প্রকল্প পাওয়া গেছে</span></div>
+            {query.isLoading && <div className="py-10 text-center text-sm text-neutral-500">প্রকল্পগুলো লোড হচ্ছে...</div>}
+            {query.isError && <div className="border border-red-200 bg-red-50 p-5 text-sm text-red-700">প্রকল্পের তথ্য লোড করা যায়নি। <button onClick={() => query.refetch()} className="ml-2 underline">আবার চেষ্টা করুন</button></div>}
+            {!query.isLoading && !query.isError && <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{(data?.projects ?? []).map((project) => { const percent = project.fundingGoal ? Math.min(Math.round((project.fundedAmount / project.fundingGoal) * 100), 100) : 0; const risk = getRiskLabel(project.riskLevel); const tone = project.riskLevel === "high" ? "orange" : project.riskLevel === "medium" ? "amber" : "emerald"; return <ProjectCard key={project._id} id={project._id} title={project.title} location={project.location} goal={formatCurrency(project.fundingGoal)} raised={formatCurrency(project.fundedAmount)} percent={percent} risk={risk} roi={`${project.expectedROIPercent}%`} tone={tone} />; })}</div>}
+            {!query.isLoading && !query.isError && data?.projects.length === 0 && <div className="py-10 text-center text-sm text-neutral-500">এই ফিল্টারে কোনো প্রকল্প পাওয়া যায়নি।</div>}
           </div>
         </div>
       </div>
     </div>
   );
 }
-export default ProjectBrowsePage;

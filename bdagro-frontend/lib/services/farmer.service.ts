@@ -94,6 +94,7 @@ export interface FarmerProjectApplication {
   _id: string;
   projectTitle: string;
   projectDescription: string;
+  location: string;
   cropType?: string;
   requestedAmount: number;
   durationMonths: number;
@@ -130,6 +131,7 @@ export interface FarmerApplicationDetails {
   _id: string;
   projectTitle: string;
   projectDescription: string;
+  location: string;
   cropType?: string;
   requestedAmount: number;
   durationMonths: number;

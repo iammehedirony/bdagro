@@ -24,9 +24,13 @@ export async function createLoanApplication(api: AxiosInstance, data: LoanApplic
   formData.append("durationMonths", String(data.durationMonths));
   formData.append("projectTitle", data.projectTitle);
   formData.append("projectDescription", data.projectDescription);
+  formData.append("location", data.location);
+  formData.append("landArea", String(data.landArea));
+  formData.append("expectedHarvestDate", data.expectedHarvestDate);
   if (data.cropType) formData.append("cropType", data.cropType);
   if (data.landDeed) formData.append("landDeed", data.landDeed);
   if (data.incomeProof) formData.append("incomeProof", data.incomeProof);
+  data.farmImages.forEach((image) => formData.append("farmImages", image));
 
   const response = await api.post("/farmers/loan-applications", formData, {
     headers: { "Content-Type": "multipart/form-data" },

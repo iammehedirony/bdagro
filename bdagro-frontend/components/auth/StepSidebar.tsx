@@ -1,12 +1,14 @@
 import { STEPS } from "@/constants/auth";
 import { CheckCircle2, Lock } from "lucide-react";
 
-export function StepSidebar({ step }: { step: number }) {
+type StepDefinition = { id: number; label: string; icon: typeof STEPS[number]["icon"] };
+
+export function StepSidebar({ step, steps = STEPS }: { step: number; steps?: readonly StepDefinition[] }) {
   return (
     <div className="relative">
-      <div className="absolute left-[15px] top-4 bottom-4 w-px bg-stone-200" />
+      <div className="absolute left-3.75 top-4 bottom-4 w-px bg-stone-200" />
       <div className="space-y-10 relative">
-        {STEPS.map((s) => {
+        {steps.map((s) => {
           const Icon = s.icon;
           const isDone = step > s.id;
           const isCurrent = step === s.id;

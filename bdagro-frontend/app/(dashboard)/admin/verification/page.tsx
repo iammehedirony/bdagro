@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Check, MapPin, X } from "lucide-react";
+import { Check, Loader2, MapPin, X } from "lucide-react";
+import {
+  useApproveAdminLoanApplicationMutation,
+  useApproveAdminVerificationMutation,
+  useRejectAdminLoanApplicationMutation,
+  useRejectAdminVerificationMutation,
+} from "@/hooks/mutations/useAdminMutations";
 import { useAdminLoanApplicationsQuery, useAdminVerificationsQuery } from "@/hooks/queries/useAdminQueries";
 
 function formatCurrency(value: number) {
@@ -24,6 +30,10 @@ export default function AdminPendingVerificationsPage() {
   const [activeTab, setActiveTab] = useState<"nid" | "projects">("nid");
   const verificationsQuery = useAdminVerificationsQuery();
   const applicationsQuery = useAdminLoanApplicationsQuery();
+  const approveVerification = useApproveAdminVerificationMutation();
+  const rejectVerification = useRejectAdminVerificationMutation();
+  const approveApplication = useApproveAdminLoanApplicationMutation();
+  const rejectApplication = useRejectAdminLoanApplicationMutation();
   const verifications = verificationsQuery.data?.profiles ?? [];
   const applications = (applicationsQuery.data?.applications ?? []).filter(
     (application) => application.status === "Pending" || application.status === "Processing",
@@ -64,7 +74,11 @@ export default function AdminPendingVerificationsPage() {
             ) : (
               <div className="divide-y divide-neutral-200">
                 {verifications.map((verification) => (
-                  <div key={verification._id} className="flex flex-wrap items-center justify-between gap-4 p-5">
+                  (() => {
+                    const isPending = (approveVerification.isPending && approveVerification.variables === verification._id)
+                      || (rejectVerification.isPending && rejectVerification.variables?.id === verification._id);
+
+                    return <div key={verification._id} className="flex flex-wrap items-center justify-between gap-4 p-5">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm text-neutral-500">{verification.user.name[0]}</div>
                       <div>
@@ -81,10 +95,11 @@ export default function AdminPendingVerificationsPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button type="button" className="border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600 hover:border-primary-800 hover:text-primary-900">বিস্তারিত দেখুন</button>
-                      <button type="button" aria-label="NID অনুমোদন করুন" className="flex h-8 w-8 items-center justify-center border border-primary-600 text-primary-700 hover:bg-primary-50"><Check className="h-4 w-4" /></button>
-                      <button type="button" aria-label="NID প্রত্যাখ্যান করুন" className="flex h-8 w-8 items-center justify-center border border-danger-500 text-danger-600 hover:bg-danger-50"><X className="h-4 w-4" /></button>
+                      <button type="button" aria-label="NID অনুমোদন করুন" disabled={isPending} onClick={() => approveVerification.mutate(verification._id)} className="flex h-8 w-8 items-center justify-center border border-primary-600 text-primary-700 hover:bg-primary-50 disabled:opacity-50">{approveVerification.isPending && approveVerification.variables === verification._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}</button>
+                      <button type="button" aria-label="NID প্রত্যাখ্যান করুন" disabled={isPending} onClick={() => rejectVerification.mutate({ id: verification._id, rejectionReason: "NID তথ্য যাচাই করা যায়নি।" })} className="flex h-8 w-8 items-center justify-center border border-danger-500 text-danger-600 hover:bg-danger-50 disabled:opacity-50"><X className="h-4 w-4" /></button>
                     </div>
-                  </div>
+                  </div>;
+                  })()
                 ))}
               </div>
             )}
@@ -98,7 +113,11 @@ export default function AdminPendingVerificationsPage() {
               ) : (
                 <div className="divide-y divide-neutral-200">
                   {applications.map((application) => (
-                    <div key={application._id} className="p-5">
+                    (() => {
+                      const isPending = (approveApplication.isPending && approveApplication.variables?.id === application._id)
+                        || (rejectApplication.isPending && rejectApplication.variables?.id === application._id);
+
+                      return <div key={application._id} className="p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="text-sm text-neutral-800">{application.projectTitle}</div>
@@ -112,10 +131,11 @@ export default function AdminPendingVerificationsPage() {
                         </div>
                       </div>
                       <div className="mt-4 flex items-center gap-2">
-                        <button type="button" className="flex-1 border border-primary-800 bg-primary-900 py-2 text-sm text-white hover:bg-primary-800">অনুমোদন করুন</button>
-                        <button type="button" className="flex-1 border border-neutral-300 py-2 text-sm text-neutral-600 hover:border-danger-500 hover:text-danger-600">প্রত্যাখ্যান করুন</button>
+                        <button type="button" disabled={isPending} onClick={() => approveApplication.mutate({ id: application._id, data: { riskLevel: "medium", expectedROIPercent: 10, cropType: application.cropType } })} className="flex-1 border border-primary-800 bg-primary-900 py-2 text-sm text-white hover:bg-primary-800 disabled:opacity-50">{approveApplication.isPending && approveApplication.variables?.id === application._id ? "অনুমোদন হচ্ছে..." : "অনুমোদন করুন"}</button>
+                        <button type="button" disabled={isPending} onClick={() => rejectApplication.mutate({ id: application._id, rejectionReason: "আবেদনটি প্রশাসনিক পর্যালোচনায় অনুমোদিত হয়নি।" })} className="flex-1 border border-neutral-300 py-2 text-sm text-neutral-600 hover:border-danger-500 hover:text-danger-600 disabled:opacity-50">প্রত্যাখ্যান করুন</button>
                       </div>
-                    </div>
+                    </div>;
+                    })()
                   ))}
                 </div>
               )}

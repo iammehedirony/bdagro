@@ -6,7 +6,11 @@ export const loanApplicationSchema = z.object({
   durationMonths: z.coerce.number().int().positive("মেয়াদ নির্বাচন করুন"),
   projectTitle: z.string().trim().min(3, "প্রকল্পের নাম কমপক্ষে ৩ অক্ষরের হতে হবে"),
   projectDescription: z.string().trim().min(10, "উদ্দেশ্য কমপক্ষে ১০ অক্ষরের হতে হবে"),
+  location: z.string().trim().min(2, "এলাকা কমপক্ষে ২ অক্ষরের হতে হবে"),
   cropType: z.string().trim().optional(),
+  landArea: z.coerce.number().positive("জমির পরিমাণ দিন"),
+  expectedHarvestDate: z.string().min(1, "ফসল কাটার তারিখ নির্বাচন করুন"),
+  farmImages: z.array(z.custom<File>((file) => typeof File !== "undefined" && file instanceof File)).min(1, "খামারের অন্তত একটি ছবি দিন").max(6, "সর্বোচ্চ ৬টি ছবি দিতে পারবেন"),
   landDeed: z.custom<File>((file) => typeof File !== "undefined" && file instanceof File, "জমির দলিল বা লিজ কাগজ সংযুক্ত করুন").nullable(),
   incomeProof: z.custom<File>((file) => typeof File !== "undefined" && file instanceof File).nullable(),
   terms: z.literal(true, {

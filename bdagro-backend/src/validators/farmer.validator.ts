@@ -28,6 +28,10 @@ export const createLoanApplicationSchema = z.object({
   durationMonths: z.coerce.number().int().positive("durationMonths must be a positive integer"),
   projectTitle: z.string().trim().min(3, "projectTitle is too short"),
   projectDescription: z.string().trim().min(10, "projectDescription is too short"),
+  location: z.string().trim().min(2, "location is too short"),
+  landArea: z.coerce.number().positive("landArea must be greater than 0"),
+  expectedHarvestDate: z.coerce.date(),
+  farmImages: z.array(z.string()).optional(),
   cropType: z.string().trim().optional(),
 });
 export type CreateLoanApplicationInput = z.infer<typeof createLoanApplicationSchema>;
@@ -42,6 +46,7 @@ export const updateFarmerProjectSchema = z.object({
   durationMonths: z.coerce.number().int().positive("durationMonths must be a positive integer").optional(),
   projectTitle: z.string().trim().min(3, "projectTitle is too short").optional(),
   projectDescription: z.string().trim().min(10, "projectDescription is too short").optional(),
+  location: z.string().trim().min(2, "location is too short").optional(),
   cropType: z.string().trim().optional(),
 });
 export type UpdateFarmerProjectInput = z.infer<typeof updateFarmerProjectSchema>;

@@ -147,6 +147,9 @@ export async function createApplication(req: Request, res: Response): Promise<vo
       ? uploadToCloudinary(files.incomeProof[0], req.user!._id.toString())
       : undefined,
   ]);
+  const farmImageUploads = await Promise.all(
+    (files?.farmImages ?? []).map((file) => uploadToCloudinary(file, req.user!._id.toString()))
+  );
 
   const application = await LoanApplication.create({
     farmer: req.user!._id,
@@ -155,6 +158,10 @@ export async function createApplication(req: Request, res: Response): Promise<vo
     durationMonths: body.durationMonths,
     projectTitle: body.projectTitle,
     projectDescription: body.projectDescription,
+    location: body.location,
+    landArea: body.landArea,
+    expectedHarvestDate: body.expectedHarvestDate,
+    farmImages: farmImageUploads.map((upload) => upload.secure_url),
     cropType: body.cropType,
     landDeedUrl: landDeedUpload?.secure_url,
     incomeProofUrl: incomeProofUpload?.secure_url,
@@ -335,6 +342,10 @@ export async function createMyProject(req: Request, res: Response): Promise<void
     durationMonths: body.durationMonths,
     projectTitle: body.projectTitle,
     projectDescription: body.projectDescription,
+    location: body.location,
+    landArea: body.landArea,
+    expectedHarvestDate: body.expectedHarvestDate,
+    farmImages: [],
     cropType: body.cropType,
     status: LoanApplicationStatus.PENDING,
   });
@@ -385,6 +396,7 @@ export async function updateMyProject(req: Request, res: Response): Promise<void
   if (body.durationMonths !== undefined) application.durationMonths = body.durationMonths;
   if (body.projectTitle !== undefined) application.projectTitle = body.projectTitle;
   if (body.projectDescription !== undefined) application.projectDescription = body.projectDescription;
+  if (body.location !== undefined) application.location = body.location;
   if (body.cropType !== undefined) application.cropType = body.cropType;
 
   await application.save();

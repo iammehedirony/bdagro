@@ -12,6 +12,9 @@ export interface IProject extends Document {
   farmer: Types.ObjectId;
   title: string;
   description: string;
+  location: string;
+  landArea: number;
+  farmImages: string[];
   cropType: string;
   riskLevel: RiskLevel;
   expectedROIPercent: number;
@@ -40,6 +43,9 @@ const projectSchema = new Schema<IProject>(
     farmer: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true },
+    location: { type: String, required: true, trim: true, index: true },
+    landArea: { type: Number, required: true, min: 0 },
+    farmImages: { type: [String], default: [] },
     cropType: { type: String, required: true, index: true },
     riskLevel: {
       type: String,
