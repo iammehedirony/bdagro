@@ -16,7 +16,7 @@ interface NotifyPayload {
  *
  * Uses the `getIo()` singleton (src/realtime/io.ts) rather than requiring
  * an Express `req.app`, so this can be called from both HTTP request
- * handlers and background workers (e.g. the BullMQ installment checks).
+ * handlers and background workers (e.g. the BullMQ profit distribution checks).
  */
 export async function notifyUser(
   userId: Types.ObjectId | string,

@@ -36,7 +36,7 @@ src/
   routes/         # Express routers (to be built next)
   controllers/    # Route handlers (to be built next)
   middlewares/    # rbac.ts, errorHandler.ts, (auth.ts to be added w/ Clerk)
-  jobs/           # BullMQ queue/worker definitions (installments, notifications)
+  jobs/           # BullMQ queue/worker definitions (profit distributions, notifications)
   utils/          # constants.ts (shared enums), seed.ts
   types/          # express.d.ts (augments Request with typed req.user)
 server.ts          # entry point: connects DB, starts HTTP + Socket.io server
@@ -54,8 +54,8 @@ User (role: farmer | investor | admin, status: active | suspended | blocked)
  │                                                          │
  │                                                          └── 1:N Investment <── (as investor) User
  │
- ├── 1:N Installment (repayment schedule, linked to a LoanApplication)
- ├── 1:N Transaction (unified payment ledger: disbursement, repayment, investment, refund)
+ ├── 1:N ProfitDistribution (farmer profit payouts, linked to a Project)
+ ├── 1:N Transaction (unified payment ledger: disbursement, distribution, investment, refund)
  └── 1:N Notification
 
 LoanProduct  — catalog (Seed Purchase, Tractor Purchase, Livestock Farming, ...)
@@ -66,10 +66,10 @@ LoanProduct  — catalog (Seed Purchase, Tractor Purchase, Livestock Farming, ..
 `Pending → Processing → Approved/Rejected`, pushed live via Socket.io) →
 Admin approves → Admin/system opens a `Project` on the marketplace →
 Investors fund it (`Investment`, partial or full) → funds disburse
-(`Transaction`) → farmer repays via `Installment`s → returns flow back
-to investors (ROI fields on `Investment`).
+(`Transaction`) → farmer distributes profits via `ProfitDistribution`s → returns flow back
+to investors (ROI fields on `Investment`) via `ProfitDistribution` records.
 
-Every money movement — disbursement, repayment, investment, refund —
+Every money movement — disbursement, profit distribution, investment, refund —
 goes through the single `Transaction` collection, which is what powers
 the Admin's transaction monitoring screen and the Investor's receipt
 generation.
@@ -95,7 +95,7 @@ around them:
 | **Express** | 5.2.1 | `req.query` is now a getter-only property — `src/middlewares/validate.ts` shadows it with `Object.defineProperty` instead of a plain assignment for query validation. Rejected promises in async handlers are now **forwarded to error middleware automatically**, so the `express-async-errors` package was removed entirely. |
 | **Zod** | 4.6.1 | `ZodError.errors` → `.issues` (updated in `validate.ts` and `auth.controller.ts`). `z.nativeEnum()` deprecated in favor of `z.enum()` accepting a TS enum directly — all validators updated. |
 | **Mongoose** | 9.9.5 | Stricter TS typing on `.create()`/queries surfaced one real bug: a validator used a raw string-literal union instead of the `PaymentMethod` enum, which Mongoose 8 silently accepted — fixed in `farmer.validator.ts`. |
-| **BullMQ** | 6.3.4 | `Queue.add(..., { repeat })` was removed in favor of Job Schedulers — `src/jobs/installment.queue.ts` now uses `queue.upsertJobScheduler(...)`. |
+| **BullMQ** | 6.3.4 | `Queue.add(..., { repeat })` was removed in favor of Job Schedulers — `src/jobs/profitDistribution.queue.ts` now uses `queue.upsertJobScheduler(...)`. |
 | **Helmet** | 8.3.0 | No code changes needed (Node 18+ requirement only; we already require Node 20+). |
 | **ioredis** | 6.0.0 | No code changes needed for our usage. |
 | **@clerk/express, stripe, multer, socket.io, cors, morgan, dotenv, express-rate-limit** | latest | No breaking changes affecting this codebase. |
@@ -163,8 +163,8 @@ requireRole(UserRole.FARMER)` (see `src/routes/farmer.routes.ts`).
 | `POST /loan-applications` | Apply for a loan against a `LoanProduct` (requires an Approved profile) |
 | `GET /loan-applications` | List own applications, `?status=&page=&limit=` |
 | `GET /loan-applications/:id` | One application's detail |
-| `GET /installments` | Own repayment schedule, `?status=&page=&limit=` |
-| `POST /installments/:id/pay` | Opens a repayment — creates a pending `Transaction`; actual gateway checkout is roadmap item #5 |
+| `GET /profit-distributions` | Own profit distribution schedule, `?status=&page=&limit=` |
+| `POST /profit-distributions/:id/pay` | Opens a profit distribution payment — creates a pending `Transaction`; actual gateway checkout is roadmap item #5 |
 
 Also added: `GET /api/loan-products` (`?category=&page=&limit=`) — the
 "লোন এক্সপ্লোরার" catalog browse, open to any authenticated role.
@@ -266,7 +266,7 @@ Both webhook paths funnel into `src/services/payment.service.ts`
 (`markTransactionSuccess` / `markTransactionFailed`) — one idempotent
 place that applies the actual effect of a payment: for an `INVESTMENT`
 transaction it calls `confirmInvestment()` (bumping the project's funded
-amount); for a `LOAN_REPAYMENT` it marks the `Installment` `PAID`.
+amount); for a `PROFIT_DISTRIBUTION` it marks the `ProfitDistribution` `PAID`.
 
 **Gateway code lives in `src/services/payment/`** — `sslcommerz.service.ts`
 and `stripe.service.ts` — kept separate from the controller so the
@@ -275,24 +275,23 @@ Stripe Checkout settles in USD by default (Stripe doesn't support BDT
 directly); adjust the `currency` in `stripe.service.ts` to your actual
 settlement currency before going live.
 
-## Loan disbursement + installment generation
+## Project disbursement + profit distribution generation
 
 **`POST /api/admin/projects/:id/disburse`** (and `GET /api/admin/projects`
 to find FULLY_FUNDED ones) — `src/services/loan.service.ts#disburseLoan`:
 1. Records a SUCCESS `Transaction` (`LOAN_DISBURSEMENT`) for the farmer.
-2. Generates the `Installment` schedule: flat simple interest (the loan
-   product's annual rate, prorated by the application's chosen duration
-   in months), split evenly across the months with any rounding
-   remainder rolled into the final installment.
+2. Generates the `ProfitDistribution` schedule from the product's configured
+  profit-share percentage, split evenly across the application's duration
+  in months with any rounding remainder rolled into the final distribution.
 3. Closes the `Project` (`status: closed`).
 
 ## Background jobs (BullMQ + Redis)
 
 `src/jobs/` — a repeatable daily job (`0 6 * * *`, scheduled idempotently
 via a fixed `jobId`) that:
-- Flips any `Installment` past its `dueDate` from `DUE` → `OVERDUE` and
+- Flips any `ProfitDistribution` past its `dueDate` from `PENDING` → `OVERDUE` and
   notifies the farmer.
-- Sends a "due soon" reminder for installments due within the next 3
+- Sends a "due soon" reminder for profit distributions due within the next 3
   days (see the in-code note about adding a `lastReminderAt` field to
   dedupe repeat reminders as a production hardening step).
 
@@ -318,7 +317,7 @@ not missing pieces:
   not yet applied to any route (worth adding to `/api/auth`,
   `/api/payments/:id/checkout`, and the webhook endpoints).
 - **Automated tests** — no test suite exists yet.
-- **Reminder deduping** — see the note in `installment.worker.ts`.
+- **Reminder deduping** — see the note in `profitDistribution.worker.ts`.
 - **PDF receipts** — `GET /api/investors/transactions/:id/receipt`
   currently returns structured JSON; rendering that as a downloadable
   PDF is a natural frontend/export-layer addition.

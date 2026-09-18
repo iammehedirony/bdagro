@@ -5,7 +5,7 @@ import { validate } from "../middlewares/validate";
 import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
 import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, saveProjectProfitReportSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
-import { submitProfitReportSchema, markPaidSchema } from "../validators/installment.validator";
+import { submitProfitReportSchema, markPaidSchema } from "../validators/profitDistribution.validator";
 import { updateFarmerSettingsSchema } from "../validators/settings.validator";
 import * as notificationCtrl from "../controllers/notification.controller";
 import * as farmerCtrl from "../controllers/farmer.controller";
@@ -39,12 +39,12 @@ router.post(
 router.get("/loan-applications", farmerCtrl.listMyApplications);
 router.get("/loan-applications/:id", farmerCtrl.getMyApplicationById);
 
-// --- Installments / repayments ---
-router.get("/installments", farmerCtrl.listMyInstallments);
-router.get("/installments/:id/recipients", farmerCtrl.getInstallmentRecipients);
-router.post("/installments/:id/pay", validate(initiatePaymentSchema), farmerCtrl.initiatePayment);
-router.post("/installments/:id/profit-report", validate(submitProfitReportSchema), farmerCtrl.submitProfitReport);
-router.post("/installments/:id/mark-paid", validate(markPaidSchema), farmerCtrl.markAsPaid);
+// --- Profit distributions ---
+router.get("/profit-distributions", farmerCtrl.listMyProfitDistributions);
+router.get("/profit-distributions/:id/recipients", farmerCtrl.getProfitDistributionRecipients);
+router.post("/profit-distributions/:id/pay", validate(initiatePaymentSchema), farmerCtrl.initiatePayment);
+router.post("/profit-distributions/:id/profit-report", validate(submitProfitReportSchema), farmerCtrl.submitProfitReport);
+router.post("/profit-distributions/:id/mark-paid", validate(markPaidSchema), farmerCtrl.markAsPaid);
 
 // --- Projects (Farmer perspective of Loan Applications & Marketplace Projects) ---
 router.get("/projects", farmerCtrl.listMyProjects);

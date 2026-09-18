@@ -1,11 +1,11 @@
 import type { HydratedDocument } from "mongoose";
 import { LoanApplication } from "../models/LoanApplication";
 import { LoanProduct } from "../models/LoanProduct";
-import { Installment } from "../models/Installment";
+import { ProfitDistribution } from "../models/ProfitDistribution";
 import { Transaction } from "../models/Transaction";
 import { IProject } from "../models/Project";
 import {
-  InstallmentStatus,
+  ProfitDistributionStatus,
   TransactionType,
   TransactionStatus,
   ProjectStatus,
@@ -18,7 +18,7 @@ import { AppError } from "../middlewares/errorHandler";
  * 1. Records the disbursement as a SUCCESS Transaction (this is the
  *    platform paying the farmer, not a gateway checkout — see the
  *    paymentMethod note below).
- * 2. Generates the repayment Installment schedule — flat simple
+ * 2. Generates the profit distribution schedule — flat simple
  *    interest (loan product's annual rate, prorated by the application's
  *    chosen duration), spread evenly across the months.
  * 3. Closes the Project (funding period ended / loan disbursed).
@@ -38,44 +38,42 @@ export async function disburseLoan(project: HydratedDocument<IProject>): Promise
     throw new AppError("Underlying loan product not found", 404);
   }
 
-  const alreadyScheduled = await Installment.countDocuments({ loanApplication: application._id });
+  const alreadyScheduled = await ProfitDistribution.countDocuments({ project: project._id });
   if (alreadyScheduled > 0) {
-    throw new AppError("Installment schedule already exists for this loan application", 409);
+    throw new AppError("Profit distribution schedule already exists for this project", 409);
   }
 
   const principal = application.requestedAmount;
   const durationMonths = application.durationMonths;
   // Flat simple interest: annual rate applied pro-rata to the chosen duration.
-  const totalInterest = principal * (loanProduct.interestRatePercent / 100) * (durationMonths / 12);
-  const totalRepayable = principal + totalInterest;
-  const baseInstallment = Math.floor((totalRepayable / durationMonths) * 100) / 100;
+  const totalDistribution = principal * (loanProduct.profitSharePercent / 100);
+  const baseDistribution = Math.floor((totalDistribution / durationMonths) * 100) / 100;
 
   const disbursedAt = new Date();
-  const installments = [];
+  const distributions = [];
   let accounted = 0;
 
   for (let i = 1; i <= durationMonths; i++) {
     const dueDate = new Date(disbursedAt);
     dueDate.setMonth(dueDate.getMonth() + i);
 
-    // Roll any rounding remainder into the final installment so the sum
-    // of all installments exactly equals totalRepayable.
-    const amount = i === durationMonths ? Math.round((totalRepayable - accounted) * 100) / 100 : baseInstallment;
+    // Roll any rounding remainder into the final distribution.
+    const amount = i === durationMonths ? Math.round((totalDistribution - accounted) * 100) / 100 : baseDistribution;
     accounted += amount;
 
-    installments.push({
-      loanApplication: application._id,
+    distributions.push({
+      project: project._id,
       farmer: application.farmer,
-      installmentNumber: i,
+      distributionNumber: i,
       dueDate,
       amount,
-      status: InstallmentStatus.DUE,
+      status: ProfitDistributionStatus.PENDING,
     });
   }
 
-  await Installment.insertMany(installments);
+  await ProfitDistribution.insertMany(distributions);
 
-  project.expectedHarvestDate = installments[installments.length - 1].dueDate;
+  project.expectedHarvestDate = distributions[distributions.length - 1].dueDate;
 
   await Transaction.create({
     user: application.farmer,

@@ -65,6 +65,7 @@ export enum InvestmentStatus {
 export enum TransactionType {
   LOAN_DISBURSEMENT = "loan_disbursement",
   LOAN_REPAYMENT = "loan_repayment",
+  PROFIT_DISTRIBUTION = "profit_distribution",
   INVESTMENT = "investment",
   REFUND = "refund",
 }
@@ -80,8 +81,8 @@ export enum PaymentMethod {
   STRIPE = "stripe",
 }
 
-export enum InstallmentStatus {
-  DUE = "due",
+export enum ProfitDistributionStatus {
+  PENDING = "pending",
   PAID = "paid",
   OVERDUE = "overdue",
 }

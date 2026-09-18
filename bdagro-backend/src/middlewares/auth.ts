@@ -3,7 +3,6 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { User } from "../models/User";
 import { UserStatus } from "../utils/constants";
 import { upsertUser, normalizeFromApi } from "../services/user.service";
-import { RequestHandler } from "express";
 
 /**
  * Must run after `requireAuth()` (or at least `clerkMiddleware()`) so that

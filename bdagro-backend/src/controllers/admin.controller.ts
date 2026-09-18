@@ -613,8 +613,8 @@ export async function listProjectsForAdmin(req: Request, res: Response): Promise
 
 /**
  * POST /api/admin/projects/:id/disburse
- * Disburses a fully funded project's loan and generates its repayment
- * Installment schedule (see src/services/loan.service.ts).
+ * Disburses a fully funded project and generates its profit distribution
+ * schedule (see src/services/loan.service.ts).
  */
 export async function disburseProject(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
@@ -636,7 +636,7 @@ export async function disburseProject(req: Request, res: Response): Promise<void
     meta: { projectId: project._id },
   });
 
-  res.json({ project, message: "Loan disbursed and installment schedule generated." });
+  res.json({ project, message: "Project disbursed and profit distribution schedule generated." });
 }
 
 

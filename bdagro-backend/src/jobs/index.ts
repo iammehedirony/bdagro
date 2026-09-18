@@ -1,5 +1,5 @@
-import { scheduleInstallmentChecks, installmentQueue } from "./installment.queue";
-import { createInstallmentWorker } from "./installment.worker";
+import { scheduleProfitDistributionChecks, profitDistributionQueue } from "./profitDistribution.queue";
+import { createProfitDistributionWorker } from "./profitDistribution.worker";
 
 let started = false;
 
@@ -9,14 +9,14 @@ let started = false;
  * if this were ever invoked twice (e.g. in tests).
  */
 export async function startBackgroundJobs(): Promise<void> {
-  await scheduleInstallmentChecks();
+  await scheduleProfitDistributionChecks();
 
   if (!started) {
-    createInstallmentWorker();
+    createProfitDistributionWorker();
     started = true;
   }
 
-  console.log("[Jobs] Installment check job scheduled and worker started.");
+  console.log("[Jobs] Profit distribution check job scheduled and worker started.");
 }
 
-export { installmentQueue };
+export { profitDistributionQueue };

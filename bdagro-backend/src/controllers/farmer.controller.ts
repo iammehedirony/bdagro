@@ -3,15 +3,15 @@ import { LoanApplication } from "../models/LoanApplication";
 import { Project } from "../models/Project";
 import { Investment } from "../models/Investment";
 import { Notification } from "../models/Notification";
-import { InstallmentStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, VerificationStatus } from "../utils/constants";
+import { ProfitDistributionStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, VerificationStatus } from "../utils/constants";
 import { CreateLoanApplicationInput, InitiatePaymentInput, SaveProjectProfitReportInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
 import { clerkClient, getAuth } from "@clerk/express";
 import { AppError } from "../middlewares/errorHandler";
-import { FarmerProfile, Installment, LoanProduct, Transaction } from "../models";
+import { FarmerProfile, ProfitDistribution, LoanProduct, Transaction } from "../models";
 import { uploadToCloudinary } from "../middlewares/upload";
 import mongoose from "mongoose";
 import { buildMeta, getPagination } from "../utils/pagination";
-import { MarkPaidInput, SubmitProfitReportInput } from "../validators/installment.validator";
+import { MarkPaidInput, SubmitProfitReportInput } from "../validators/profitDistribution.validator";
 import { UpdateFarmerSettingsInput } from "../validators/settings.validator";
 
 
@@ -405,40 +405,40 @@ export async function updateMyProject(req: Request, res: Response): Promise<void
 }
 
 
-// ************** installments ************
+// ************** profit distributions ************
 
 /**
- * GET /api/farmers/installments?status=&page=&limit=
+ * GET /api/farmers/profit-distributions?status=&page=&limit=
  */
-export async function listMyInstallments(req: Request, res: Response): Promise<void> {
-  const { status } = req.query as { status?: InstallmentStatus };
+export async function listMyProfitDistributions(req: Request, res: Response): Promise<void> {
+  const { status } = req.query as { status?: ProfitDistributionStatus };
   const pagination = getPagination(req);
 
   const filter: Record<string, unknown> = { farmer: req.user!._id };
   if (status) {
-    if (!Object.values(InstallmentStatus).includes(status)) {
+    if (!Object.values(ProfitDistributionStatus).includes(status)) {
       throw new AppError("Invalid status filter", 400);
     }
     filter.status = status;
   }
 
-  const [installments, total] = await Promise.all([
-    Installment.find(filter)
-      .populate("loanApplication", "projectTitle")
+  const [profitDistributions, total] = await Promise.all([
+    ProfitDistribution.find(filter)
+      .populate("project", "title")
       .sort({ dueDate: 1 })
       .skip(pagination.skip)
       .limit(pagination.limit),
-    Installment.countDocuments(filter),
+    ProfitDistribution.countDocuments(filter),
   ]);
 
-  res.json({ installments, meta: buildMeta(total, pagination) });
+  res.json({ profitDistributions, meta: buildMeta(total, pagination) });
 }
 
 /**
- * POST /api/farmers/installments/:id/pay
+ * POST /api/farmers/profit-distributions/:id/pay
  *
- * Opens a payment against a due/overdue installment. This creates the
- * ledger `Transaction` record and links it to the installment, but the
+ * Opens a payment against a pending/overdue profit distribution. This creates the
+ * ledger `Transaction` record and links it to the distribution, but the
  * actual SSLCommerz/Stripe checkout-session creation and webhook-based
  * confirmation is a separate roadmap item (#5) — until that's wired up,
  * this returns the pending Transaction so the frontend has a stable
@@ -447,37 +447,37 @@ export async function listMyInstallments(req: Request, res: Response): Promise<v
 export async function initiatePayment(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid installment id", 400);
+    throw new AppError("Invalid profit distribution id", 400);
   }
 
   const body = req.body as InitiatePaymentInput;
 
-  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id });
-  if (!installment) {
-    throw new AppError("Installment not found", 404);
+  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id }).populate("project");
+  if (!profitDistribution) {
+    throw new AppError("Profit distribution not found", 404);
   }
 
-  if (installment.status === InstallmentStatus.PAID) {
-    throw new AppError("This installment has already been paid", 409);
+  if (profitDistribution.status === ProfitDistributionStatus.PAID) {
+    throw new AppError("This profit distribution has already been paid", 409);
   }
 
   const transaction = await Transaction.create({
     user: req.user!._id,
-    type: TransactionType.LOAN_REPAYMENT,
-    amount: installment.amount,
+    type: TransactionType.PROFIT_DISTRIBUTION,
+    amount: profitDistribution.amount,
     paymentMethod: body.paymentMethod,
     status: TransactionStatus.PENDING,
-    relatedLoanApplication: installment.loanApplication,
-    relatedInstallment: installment._id,
+    relatedLoanApplication: (profitDistribution.project as any).loanApplication,
+    relatedProfitDistribution: profitDistribution._id,
   });
 
-  installment.transaction = transaction._id;
-  await installment.save();
+  profitDistribution.transaction = transaction._id;
+  await profitDistribution.save();
 
   // TODO(#5 payment integration): call the SSLCommerz/Stripe SDK here to
   // create the actual checkout session and return its redirect URL. The
   // gateway's webhook should then flip `transaction.status` to SUCCESS
-  // and mark this installment PAID (with `paidAt`).
+  // and mark this profit distribution PAID (with `paidAt`).
   res.status(201).json({
     transaction,
     message: "Payment initiated. Gateway checkout integration is pending (see roadmap).",
@@ -485,23 +485,21 @@ export async function initiatePayment(req: Request, res: Response): Promise<void
 }
 
 /**
- * POST /api/farmers/installments/:id/profit-report
+ * POST /api/farmers/profit-distributions/:id/profit-report
  * Submits a profit report for a project after harvest/sales completion.
  * Calculates net profit and investor share amount.
  */
 export async function submitProfitReport(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid installment id", 400);
+    throw new AppError("Invalid profit distribution id", 400);
   }
 
   const body = req.body as SubmitProfitReportInput;
 
-  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id }).populate(
-    "loanApplication"
-  );
-  if (!installment) {
-    throw new AppError("Installment not found", 404);
+  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id });
+  if (!profitDistribution) {
+    throw new AppError("Profit distribution not found", 404);
   }
 
   const netProfit = body.totalSales - body.productionCost;
@@ -511,8 +509,8 @@ export async function submitProfitReport(req: Request, res: Response): Promise<v
 
   const investorShareAmount = (netProfit * body.profitSharePercent) / 100;
 
-  // Store profit report metadata on the installment
-  installment.metadata = {
+  // Store the profit report on the distribution until investor payouts complete.
+  profitDistribution.metadata = {
     profitReport: {
       totalSales: body.totalSales,
       productionCost: body.productionCost,
@@ -522,10 +520,10 @@ export async function submitProfitReport(req: Request, res: Response): Promise<v
       submittedAt: new Date(),
     },
   };
-  await installment.save();
+  await profitDistribution.save();
 
   res.json({
-    installment,
+    profitDistribution,
     profitReport: {
       totalSales: body.totalSales,
       productionCost: body.productionCost,
@@ -537,14 +535,14 @@ export async function submitProfitReport(req: Request, res: Response): Promise<v
 }
 
 /**
- * POST /api/farmers/installments/:id/mark-paid
- * Marks the installment as paid after the farmer has distributed
+ * POST /api/farmers/profit-distributions/:id/mark-paid
+ * Marks the profit distribution as paid after the farmer has distributed
  * profits to all investors manually (off-platform).
  */
 export async function markAsPaid(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid installment id", 400);
+    throw new AppError("Invalid profit distribution id", 400);
   }
 
   const body = req.body as MarkPaidInput;
@@ -553,51 +551,50 @@ export async function markAsPaid(req: Request, res: Response): Promise<void> {
     throw new AppError("You must confirm that all investors have been paid", 400);
   }
 
-  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id });
-  if (!installment) {
-    throw new AppError("Installment not found", 404);
+  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id });
+  if (!profitDistribution) {
+    throw new AppError("Profit distribution not found", 404);
   }
 
-  if (installment.status === InstallmentStatus.PAID) {
-    throw new AppError("This installment is already marked as paid", 409);
+  if (profitDistribution.status === ProfitDistributionStatus.PAID) {
+    throw new AppError("This profit distribution is already marked as paid", 409);
   }
 
-  installment.status = InstallmentStatus.PAID;
-  installment.paidAt = new Date();
-  await installment.save();
+  profitDistribution.status = ProfitDistributionStatus.PAID;
+  profitDistribution.paidAt = new Date();
+  await profitDistribution.save();
 
   res.json({
-    installment,
-    message: "Installment marked as paid successfully",
+    profitDistribution,
+    message: "Profit distribution marked as paid successfully",
   });
 }
 
 /**
- * GET /api/farmers/installments/:id/recipients
+ * GET /api/farmers/profit-distributions/:id/recipients
  * Returns detailed breakdown of profit distribution to individual investors
  */
-export async function getInstallmentRecipients(req: Request, res: Response): Promise<void> {
+export async function getProfitDistributionRecipients(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid installment id", 400);
+    throw new AppError("Invalid profit distribution id", 400);
   }
 
-  const installment = await Installment.findOne({ _id: id, farmer: req.user!._id })
-    .populate("loanApplication")
+  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id })
+    .populate("project")
     .lean();
 
-  if (!installment) {
-    throw new AppError("Installment not found", 404);
+  if (!profitDistribution) {
+    throw new AppError("Profit distribution not found", 404);
   }
 
   // Get profit report data from metadata
-  const profitReport = installment.metadata?.profitReport as any;
+  const profitReport = profitDistribution.metadata?.profitReport as any;
   if (!profitReport) {
-    throw new AppError("Profit report not yet submitted for this installment", 404);
+    throw new AppError("Profit report not yet submitted for this profit distribution", 404);
   }
 
-  // Get the project associated with this loan application
-  const project = await Project.findOne({ loanApplication: installment.loanApplication }).lean();
+  const project = await Project.findById((profitDistribution.project as any)._id).lean();
 
   if (!project) {
     throw new AppError("Associated project not found", 404);
@@ -624,7 +621,7 @@ export async function getInstallmentRecipients(req: Request, res: Response): Pro
       profitSharePercent: Math.round(investmentProportion * 100 * 10) / 10,
       paymentMethod: investment.paymentMethod || "sslcommerz",
       // Note: In a real system, payment account details would come from investor settings
-      status: "pending", // All pending until the entire installment is marked as paid
+      status: "pending", // All pending until the entire distribution is marked as paid
     };
   });
 
@@ -633,7 +630,7 @@ export async function getInstallmentRecipients(req: Request, res: Response): Pro
     totalProfitDue,
     paidCount: 0,
     pendingCount: recipients.length,
-    installmentStatus: installment.status,
+    profitDistributionStatus: profitDistribution.status,
   };
 
   res.json({ recipients, summary, profitReport });
@@ -667,7 +664,7 @@ export async function listFarmerTransactions(req: Request, res: Response): Promi
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)
       .populate("relatedLoanApplication", "projectTitle cropType")
-      .populate("relatedInstallment")
+      .populate("relatedProfitDistribution")
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit),
@@ -690,11 +687,11 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
     LoanApplication.find({ farmer: farmerId }).populate("loanProduct", "profitSharePercent").lean(),
     Transaction.find({
       user: farmerId,
-      type: TransactionType.LOAN_REPAYMENT,
-      relatedInstallment: { $ne: null },
+      type: TransactionType.PROFIT_DISTRIBUTION,
+      relatedProfitDistribution: { $ne: null },
     })
       .populate("relatedLoanApplication", "projectTitle")
-      .populate("relatedInstallment")
+      .populate("relatedProfitDistribution")
       .sort({ createdAt: -1 })
       .lean(),
     Project.find({
@@ -722,9 +719,9 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
     ? (activeApplications[0].loanProduct as any).profitSharePercent
     : 0;
 
-  const activeInstallments = await Installment.find({
+  const activeDistributions = await ProfitDistribution.find({
     farmer: farmerId,
-    loanApplication: { $in: activeProjects.map((project) => project.loanApplication) },
+    project: { $in: activeProjects.map((project) => project._id) },
   })
     .sort({ dueDate: 1 })
     .limit(1)
@@ -732,12 +729,12 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
 
   const settlements = settlementTransactions
     .filter((transaction) => {
-      const installment = transaction.relatedInstallment as any;
-      return Boolean(installment?.metadata?.profitReport);
+      const distribution = transaction.relatedProfitDistribution as any;
+      return Boolean(distribution?.metadata?.profitReport);
     })
     .map((transaction) => {
-      const installment = transaction.relatedInstallment as any;
-      const profitReport = installment.metadata.profitReport;
+      const distribution = transaction.relatedProfitDistribution as any;
+      const profitReport = distribution.metadata.profitReport;
       const application = transaction.relatedLoanApplication as any;
 
       return {
@@ -757,7 +754,7 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
       activeFundingAmount,
       profitDistributionRate,
       expectedHarvestDate: readyProjects.find((project) => project.expectedHarvestDate)?.expectedHarvestDate
-        ?? activeInstallments[0]?.dueDate
+        ?? activeDistributions[0]?.dueDate
         ?? null,
       completedSettlements: settlements.filter((settlement) => settlement.status === TransactionStatus.SUCCESS).length,
     },

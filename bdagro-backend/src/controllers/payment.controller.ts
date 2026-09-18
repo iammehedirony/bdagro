@@ -10,7 +10,7 @@ import { markTransactionSuccess, markTransactionFailed } from "../services/payme
 /**
  * POST /api/payments/:transactionId/checkout
  * Generates the actual gateway checkout session for a pending Transaction
- * already created by the farmer "pay installment" or investor "invest"
+ * already created by the farmer "pay profit distribution" or investor "invest"
  * endpoints, and returns the URL the frontend should redirect the user to.
  */
 export async function createCheckoutSession(req: Request, res: Response): Promise<void> {

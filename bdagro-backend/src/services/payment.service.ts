@@ -1,7 +1,7 @@
 import type { HydratedDocument } from "mongoose";
 import { ITransaction } from "../models/Transaction";
-import { Installment } from "../models/Installment";
-import { TransactionStatus, TransactionType, InstallmentStatus } from "../utils/constants";
+import { ProfitDistribution } from "../models/ProfitDistribution";
+import { TransactionStatus, TransactionType, ProfitDistributionStatus } from "../utils/constants";
 import { confirmInvestment } from "./investment.service";
 
 /**
@@ -16,7 +16,7 @@ export async function markTransactionSuccess(
   gatewayTransactionId?: string
 ): Promise<void> {
   if (transaction.status === TransactionStatus.SUCCESS) {
-    return; // already processed — avoid double-crediting an investment/installment
+    return; // already processed — avoid double-crediting an investment/distribution
   }
 
   transaction.status = TransactionStatus.SUCCESS;
@@ -29,9 +29,9 @@ export async function markTransactionSuccess(
     await confirmInvestment(transaction.relatedInvestment.toString());
   }
 
-  if (transaction.type === TransactionType.LOAN_REPAYMENT && transaction.relatedInstallment) {
-    await Installment.findByIdAndUpdate(transaction.relatedInstallment, {
-      status: InstallmentStatus.PAID,
+  if (transaction.type === TransactionType.PROFIT_DISTRIBUTION && transaction.relatedProfitDistribution) {
+    await ProfitDistribution.findByIdAndUpdate(transaction.relatedProfitDistribution, {
+      status: ProfitDistributionStatus.PAID,
       paidAt: new Date(),
     });
   }

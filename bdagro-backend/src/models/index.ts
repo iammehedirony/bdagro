@@ -6,5 +6,5 @@ export { LoanApplication, ILoanApplication } from "./LoanApplication";
 export { Project, IProject } from "./Project";
 export { Investment, IInvestment } from "./Investment";
 export { Transaction, ITransaction } from "./Transaction";
-export { Installment, IInstallment } from "./Installment";
+export { ProfitDistribution, IProfitDistribution } from "./ProfitDistribution";
 export { Notification, INotification } from "./Notification";

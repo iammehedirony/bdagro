@@ -49,7 +49,7 @@ async function start(): Promise<void> {
     );
   });
 
-  // Background jobs (BullMQ installment due-date/overdue checks) need
+  // Background jobs (BullMQ profit distribution due-date/overdue checks) need
   // Redis. Started without blocking server startup — if Redis isn't
   // running locally, the API still serves requests; only the scheduled
   // checks fail (logged, not fatal).
