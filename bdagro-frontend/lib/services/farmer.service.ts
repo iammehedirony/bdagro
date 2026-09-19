@@ -1,6 +1,50 @@
 import type { AxiosInstance } from "axios";
 import type { FarmerNidFormValues } from "@/lib/schemas/auth";
 
+export interface FarmerUser {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatarUrl: string | null;
+}
+
+export interface FarmerProfileData {
+  _id: string;
+  user: string;
+  nidNumber: string;
+  nidImageUrl: [string, string];
+  landDocumentUrl?: string;
+  address: {
+    district?: string;
+    upazila?: string;
+    village?: string;
+    fullAddress?: string;
+  };
+  farmSizeAcres?: number | null;
+  verificationStatus: string;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  rejectionReason?: string | null;
+  settings?: {
+    bkashNumber?: string;
+    nagadNumber?: string;
+    bankAccount?: string;
+    defaultPaymentGateway?: string;
+    notifyInvestmentUpdates?: boolean;
+    notifyProfitReportReminders?: boolean;
+    notifyProjectStatusChanges?: boolean;
+    notifyPromotional?: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FarmerProfileResponse {
+  user: FarmerUser;
+  profile: FarmerProfileData;
+}
+
 export interface FarmerDashboardProject {
   _id: string;
   title: string;
@@ -274,4 +318,20 @@ export async function listFarmerTransactions(api: AxiosInstance) {
       ...remainingPages.flatMap((page) => page.data.transactions),
     ],
   };
+}
+
+export async function getFarmerProfile(api: AxiosInstance) {
+  const response = await api.get<FarmerProfileResponse>("/farmers/profile");
+  return response.data;
+}
+
+export interface UpdateFarmerProfileInput {
+  name?: string;
+  phone?: string;
+  address?: string;
+}
+
+export async function updateFarmerProfile(api: AxiosInstance, data: UpdateFarmerProfileInput) {
+  const response = await api.patch<FarmerProfileResponse>("/farmers/profile", data);
+  return response.data;
 }

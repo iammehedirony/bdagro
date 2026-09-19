@@ -8,6 +8,8 @@ import {
   markFarmerInvestmentPayout,
   saveFarmerProjectProfitReport,
   type SaveFarmerProfitReportInput,
+  updateFarmerProfile,
+  type UpdateFarmerProfileInput,
 } from "@/lib/services/farmer.service";
 
 export function useSaveFarmerProjectProfitReportMutation() {
@@ -48,6 +50,19 @@ export function useCompleteFarmerProjectPayoutMutation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.farmer.dashboard }),
         queryClient.invalidateQueries({ queryKey: queryKeys.farmer.projects }),
       ]);
+    },
+  });
+}
+
+export function useUpdateFarmerProfileMutation() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateFarmerProfileInput) => updateFarmerProfile(api, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.farmer.profile });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
     },
   });
 }

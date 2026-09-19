@@ -1,5 +1,44 @@
 import type { AxiosInstance } from "axios";
 
+export interface InvestorUser {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatarUrl: string | null;
+}
+
+export interface InvestorPreferences {
+  preferredCropTypes: string[];
+  maxRiskLevel: "কম" | "মাঝারি" | "বেশি" | null;
+  monthlyInvestmentPlan: string;
+}
+
+export interface InvestorProfileData {
+  _id: string;
+  user: string;
+  totalInvested: number;
+  totalReturned: number;
+  activeProjectsCount: number;
+  preferences: InvestorPreferences;
+  settings: {
+    riskTolerance?: string;
+    defaultPaymentGateway?: string;
+    returnAccountNumber?: string;
+    notifyNewProjects: boolean;
+    notifyFundingUpdates: boolean;
+    notifyPaymentConfirmation: boolean;
+    notifyPromotional: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvestorProfileResponse {
+  user: InvestorUser;
+  profile: InvestorProfileData;
+}
+
 export interface InvestorProfilePayload {
   preferredCropTypes: string[];
   maxRiskLevel: string;
@@ -142,4 +181,20 @@ export async function listInvestorTransactions(api: AxiosInstance) {
       ...remainingPages.flatMap((page) => page.data.transactions),
     ],
   };
+}
+
+export async function getInvestorProfile(api: AxiosInstance) {
+  const response = await api.get<InvestorProfileResponse>("/investors/profile");
+  return response.data;
+}
+
+export interface UpdateInvestorProfileInput {
+  name?: string;
+  phone?: string;
+  maxRiskLevel?: "কম" | "মাঝারি" | "বেশি";
+}
+
+export async function updateInvestorProfile(api: AxiosInstance, data: UpdateInvestorProfileInput) {
+  const response = await api.patch<InvestorProfileResponse>("/investors/profile", data);
+  return response.data;
 }

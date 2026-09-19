@@ -9,11 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAdminProfileQuery } from "@/hooks/queries/useAdminQueries";
 import { useUpdateAdminProfileMutation } from "@/hooks/mutations/useAdminMutations";
+import { updateCustomPassword } from "@/actions/resetUserPass";
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: "নাম কমপক্ষে ২ অক্ষরের হতে হবে" }),
-  email: z.string().email({ message: "সঠিক ইমেইল ঠিকানা দিন" }),
-  phone: z.string().min(10, { message: "সঠিক ফোন নম্বর দিন" }),
 });
 
 const passwordSchema = z.object({
@@ -56,8 +55,6 @@ export default function AdminSettingsPage() {
     if (data?.user) {
       resetProfile({
         name: data.user.name,
-        email: data.user.email || "",
-        phone: data.user.phone || "",
       });
     }
   }, [data, resetProfile]);
@@ -76,22 +73,28 @@ export default function AdminSettingsPage() {
   };
 
   const onPasswordSubmit = async (values: PasswordFormValues) => {
-    setPasswordError("");
-    setPasswordSuccess("");
-    try {
-      if (clerkUser) {
-        await clerkUser.updatePassword({
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword,
-        });
-        setPasswordSuccess("পাসওয়ার্ড আপডেট হয়েছে!");
-        resetPassword();
-        setTimeout(() => setPasswordSuccess(""), 3000);
-      }
-    } catch (err: any) {
-      setPasswordError(err.errors?.[0]?.longMessage || "পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে।");
+  setPasswordError("");
+  setPasswordSuccess("");
+  
+  try {
+    // ক্লায়েন্ট API-এর বদলে Server Action কল করা হচ্ছে
+    const result = await updateCustomPassword(
+      values.currentPassword, 
+      values.newPassword
+    );
+
+    if (result.error) {
+      setPasswordError(result.error);
+    } else if (result.success) {
+      setPasswordSuccess("পাসওয়ার্ড সফলভাবে আপডেট হয়েছে!");
+      resetPassword();
+      setTimeout(() => setPasswordSuccess(""), 3000);
     }
-  };
+  } catch (err) {
+    setPasswordError("সার্ভারের সাথে যোগাযোগে সমস্যা হয়েছে।");
+  }
+};
+
 
   if (isLoading) {
     return (
@@ -118,16 +121,7 @@ export default function AdminSettingsPage() {
                   )}
                 </div>
                 <div>
-                  <Field label="ইমেইল" {...registerProfile("email")} />
-                  {profileErrors.email && (
-                    <p className="text-red-500 text-xs mt-1">{profileErrors.email.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Field label="ফোন নম্বর" {...registerProfile("phone")} />
-                  {profileErrors.phone && (
-                    <p className="text-red-500 text-xs mt-1">{profileErrors.phone.message}</p>
-                  )}
+                  <Field label="ইমেইল" defaultValue={clerkUser?.emailAddresses?.[0]?.emailAddress || ""} readOnly />      
                 </div>
               </div>
               <div className="flex items-center gap-3">

@@ -6,7 +6,7 @@ import { uploadFarmerDocs, uploadLoanDocs } from "../middlewares/upload";
 import { UserRole } from "../utils/constants";
 import { submitFarmerProfileSchema, createLoanApplicationSchema, initiatePaymentSchema, saveProjectProfitReportSchema, updateFarmerProjectSchema } from "../validators/farmer.validator";
 import { submitProfitReportSchema, markPaidSchema } from "../validators/profitDistribution.validator";
-import { updateFarmerSettingsSchema } from "../validators/settings.validator";
+import { updateFarmerSettingsSchema, updateFarmerProfileSchema } from "../validators/settings.validator";
 import * as notificationCtrl from "../controllers/notification.controller";
 import * as farmerCtrl from "../controllers/farmer.controller";
 
@@ -22,6 +22,12 @@ router.get("/dashboard", farmerCtrl.getFarmerDashboard);
 
 // --- Profile & document verification ---
 router.get("/profile/me", farmerCtrl.getMyProfile);
+router.get("/profile", farmerCtrl.getFarmerProfile);
+router.patch(
+  "/profile",
+  validate(updateFarmerProfileSchema),
+  farmerCtrl.updateFarmerProfile
+);
 router.put(
   "/profile",
   uploadFarmerDocs, // parses multipart fields into req.body + files into req.files

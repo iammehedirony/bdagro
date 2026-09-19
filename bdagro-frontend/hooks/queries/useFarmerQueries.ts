@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/lib/useApi";
 import { queryKeys } from "@/lib/query/keys";
-import { getFarmerDashboard, getFarmerProfitDistribution, listFarmerTransactions } from "@/lib/services/farmer.service";
+import { getFarmerDashboard, getFarmerProfitDistribution, listFarmerTransactions, getFarmerProfile } from "@/lib/services/farmer.service";
 
 export function useFarmerDashboardQuery() {
   const api = useApi();
@@ -29,5 +29,14 @@ export function useFarmerTransactionsQuery() {
   return useQuery({
     queryKey: queryKeys.farmer.transactions,
     queryFn: () => listFarmerTransactions(api),
+  });
+}
+
+export function useFarmerProfileQuery() {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: queryKeys.farmer.profile,
+    queryFn: () => getFarmerProfile(api),
   });
 }

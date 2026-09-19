@@ -818,21 +818,17 @@ export async function updateAdminSettings(req: Request, res: Response): Promise<
     throw new AppError("Only admins can update platform settings", 403);
   }
 
-  if (!user.adminSettings) {
-    user.adminSettings = {};
-  }
-
   // Update settings
-  if (body.minInvestmentAmount !== undefined)
-    user.adminSettings.minInvestmentAmount = body.minInvestmentAmount;
-  if (body.nidVerificationTimeoutHours !== undefined)
-    user.adminSettings.nidVerificationTimeoutHours = body.nidVerificationTimeoutHours;
-  if (body.allowedPaymentGateways !== undefined)
-    user.adminSettings.allowedPaymentGateways = body.allowedPaymentGateways;
+  if (body.name !== undefined) user.name = body.name;
+  if (body.email !== undefined) user.email = body.email;
 
-  await user.save();
+  const savedUser = await user.save();
+  if (!savedUser) {
+    throw new AppError("Failed to update platform settings", 500);
+  }
+  
 
-  res.json({ settings: user.adminSettings, message: "Platform settings updated successfully" });
+  res.json({ settings: savedUser.adminSettings, message: "Platform settings updated successfully" });
 }
 // ****************** profile ****************
 /**
@@ -852,15 +848,13 @@ export async function getAdminProfile(req: Request, res: Response): Promise<void
  * Updates the admin's own profile details
  */
 export async function updateAdminProfile(req: Request, res: Response): Promise<void> {
-  const { name, email, phone } = req.body;
+  const { name } = req.body;
   const user = await User.findById(req.user!._id);
   if (!user) {
     throw new AppError("Admin user not found", 404);
   }
 
   if (name) user.name = name;
-  if (email) user.email = email;
-  if (phone) user.phone = phone;
 
   await user.save();
 

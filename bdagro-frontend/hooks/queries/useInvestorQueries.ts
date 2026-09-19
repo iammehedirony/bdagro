@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/lib/useApi";
 import { queryKeys } from "@/lib/query/keys";
-import { getInvestorPortfolio, getInvestorROITracking, listInvestorNotifications, listInvestorTransactions } from "@/lib/services/investor.service";
+import { getInvestorPortfolio, getInvestorROITracking, listInvestorNotifications, listInvestorTransactions, getInvestorProfile } from "@/lib/services/investor.service";
 
 export function useInvestorPortfolioQuery() {
   const api = useApi();
@@ -38,5 +38,14 @@ export function useInvestorTransactionsQuery() {
   return useQuery({
     queryKey: queryKeys.investor.transactions,
     queryFn: () => listInvestorTransactions(api),
+  });
+}
+
+export function useInvestorProfileQuery() {
+  const api = useApi();
+
+  return useQuery({
+    queryKey: queryKeys.investor.profile,
+    queryFn: () => getInvestorProfile(api),
   });
 }

@@ -17,6 +17,9 @@ import { getPagination, buildMeta } from "../utils/pagination";
 import { UpdateInvestorSettingsInput } from "../validators/settings.validator";
 import { CreateInvestorProfileInput } from "../validators/investor.validator";
 import { InvestorProfile } from "../models";
+import { User } from "../models";
+import { clerkClient } from "@clerk/express";
+import { UpdateInvestorProfileInput } from "../validators/settings.validator";
 
 /**
  * POST /api/investors/profile
@@ -499,4 +502,67 @@ export async function updateInvestorSettings(req: Request, res: Response): Promi
   await profile.save();
 
   res.json({ settings: profile.settings, message: "Settings updated successfully" });
+}
+
+/**
+ * GET /api/investors/profile
+ * Returns combined User + InvestorProfile data for account settings page
+ */
+export async function getInvestorProfile(req: Request, res: Response): Promise<void> {
+  const [user, profile] = await Promise.all([
+    User.findById(req.user!._id).select("name email phone avatarUrl").lean(),
+    InvestorProfile.findOne({ user: req.user!._id }).lean(),
+  ]);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  res.json({ user, profile });
+}
+
+/**
+ * PATCH /api/investors/profile
+ * Updates investor profile: name, phone, address, preferences.maxRiskLevel
+ * Syncs name with Clerk
+ */
+export async function updateInvestorProfile(req: Request, res: Response): Promise<void> {
+  const body = req.body as UpdateInvestorProfileInput;
+
+  const user = await User.findById(req.user!._id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const profile = await InvestorProfile.findOne({ user: req.user!._id });
+  if (!profile) {
+    throw new AppError("Investor profile not found", 404);
+  }
+
+  // Update User fields
+  if (body.name) user.name = body.name;
+  if (body.phone !== undefined) user.phone = body.phone;
+
+  // Update InvestorProfile preferences
+  if (body.maxRiskLevel !== undefined) {
+    profile.preferences.maxRiskLevel = body.maxRiskLevel;
+  }
+
+  await Promise.all([user.save(), profile.save()]);
+
+  // Sync name with Clerk
+  if (body.name) {
+    const firstName = body.name.split(" ")[0];
+    const lastName = body.name.substring(firstName.length).trim();
+    await clerkClient.users.updateUser(user.clerkId, {
+      firstName,
+      lastName: lastName || undefined,
+    });
+  }
+
+  // Return updated combined data
+  const updatedUser = await User.findById(req.user!._id).select("name email phone avatarUrl").lean();
+  const updatedProfile = await InvestorProfile.findOne({ user: req.user!._id }).lean();
+
+  res.json({ user: updatedUser, profile: updatedProfile });
 }

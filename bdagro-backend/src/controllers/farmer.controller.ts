@@ -12,7 +12,7 @@ import { uploadToCloudinary } from "../middlewares/upload";
 import mongoose from "mongoose";
 import { buildMeta, getPagination } from "../utils/pagination";
 import { MarkPaidInput, SubmitProfitReportInput } from "../validators/profitDistribution.validator";
-import { UpdateFarmerSettingsInput } from "../validators/settings.validator";
+import { UpdateFarmerSettingsInput, UpdateFarmerProfileInput } from "../validators/settings.validator";
 import { notifyUser } from "../services/notification.service";
 
 
@@ -39,6 +39,69 @@ export async function getMyProfile(req: Request, res: Response): Promise<void> {
     throw new AppError("No farmer profile submitted yet", 404);
   }
   res.json({ profile });
+}
+
+/**
+ * GET /api/farmers/profile
+ * Returns combined User + FarmerProfile data for account settings page
+ */
+export async function getFarmerProfile(req: Request, res: Response): Promise<void> {
+  const [user, profile] = await Promise.all([
+    User.findById(req.user!._id).select("name email phone avatarUrl").lean(),
+    FarmerProfile.findOne({ user: req.user!._id }).lean(),
+  ]);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  res.json({ user, profile });
+}
+
+/**
+ * PATCH /api/farmers/profile
+ * Updates farmer profile: name, phone, address
+ * Syncs name with Clerk
+ */
+export async function updateFarmerProfile(req: Request, res: Response): Promise<void> {
+  const body = req.body as UpdateFarmerProfileInput;
+
+  const user = await User.findById(req.user!._id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const profile = await FarmerProfile.findOne({ user: req.user!._id });
+  if (!profile) {
+    throw new AppError("Farmer profile not found", 404);
+  }
+
+  // Update User fields
+  if (body.name) user.name = body.name;
+  if (body.phone !== undefined) user.phone = body.phone;
+
+  // Update FarmerProfile address
+  if (body.address !== undefined) {
+    profile.address.fullAddress = body.address;
+  }
+
+  await Promise.all([user.save(), profile.save()]);
+
+  // Sync name with Clerk
+  if (body.name) {
+    const firstName = body.name.split(" ")[0];
+    const lastName = body.name.substring(firstName.length).trim();
+    await clerkClient.users.updateUser(user.clerkId, {
+      firstName,
+      lastName: lastName || undefined,
+    });
+  }
+
+  // Return updated combined data
+  const updatedUser = await User.findById(req.user!._id).select("name email phone avatarUrl").lean();
+  const updatedProfile = await FarmerProfile.findOne({ user: req.user!._id }).lean();
+
+  res.json({ user: updatedUser, profile: updatedProfile });
 }
 
 /**

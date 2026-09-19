@@ -231,7 +231,7 @@ export default function InvestorSignupPage() {
                     onClick={() => setValue("riskTolerance", risk.label, { shouldValidate: true })}
                     className="cursor-pointer"
                   >
-                    <RiskOption label={risk.label} desc={risk.desc} selected={selectedRisk === risk.label} />
+                    <RiskOption label={risk.label} desc={risk.desc} value={risk.label} checked={selectedRisk === risk.label} />
                   </div>
                 ))}
               </div>

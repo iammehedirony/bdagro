@@ -48,7 +48,5 @@ export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
 
 export const updateAdminProfileSchema = z.object({
   name: z.string().trim().min(2).optional(),
-  email: z.string().trim().email().optional(),
-  phone: z.string().trim().min(10).optional(),
 });
 export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>;

@@ -4,7 +4,7 @@ import { requireRole } from "../middlewares/rbac";
 import { validate } from "../middlewares/validate";
 import { UserRole } from "../utils/constants";
 import { createInvestmentSchema, createInvestorProfileSchema } from "../validators/investor.validator";
-import { updateInvestorSettingsSchema } from "../validators/settings.validator";
+import { updateInvestorSettingsSchema, updateInvestorProfileSchema } from "../validators/settings.validator";
 import * as investorCtrl from "../controllers/investor.controller";
 import * as notificationCtrl from "../controllers/notification.controller";
 
@@ -14,7 +14,13 @@ const router = Router();
 // Every route below requires a logged-in, active Investor account.
 router.use(requireAuth, syncClerkUser, requireRole(UserRole.INVESTOR));
 
-// --- Funding & investment ---
+// --- Profile & settings ---
+router.get("/profile", investorCtrl.getInvestorProfile);
+router.patch(
+  "/profile",
+  validate(updateInvestorProfileSchema),
+  investorCtrl.updateInvestorProfile
+);
 router.post("/profile", validate(createInvestorProfileSchema), investorCtrl.createInvestorProfile);
 router.post("/investments", validate(createInvestmentSchema), investorCtrl.createInvestment);
 router.get("/investments", investorCtrl.listMyInvestments);
