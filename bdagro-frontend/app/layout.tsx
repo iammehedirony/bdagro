@@ -4,6 +4,8 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import AuthLoaderWrapper from "@/common/AuthLoaderWrapper";
 import QueryProvider from "@/common/QueryProvider";
+import { SocketProvider } from "@/context/SocketContext";
+import RealtimeNotificationListener from "@/components/notifications/RealtimeNotificationListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +31,10 @@ export default function Layout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
       <ClerkProvider>
         <QueryProvider>
-          <AuthLoaderWrapper>{children}</AuthLoaderWrapper>
+          <SocketProvider>
+            <AuthLoaderWrapper>{children}</AuthLoaderWrapper>
+            <RealtimeNotificationListener />
+          </SocketProvider>
         </QueryProvider>
       </ClerkProvider>
       
