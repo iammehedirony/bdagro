@@ -1,5 +1,4 @@
 import { Investment } from "../models/Investment";
-import { Project } from "../models/Project";
 import { InvestorProfile } from "../models/InvestorProfile";
 import { User } from "../models/User";
 import { InvestmentStatus, NotificationType, ProjectStatus } from "../utils/constants";

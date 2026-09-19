@@ -91,9 +91,9 @@ export default function FarmerMyProjectsPage() {
                       <Link href={`/farmer/projects/${project._id}`} aria-label="প্রকল্প দেখুন" className="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
                         <Eye className="h-4 w-4" />
                       </Link>
-                      <button aria-label="প্রকল্প সম্পাদনা করুন" className="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900">
+                      <Link href={`/farmer/projects/edit/${project._id}`} aria-label="প্রকল্প সম্পাদনা করুন" className="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-500 hover:border-primary-800 hover:text-primary-900 cursor-pointer">
                         <Pencil className="h-4 w-4" />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 );
