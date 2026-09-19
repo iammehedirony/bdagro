@@ -14,6 +14,7 @@ import { buildMeta, getPagination } from "../utils/pagination";
 import { MarkPaidInput, SubmitProfitReportInput } from "../validators/profitDistribution.validator";
 import { UpdateFarmerSettingsInput, UpdateFarmerProfileInput } from "../validators/settings.validator";
 import { notifyUser } from "../services/notification.service";
+import { addEmailJob } from "../jobs";
 
 
 // ****************** farmer profile ****************
@@ -658,13 +659,36 @@ export async function markAsPaid(req: Request, res: Response): Promise<void> {
   profitDistribution.paidAt = new Date();
   await profitDistribution.save();
 
-  const investments = await Investment.find({ project: profitDistribution.project }).select("investor").lean();
-  await Promise.all(investments.map((investment) => notifyUser(investment.investor, {
-    title: "Profit distribution completed",
-    message: "Your profit distribution has been marked as paid.",
-    type: NotificationType.PROFIT_DISTRIBUTION,
-    meta: { profitDistributionId: profitDistribution._id },
-  })));
+  const investments = await Investment.find({ project: profitDistribution.project })
+    .populate("investor", "name email")
+    .lean();
+
+  await Promise.all(investments.map(async (investment) => {
+    const investor = investment.investor as any;
+    await notifyUser(investor._id, {
+      title: "Profit distribution completed",
+      message: "Your profit distribution has been marked as paid.",
+      type: NotificationType.PROFIT_DISTRIBUTION,
+      meta: { profitDistributionId: profitDistribution._id },
+    });
+
+    // Send payout email to investor
+    if (investor?.email) {
+      const project = await Project.findById(profitDistribution.project).lean();
+      if (project) {
+        await addEmailJob({
+          type: "payout",
+          data: {
+            investorId: investor._id.toString(),
+            investorName: investor.name,
+            investorEmail: investor.email,
+            projectTitle: project.title,
+            amount: profitDistribution.amount,
+          },
+        });
+      }
+    }
+  }));
 
   res.json({
     profitDistribution,

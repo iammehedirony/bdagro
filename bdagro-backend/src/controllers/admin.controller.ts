@@ -27,6 +27,7 @@ import { Notification } from "../models";
 import { disburseLoan } from "../services/loan.service";
 import { clerkClient, getAuth } from "@clerk/express";
 import { UpdateAdminSettingsInput } from "../validators/settings.validator";
+import { addEmailJob } from "../jobs";
 
 // ****************** dashboard home ****************
 /**
@@ -545,6 +546,21 @@ export async function approveLoanApplication(req: Request, res: Response): Promi
     application,
     "Congratulations! Your loan application was approved and is now live on the investor marketplace."
   );
+
+  // Send loan approval email to farmer
+  const farmer = await User.findById(application.farmer);
+  if (farmer?.email) {
+    await addEmailJob({
+      type: "loan-approval",
+      data: {
+        farmerId: farmer._id.toString(),
+        farmerName: farmer.name,
+        farmerEmail: farmer.email,
+        projectTitle: project.title,
+        loanAmount: application.requestedAmount,
+      },
+    });
+  }
 
   res.json({ application, project });
 }

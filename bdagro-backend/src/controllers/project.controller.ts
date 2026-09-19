@@ -6,11 +6,13 @@ import { Investment } from "../models/Investment";
 import { LoanApplication } from "../models/LoanApplication";
 import { ProfitDistribution } from "../models/ProfitDistribution";
 import { Transaction } from "../models/Transaction";
+import { User } from "../models/User";
 import { InvestmentStatus, NotificationType, ProjectStatus, RiskLevel, TransactionStatus, TransactionType, PaymentMethod, ProfitDistributionStatus } from "../utils/constants";
 import { AppError } from "../middlewares/errorHandler";
 import { getPagination, buildMeta } from "../utils/pagination";
 import type { ManualPayoutInput } from "../validators/payout.validator";
 import { notifyUser } from "../services/notification.service";
+import { addEmailJob } from "../jobs";
 
 /**
  * GET /api/projects?cropType=&riskLevel=&status=&location=&minROI=&maxROI=&search=&sort=&page=&limit=
@@ -272,6 +274,21 @@ export async function markInvestmentPayout(req: Request, res: Response): Promise
     type: NotificationType.PAYMENT,
     meta: { projectId: project._id, investmentId: investment._id, transactionId: transaction._id },
   });
+
+  // Send payout email to investor
+  const investor = await User.findById(investorId);
+  if (investor?.email) {
+    await addEmailJob({
+      type: "payout",
+      data: {
+        investorId: investor._id.toString(),
+        investorName: investor.name,
+        investorEmail: investor.email,
+        projectTitle: project.title,
+        amount: returnAmount,
+      },
+    });
+  }
 
   res.json({ investment: updatedInvestment, transaction });
 }

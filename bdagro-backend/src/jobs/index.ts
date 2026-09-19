@@ -1,5 +1,7 @@
 import { scheduleProfitDistributionChecks, profitDistributionQueue } from "./profitDistribution.queue";
 import { createProfitDistributionWorker } from "./profitDistribution.worker";
+import { emailQueue, addEmailJob } from "./email.queue";
+import { createEmailWorker } from "./email.worker";
 
 let started = false;
 
@@ -13,10 +15,12 @@ export async function startBackgroundJobs(): Promise<void> {
 
   if (!started) {
     createProfitDistributionWorker();
+    createEmailWorker();
     started = true;
   }
 
   console.log("[Jobs] Profit distribution check job scheduled and worker started.");
+  console.log("[Jobs] Email notification worker started.");
 }
 
-export { profitDistributionQueue };
+export { profitDistributionQueue, emailQueue, addEmailJob };

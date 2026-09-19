@@ -3,6 +3,8 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { User } from "../models/User";
 import { selectRoleSchema } from "../validators/auth.validator";
 import { AppError } from "../middlewares/errorHandler";
+import { UserRole } from "../utils/constants";
+import { addEmailJob } from "../jobs";
 
 /**
  * GET /api/auth/me
@@ -35,7 +37,6 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
     throw new AppError(parsed.error.issues.map((e) => e.message).join(", "), 400);
   }
 
-
   const existing = await User.findOne({ clerkId: userId });
   if (existing) {
     throw new AppError("Role has already been set for this account", 409);
@@ -63,6 +64,19 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
         ...(parsed.data.role === "farmer" && { nidStatus: "unsubmitted" }),
       },
     });
+
+  // Send welcome email for Farmer and Investor roles (not Admin)
+  if (parsed.data.role === UserRole.FARMER || parsed.data.role === UserRole.INVESTOR) {
+    await addEmailJob({
+      type: "welcome",
+      data: {
+        userId: user._id.toString(),
+        userName: name,
+        userEmail: email!,
+        role: parsed.data.role,
+      },
+    });
+  }
 
   res.status(201).json({ user });
 }
