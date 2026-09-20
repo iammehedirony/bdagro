@@ -22,11 +22,8 @@ import { AppError } from "../middlewares/errorHandler";
 import mongoose, { HydratedDocument } from "mongoose";
 import { notifyUser } from "../services/notification.service";
 import { getIo } from "../realtime/io";
-import { ApproveLoanApplicationInput, RejectInput, SendNotificationInput, UpdateUserRoleInput, UpdateUserStatusInput } from "../validators/admin.validator";
-import { Notification } from "../models";
-import { disburseLoan } from "../services/loan.service";
+import { ApproveLoanApplicationInput, RejectInput } from "../validators/admin.validator";
 import { clerkClient, getAuth } from "@clerk/express";
-import { UpdateAdminSettingsInput } from "../validators/settings.validator";
 import { addEmailJob } from "../jobs";
 
 // ****************** dashboard home ****************
@@ -104,23 +101,6 @@ export async function listVerifications(req: Request, res: Response): Promise<vo
   ]);
 
   res.json({ profiles, meta: buildMeta(total, pagination) });
-}
-
-/**
- * GET /api/admin/verifications/:id
- */
-export async function getVerificationById(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid profile id", 400);
-  }
-
-  const profile = await FarmerProfile.findById(id).populate("user", "name email phone");
-  if (!profile) {
-    throw new AppError("Farmer profile not found", 404);
-  }
-
-  res.json({ profile });
 }
 
 /**
@@ -247,92 +227,6 @@ export async function listUsers(req: Request, res: Response): Promise<void> {
   res.json({ users: usersWithVerification, meta: buildMeta(total, pagination) });
 }
 
-/**
- * GET /api/admin/users/:id
- */
-export async function getUserById(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid user id", 400);
-  }
-  const user = await User.findById(id);
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-  res.json({ user });
-}
-
-/**
- * PATCH /api/admin/users/:id/status
- * Suspend, block, or reactivate any account except the acting admin's own.
- */
-export async function updateUserStatus(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid user id", 400);
-  }
-  if (id === req.user!._id.toString()) {
-    throw new AppError("You cannot change your own account status", 400);
-  }
-
-  const { status, reason } = req.body as UpdateUserStatusInput;
-
-  const user = await User.findById(id);
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-
-  user.status = status;
-  user.statusReason = reason ?? null;
-  await user.save();
-
-  if (status !== UserStatus.ACTIVE) {
-    await notifyUser(user._id, {
-      title: "Account status changed",
-      message: `Your account has been ${status}${reason ? `: ${reason}` : ""}.`,
-      type: NotificationType.GENERAL,
-    });
-  }
-
-  res.json({ user });
-}
-
-/**
- * PATCH /api/admin/users/:id/role
- * Assigns a new role, including promoting an account to Admin — the
- * PRD's "নতুন অ্যাডমিন রোল অ্যাসাইন করা". Also mirrors the change into
- * Clerk's publicMetadata so it's consistent on the next login/webhook.
- */
-export async function updateUserRole(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid user id", 400);
-  }
-  if (id === req.user!._id.toString()) {
-    throw new AppError("You cannot change your own role", 400);
-  }
-
-  const { role } = req.body as UpdateUserRoleInput;
-
-  const user = await User.findById(id);
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-
-  user.role = role;
-  await user.save();
-
-  await clerkClient.users.updateUserMetadata(user.clerkId, { publicMetadata: { role } });
-
-  await notifyUser(user._id, {
-    title: "Account role updated",
-    message: `Your account role has been changed to ${role}.`,
-    type: NotificationType.GENERAL,
-  });
-
-  res.json({ user });
-}
-
 
 // ****************** loans page ****************
 /**
@@ -429,26 +323,6 @@ export async function listAllProjects(req: Request, res: Response): Promise<void
   res.json({ applications: combined, meta: buildMeta(total, pagination) });
 }
 
-/**
- * GET /api/admin/loan-applications/:id
- */
-export async function getLoanApplicationById(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid application id", 400);
-  }
-
-  const application = await LoanApplication.findById(id)
-    .populate("farmer", "name email phone")
-    .populate("loanProduct");
-
-  if (!application) {
-    throw new AppError("Loan application not found", 404);
-  }
-
-  res.json({ application });
-}
-
 /** Notifies the farmer + pushes a live status update over Socket.io. */
 async function broadcastStatusUpdate(
   application: HydratedDocument<ILoanApplication>,
@@ -466,34 +340,6 @@ async function broadcastStatusUpdate(
     loanApplicationId: application._id,
     status: application.status,
   });
-}
-
-/**
- * POST /api/admin/loan-applications/:id/process
- * Optional intermediate step (Pending -> Processing) while under review,
- * matching the status set named explicitly in the PRD.
- */
-export async function markProcessing(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid application id", 400);
-  }
-
-  const application = await LoanApplication.findById(id);
-  if (!application) {
-    throw new AppError("Loan application not found", 404);
-  }
-  if (application.status !== LoanApplicationStatus.PENDING) {
-    throw new AppError(`Cannot move to Processing from status ${application.status}`, 409);
-  }
-
-  application.status = LoanApplicationStatus.PROCESSING;
-  application.reviewedBy = req.user!._id;
-  await application.save();
-
-  await broadcastStatusUpdate(application, "Your loan application is now being processed.");
-
-  res.json({ application });
 }
 
 /**
@@ -598,64 +444,7 @@ export async function rejectLoanApplication(req: Request, res: Response): Promis
 
 
 
-// ****************** project ****************
-/**
- * GET /api/admin/projects?status=&page=&limit=
- * Unlike the investor-facing GET /api/projects (which only shows
- * OPEN/PARTIALLY_FUNDED), this shows every status — including
- * FULLY_FUNDED projects awaiting disbursement and CLOSED ones.
- */
-export async function listProjectsForAdmin(req: Request, res: Response): Promise<void> {
-  const { status } = req.query as { status?: ProjectStatus };
-  const pagination = getPagination(req);
 
-  const filter: Record<string, unknown> = {};
-  if (status) {
-    if (!Object.values(ProjectStatus).includes(status)) {
-      throw new AppError("Invalid status filter", 400);
-    }
-    filter.status = status;
-  }
-
-  const [projects, total] = await Promise.all([
-    Project.find(filter)
-      .populate("farmer", "name email phone")
-      .sort({ createdAt: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
-    Project.countDocuments(filter),
-  ]);
-
-  res.json({ projects, meta: buildMeta(total, pagination) });
-}
-
-/**
- * POST /api/admin/projects/:id/disburse
- * Disburses a fully funded project and generates its profit distribution
- * schedule (see src/services/loan.service.ts).
- */
-export async function disburseProject(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid project id", 400);
-  }
-
-  const project = await Project.findById(id);
-  if (!project) {
-    throw new AppError("Project not found", 404);
-  }
-
-  await disburseLoan(project);
-
-  await notifyUser(project.farmer, {
-    title: "Loan disbursed",
-    message: "Your loan has been disbursed and your repayment schedule is ready.",
-    type: NotificationType.PROJECT,
-    meta: { projectId: project._id },
-  });
-
-  res.json({ project, message: "Project disbursed and profit distribution schedule generated." });
-}
 
 
 
@@ -760,92 +549,6 @@ export async function listAllTransactions(req: Request, res: Response): Promise<
 
 
 
-// ****************** notification ****************
-/**
- * POST /api/admin/notifications
- * Manually push a real-time notification/alert to specific users
- * (`userIds`) and/or everyone with a given `role` — the PRD's
- * "নির্দিষ্ট ইভেন্টে ইউজারদের কাছে রিয়েল-টাইম নোটিফিকেশন পাঠানো".
- */
-export async function sendNotification(req: Request, res: Response): Promise<void> {
-  const body = req.body as SendNotificationInput;
-
-  let targetUserIds: string[] = body.userIds ?? [];
-
-  if (body.role) {
-    const usersWithRole = await User.find({ role: body.role }).select("_id");
-    targetUserIds = [...targetUserIds, ...usersWithRole.map((u) => u._id.toString())];
-  }
-
-  const uniqueIds = Array.from(new Set(targetUserIds));
-  if (uniqueIds.length === 0) {
-    throw new AppError("No matching recipients found", 400);
-  }
-
-  const notifications = await Promise.all(
-    uniqueIds.map((userId) =>
-      notifyUser(userId, { title: body.title, message: body.message, type: body.type })
-    )
-  );
-
-  res.status(201).json({ sentCount: notifications.length });
-}
-
-/**
- * GET /api/admin/notifications?type=&page=&limit=
- * Lists all notifications sent from the admin panel, with optional filtering by type.
- * This allows admins to see the history of notifications they've sent.
- */
-export async function listNotifications(req: Request, res: Response): Promise<void> {
-  const { type } = req.query as { type?: string };
-  const pagination = getPagination(req);
-
-  const filter: Record<string, unknown> = {};
-  if (type) {
-    filter.type = type;
-  }
-
-  const [notifications, total] = await Promise.all([
-    Notification.find(filter)
-      .populate("user", "name email role")
-      .sort({ createdAt: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
-    Notification.countDocuments(filter),
-  ]);
-
-  res.json({ notifications, meta: buildMeta(total, pagination) });
-}
-
-
-
-
-
-// ****************** settings ****************
-/**
- * PUT /api/admin/settings
- * Updates platform-wide configuration settings (only accessible by admins)
- */
-export async function updateAdminSettings(req: Request, res: Response): Promise<void> {
-  const body = req.body as UpdateAdminSettingsInput;
-
-  const user = await User.findById(req.user!._id);
-  if (!user || user.role !== UserRole.ADMIN) {
-    throw new AppError("Only admins can update platform settings", 403);
-  }
-
-  // Update settings
-  if (body.name !== undefined) user.name = body.name;
-  if (body.email !== undefined) user.email = body.email;
-
-  const savedUser = await user.save();
-  if (!savedUser) {
-    throw new AppError("Failed to update platform settings", 500);
-  }
-  
-
-  res.json({ settings: savedUser.adminSettings, message: "Platform settings updated successfully" });
-}
 // ****************** profile ****************
 /**
  * GET /api/admin/profile

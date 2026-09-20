@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PaymentMethod } from "../utils/constants";
 
 /**
  * Sent as multipart/form-data alongside the NID/land-document files, so
@@ -34,11 +33,6 @@ export const createLoanApplicationSchema = z.object({
   cropType: z.string().trim().optional(),
 });
 export type CreateLoanApplicationInput = z.infer<typeof createLoanApplicationSchema>;
-
-export const initiatePaymentSchema = z.object({
-  paymentMethod: z.enum(PaymentMethod).default(PaymentMethod.SSLCOMMERZ),
-});
-export type InitiatePaymentInput = z.infer<typeof initiatePaymentSchema>;
 
 export const updateFarmerProjectSchema = z.object({
   requestedAmount: z.coerce.number().positive("requestedAmount must be greater than 0").optional(),

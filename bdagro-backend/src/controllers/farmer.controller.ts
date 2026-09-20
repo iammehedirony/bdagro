@@ -3,18 +3,16 @@ import { LoanApplication } from "../models/LoanApplication";
 import { Project } from "../models/Project";
 import { Investment } from "../models/Investment";
 import { Notification } from "../models/Notification";
-import { NotificationType, ProfitDistributionStatus, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, UserRole, VerificationStatus } from "../utils/constants";
-import { CreateLoanApplicationInput, InitiatePaymentInput, SaveProjectProfitReportInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
+import { NotificationType, LoanApplicationStatus, ProjectStatus, TransactionStatus, TransactionType, UserRole, VerificationStatus } from "../utils/constants";
+import { CreateLoanApplicationInput, SaveProjectProfitReportInput, SubmitFarmerProfileInput, UpdateFarmerProjectInput } from "../validators/farmer.validator";
 import { clerkClient, getAuth } from "@clerk/express";
 import { AppError } from "../middlewares/errorHandler";
 import { FarmerProfile, ProfitDistribution, LoanProduct, Transaction, User } from "../models";
 import { uploadToCloudinary } from "../middlewares/upload";
 import mongoose from "mongoose";
 import { buildMeta, getPagination } from "../utils/pagination";
-import { MarkPaidInput, SubmitProfitReportInput } from "../validators/profitDistribution.validator";
-import { UpdateFarmerSettingsInput, UpdateFarmerProfileInput } from "../validators/settings.validator";
+import { UpdateFarmerProfileInput } from "../validators/settings.validator";
 import { notifyUser } from "../services/notification.service";
-import { addEmailJob } from "../jobs";
 
 
 // ****************** farmer profile ****************
@@ -29,17 +27,6 @@ async function notifyAdmins(message: string, meta: Record<string, unknown>, type
     type,
     meta,
   })));
-}
-
-/**
- * GET /api/farmers/profile/me
- */
-export async function getMyProfile(req: Request, res: Response): Promise<void> {
-  const profile = await FarmerProfile.findOne({ user: req.user!._id });
-  if (!profile) {
-    throw new AppError("No farmer profile submitted yet", 404);
-  }
-  res.json({ profile });
 }
 
 /**
@@ -256,33 +243,6 @@ export async function createApplication(req: Request, res: Response): Promise<vo
 }
 
 /**
- * GET /api/farmers/loan-applications?status=&page=&limit=
- */
-export async function listMyApplications(req: Request, res: Response): Promise<void> {
-  const { status } = req.query as { status?: LoanApplicationStatus };
-  const pagination = getPagination(req);
-
-  const filter: Record<string, unknown> = { farmer: req.user!._id };
-  if (status) {
-    if (!Object.values(LoanApplicationStatus).includes(status)) {
-      throw new AppError("Invalid status filter", 400);
-    }
-    filter.status = status;
-  }
-
-  const [applications, total] = await Promise.all([
-    LoanApplication.find(filter)
-      .populate("loanProduct", "name category interestRatePercent")
-      .sort({ createdAt: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
-    LoanApplication.countDocuments(filter),
-  ]);
-
-  res.json({ applications, meta: buildMeta(total, pagination) });
-}
-
-/**
  * GET /api/farmers/loan-applications/:id
  */
 export async function getMyApplicationById(req: Request, res: Response): Promise<void> {
@@ -383,69 +343,6 @@ export async function getMyProjectById(req: Request, res: Response): Promise<voi
     },
   });
 }
-
-/**
- * POST /api/farmers/projects
- * Creates a new project (which is technically a LoanApplication).
- */
-export async function createMyProject(req: Request, res: Response): Promise<void> {
-  const body = req.body as CreateLoanApplicationInput;
-
-  const profile = await FarmerProfile.findOne({ user: req.user!._id });
-  if (!profile || profile.verificationStatus !== VerificationStatus.APPROVED) {
-    throw new AppError("Complete document verification before creating a project", 403);
-  }
-
-  if (!mongoose.isValidObjectId(body.loanProduct)) {
-    throw new AppError("Invalid loanProduct id", 400);
-  }
-
-  const loanProduct = await LoanProduct.findById(body.loanProduct);
-  if (!loanProduct || !loanProduct.isActive) {
-    throw new AppError("Loan product not found or no longer available", 404);
-  }
-
-  if (body.requestedAmount < loanProduct.minAmount || body.requestedAmount > loanProduct.maxAmount) {
-    throw new AppError(
-      `requestedAmount must be between ${loanProduct.minAmount} and ${loanProduct.maxAmount} for this product`,
-      400
-    );
-  }
-
-  if (body.durationMonths > loanProduct.maxDurationMonths) {
-    throw new AppError(`durationMonths cannot exceed ${loanProduct.maxDurationMonths} for this product`, 400);
-  }
-
-  const application = await LoanApplication.create({
-    farmer: req.user!._id,
-    loanProduct: loanProduct._id,
-    requestedAmount: body.requestedAmount,
-    durationMonths: body.durationMonths,
-    projectTitle: body.projectTitle,
-    projectDescription: body.projectDescription,
-    location: body.location,
-    landArea: body.landArea,
-    expectedHarvestDate: body.expectedHarvestDate,
-    farmImage: null,
-    cropType: body.cropType,
-    status: LoanApplicationStatus.PENDING,
-  });
-
-  await notifyAdmins(
-    `${req.user!.name} submitted a new project for review.`,
-    { farmerId: req.user!._id, loanApplicationId: application._id },
-    NotificationType.PROJECT,
-  );
-
-  res.status(201).json({ project: application });
-}
-
-/**
- * PATCH /api/farmers/projects/:id
- * Updates a project (LoanApplication) if status is Pending or Rejected.
- * Approved applications cannot be edited.
- * If Rejected, status is reset to Pending for admin re-review.
- */
 export async function updateMyProject(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
@@ -511,278 +408,6 @@ export async function updateMyProject(req: Request, res: Response): Promise<void
 
   res.json({ project: application });
 }
-
-
-// ************** profit distributions ************
-
-/**
- * GET /api/farmers/profit-distributions?status=&page=&limit=
- */
-export async function listMyProfitDistributions(req: Request, res: Response): Promise<void> {
-  const { status } = req.query as { status?: ProfitDistributionStatus };
-  const pagination = getPagination(req);
-
-  const filter: Record<string, unknown> = { farmer: req.user!._id };
-  if (status) {
-    if (!Object.values(ProfitDistributionStatus).includes(status)) {
-      throw new AppError("Invalid status filter", 400);
-    }
-    filter.status = status;
-  }
-
-  const [profitDistributions, total] = await Promise.all([
-    ProfitDistribution.find(filter)
-      .populate("project", "title")
-      .sort({ dueDate: 1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
-    ProfitDistribution.countDocuments(filter),
-  ]);
-
-  res.json({ profitDistributions, meta: buildMeta(total, pagination) });
-}
-
-/**
- * POST /api/farmers/profit-distributions/:id/pay
- *
- * Opens a payment against a pending/overdue profit distribution. This creates the
- * ledger `Transaction` record and links it to the distribution, but the
- * actual SSLCommerz/Stripe checkout-session creation and webhook-based
- * confirmation is a separate roadmap item (#5) — until that's wired up,
- * this returns the pending Transaction so the frontend has a stable
- * shape to build against.
- */
-export async function initiatePayment(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid profit distribution id", 400);
-  }
-
-  const body = req.body as InitiatePaymentInput;
-
-  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id }).populate("project");
-  if (!profitDistribution) {
-    throw new AppError("Profit distribution not found", 404);
-  }
-
-  if (profitDistribution.status === ProfitDistributionStatus.PAID) {
-    throw new AppError("This profit distribution has already been paid", 409);
-  }
-
-  const transaction = await Transaction.create({
-    user: req.user!._id,
-    type: TransactionType.PROFIT_DISTRIBUTION,
-    amount: profitDistribution.amount,
-    paymentMethod: body.paymentMethod,
-    status: TransactionStatus.PENDING,
-    relatedLoanApplication: (profitDistribution.project as any).loanApplication,
-    relatedProfitDistribution: profitDistribution._id,
-  });
-
-  profitDistribution.transaction = transaction._id;
-  await profitDistribution.save();
-
-  // TODO(#5 payment integration): call the SSLCommerz/Stripe SDK here to
-  // create the actual checkout session and return its redirect URL. The
-  // gateway's webhook should then flip `transaction.status` to SUCCESS
-  // and mark this profit distribution PAID (with `paidAt`).
-  res.status(201).json({
-    transaction,
-    message: "Payment initiated. Gateway checkout integration is pending (see roadmap).",
-  });
-}
-
-/**
- * POST /api/farmers/profit-distributions/:id/profit-report
- * Submits a profit report for a project after harvest/sales completion.
- * Calculates net profit and investor share amount.
- */
-export async function submitProfitReport(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid profit distribution id", 400);
-  }
-
-  const body = req.body as SubmitProfitReportInput;
-
-  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id });
-  if (!profitDistribution) {
-    throw new AppError("Profit distribution not found", 404);
-  }
-
-  const netProfit = body.totalSales - body.productionCost;
-  if (netProfit < 0) {
-    throw new AppError("Net profit cannot be negative (sales must exceed production cost)", 400);
-  }
-
-  const investorShareAmount = (netProfit * body.profitSharePercent) / 100;
-
-  // Store the profit report on the distribution until investor payouts complete.
-  profitDistribution.metadata = {
-    profitReport: {
-      totalSales: body.totalSales,
-      productionCost: body.productionCost,
-      netProfit,
-      profitSharePercent: body.profitSharePercent,
-      investorShareAmount,
-      submittedAt: new Date(),
-    },
-  };
-  await profitDistribution.save();
-
-  const investments = await Investment.find({ project: profitDistribution.project }).select("investor").lean();
-  await Promise.all(investments.map((investment) => notifyUser(investment.investor, {
-    title: "Profit report submitted",
-    message: "A profit report is available for one of your investments.",
-    type: NotificationType.PROFIT_DISTRIBUTION,
-    meta: { profitDistributionId: profitDistribution._id },
-  })));
-
-  res.json({
-    profitDistribution,
-    profitReport: {
-      totalSales: body.totalSales,
-      productionCost: body.productionCost,
-      netProfit,
-      profitSharePercent: body.profitSharePercent,
-      investorShareAmount,
-    },
-  });
-}
-
-/**
- * POST /api/farmers/profit-distributions/:id/mark-paid
- * Marks the profit distribution as paid after the farmer has distributed
- * profits to all investors manually (off-platform).
- */
-export async function markAsPaid(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid profit distribution id", 400);
-  }
-
-  const body = req.body as MarkPaidInput;
-
-  if (!body.confirmPaid) {
-    throw new AppError("You must confirm that all investors have been paid", 400);
-  }
-
-  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id });
-  if (!profitDistribution) {
-    throw new AppError("Profit distribution not found", 404);
-  }
-
-  if (profitDistribution.status === ProfitDistributionStatus.PAID) {
-    throw new AppError("This profit distribution is already marked as paid", 409);
-  }
-
-  profitDistribution.status = ProfitDistributionStatus.PAID;
-  profitDistribution.paidAt = new Date();
-  await profitDistribution.save();
-
-  const investments = await Investment.find({ project: profitDistribution.project })
-    .populate("investor", "name email")
-    .lean();
-
-  await Promise.all(investments.map(async (investment) => {
-    const investor = investment.investor as any;
-    await notifyUser(investor._id, {
-      title: "Profit distribution completed",
-      message: "Your profit distribution has been marked as paid.",
-      type: NotificationType.PROFIT_DISTRIBUTION,
-      meta: { profitDistributionId: profitDistribution._id },
-    });
-
-    // Send payout email to investor
-    if (investor?.email) {
-      const project = await Project.findById(profitDistribution.project).lean();
-      if (project) {
-        await addEmailJob({
-          type: "payout",
-          data: {
-            investorId: investor._id.toString(),
-            investorName: investor.name,
-            investorEmail: investor.email,
-            projectTitle: project.title,
-            amount: profitDistribution.amount,
-          },
-        });
-      }
-    }
-  }));
-
-  res.json({
-    profitDistribution,
-    message: "Profit distribution marked as paid successfully",
-  });
-}
-
-/**
- * GET /api/farmers/profit-distributions/:id/recipients
- * Returns detailed breakdown of profit distribution to individual investors
- */
-export async function getProfitDistributionRecipients(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid profit distribution id", 400);
-  }
-
-  const profitDistribution = await ProfitDistribution.findOne({ _id: id, farmer: req.user!._id })
-    .populate("project")
-    .lean();
-
-  if (!profitDistribution) {
-    throw new AppError("Profit distribution not found", 404);
-  }
-
-  // Get profit report data from metadata
-  const profitReport = profitDistribution.metadata?.profitReport as any;
-  if (!profitReport) {
-    throw new AppError("Profit report not yet submitted for this profit distribution", 404);
-  }
-
-  const project = await Project.findById((profitDistribution.project as any)._id).lean();
-
-  if (!project) {
-    throw new AppError("Associated project not found", 404);
-  }
-
-  // Get all investments for this project
-  const investments = await Investment.find({ project: project._id })
-    .populate("investor", "name phone")
-    .lean();
-
-  // Calculate profit share for each investor based on their investment proportion
-  const totalInvested = project.fundedAmount;
-  const totalProfitDue = profitReport.investorShareAmount;
-
-  const recipients = investments.map((investment: any) => {
-    const investmentProportion = investment.amount / totalInvested;
-    const profitShare = Math.round(totalProfitDue * investmentProportion);
-
-    return {
-      investorId: investment.investor._id,
-      investorName: investment.investor.name,
-      investedAmount: investment.amount,
-      profitShare,
-      profitSharePercent: Math.round(investmentProportion * 100 * 10) / 10,
-      paymentMethod: investment.paymentMethod || "sslcommerz",
-      // Note: In a real system, payment account details would come from investor settings
-      status: "pending", // All pending until the entire distribution is marked as paid
-    };
-  });
-
-  const summary = {
-    totalRecipients: recipients.length,
-    totalProfitDue,
-    paidCount: 0,
-    pendingCount: recipients.length,
-    profitDistributionStatus: profitDistribution.status,
-  };
-
-  res.json({ recipients, summary, profitReport });
-}
-
 
 
 // ************** transactions ************
@@ -962,27 +587,6 @@ export async function getProfitDistribution(req: Request, res: Response): Promis
         };
       }),
     settlements,
-  });
-}
-
-export async function getProjectProfitReport(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid project id", 400);
-  }
-
-  const project = await Project.findOne({ _id: id, farmer: req.user!._id })
-    .select("_id title expectedHarvestDate profitReport")
-    .lean();
-  if (!project) {
-    throw new AppError("Project not found", 404);
-  }
-
-  res.json({
-    projectId: project._id,
-    projectTitle: project.title,
-    expectedHarvestDate: project.expectedHarvestDate,
-    profitReport: project.profitReport ?? null,
   });
 }
 
@@ -1166,43 +770,4 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
 }
 
 
-// ************** settings ************
-/**
- * PUT /api/farmers/settings
- * Updates farmer-specific settings (payment methods, notification preferences)
- */
-export async function updateFarmerSettings(req: Request, res: Response): Promise<void> {
-  const body = req.body as UpdateFarmerSettingsInput;
-
-  const profile = await FarmerProfile.findOne({ user: req.user!._id });
-  if (!profile) {
-    throw new AppError("Farmer profile not found", 404);
-  }
-
-  if (!profile.settings) {
-    profile.settings = {
-      notifyInvestmentUpdates: true,
-      notifyProfitReportReminders: true,
-      notifyProjectStatusChanges: true,
-      notifyPromotional: false,
-    };
-  }
-
-  // Update settings
-  if (body.bkashNumber !== undefined) profile.settings.bkashNumber = body.bkashNumber;
-  if (body.nagadNumber !== undefined) profile.settings.nagadNumber = body.nagadNumber;
-  if (body.bankAccount !== undefined) profile.settings.bankAccount = body.bankAccount;
-  if (body.defaultPaymentGateway !== undefined)
-    profile.settings.defaultPaymentGateway = body.defaultPaymentGateway;
-  if (body.notifyInvestmentUpdates !== undefined)
-    profile.settings.notifyInvestmentUpdates = body.notifyInvestmentUpdates;
-  if (body.notifyProfitReportReminders !== undefined)
-    profile.settings.notifyProfitReportReminders = body.notifyProfitReportReminders;
-  if (body.notifyProjectStatusChanges !== undefined)
-    profile.settings.notifyProjectStatusChanges = body.notifyProjectStatusChanges;
-  if (body.notifyPromotional !== undefined) profile.settings.notifyPromotional = body.notifyPromotional;
-
-  await profile.save();
-
-  res.json({ settings: profile.settings, message: "Settings updated successfully" });
-}
+// ************** farmer dashboard home ************

@@ -6,7 +6,5 @@ const router = Router();
 
 router.use(requireAuth, syncClerkUser);
 router.get("/", notificationCtrl.listMyNotifications);
-router.put("/mark-all-read", notificationCtrl.markAllNotificationsAsRead);
-router.put("/:id/read", notificationCtrl.markNotificationAsRead);
 
 export default router;

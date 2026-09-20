@@ -7,15 +7,6 @@ import { UserRole } from "../utils/constants";
 import { addEmailJob } from "../jobs";
 
 /**
- * GET /api/auth/me
- * Returns the local profile for the currently authenticated account.
- * Requires `syncClerkUser` to have already run and set `req.user`.
- */
-export async function getMe(req: Request, res: Response): Promise<void> {
-  res.json({ user: req.user });
-}
-
-/**
  * POST /api/auth/select-role
  * One-time role selection for accounts that signed up without a role
  * already present in Clerk metadata. Only usable once — afterwards the

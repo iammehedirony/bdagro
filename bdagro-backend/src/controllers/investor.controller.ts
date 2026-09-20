@@ -14,7 +14,6 @@ import {
 import { AppError } from "../middlewares/errorHandler";
 import { CreateInvestmentInput } from "../validators/investor.validator";
 import { getPagination, buildMeta } from "../utils/pagination";
-import { UpdateInvestorSettingsInput } from "../validators/settings.validator";
 import { CreateInvestorProfileInput } from "../validators/investor.validator";
 import { InvestorProfile } from "../models";
 import { User } from "../models";
@@ -162,7 +161,7 @@ export async function createInvestment(req: Request, res: Response): Promise<voi
   transaction.relatedInvestment = investment._id;
   await transaction.save();
 
-  // TODO(#5 payment integration): create the actual SSLCommerz/Stripe
+// TODO(#5 payment integration): create the actual SSLCommerz/Stripe
   // checkout session and return its redirect URL here. Once the gateway
   // webhook confirms payment, call `confirmInvestment(investment._id)`
   // to mark it COMPLETED and update the project's funding progress.
@@ -173,55 +172,6 @@ export async function createInvestment(req: Request, res: Response): Promise<voi
     message: "Investment initiated. Gateway checkout integration is pending (see roadmap).",
   });
 }
-
-/**
- * GET /api/investors/investments?status=&page=&limit=
- */
-export async function listMyInvestments(req: Request, res: Response): Promise<void> {
-  const { status } = req.query as { status?: InvestmentStatus };
-  const pagination = getPagination(req);
-
-  const filter: Record<string, unknown> = { investor: req.user!._id };
-  if (status) {
-    if (!Object.values(InvestmentStatus).includes(status)) {
-      throw new AppError("Invalid status filter", 400);
-    }
-    filter.status = status;
-  }
-
-  const [investments, total] = await Promise.all([
-    Investment.find(filter)
-      .populate("project", "title cropType riskLevel expectedROIPercent status")
-      .sort({ createdAt: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
-    Investment.countDocuments(filter),
-  ]);
-
-  res.json({ investments, meta: buildMeta(total, pagination) });
-}
-
-/**
- * GET /api/investors/investments/:id
- */
-export async function getMyInvestmentById(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Invalid investment id", 400);
-  }
-
-  const investment = await Investment.findOne({ _id: id, investor: req.user!._id }).populate(
-    "project",
-    "title cropType riskLevel expectedROIPercent status fundingGoal fundedAmount"
-  );
-
-  if (!investment) {
-    throw new AppError("Investment not found", 404);
-  }
-
-  res.json({ investment });
-}
-
 
 
 // ************** roi tracking ************
@@ -421,7 +371,7 @@ export async function listMyTransactions(req: Request, res: Response): Promise<v
     return { ...transaction.toObject(), project: project ?? null };
   });
 
-  res.json({ transactions: normalizedTransactions, meta: buildMeta(total, pagination) });
+res.json({ transactions: normalizedTransactions, meta: buildMeta(total, pagination) });
 }
 
 /**
@@ -461,47 +411,6 @@ export async function getMyTransactionReceipt(req: Request, res: Response): Prom
       relatedInvestment: transaction.relatedInvestment,
     },
   });
-}
-
-
-// ************** settings ************
-/**
- * PUT /api/investors/settings
- * Updates investor-specific settings (risk tolerance, payment methods, notifications)
- */
-export async function updateInvestorSettings(req: Request, res: Response): Promise<void> {
-  const body = req.body as UpdateInvestorSettingsInput;
-
-  const profile = await InvestorProfile.findOne({ user: req.user!._id });
-  if (!profile) {
-    throw new AppError("Investor profile not found", 404);
-  }
-
-  if (!profile.settings) {
-    profile.settings = {
-      notifyNewProjects: true,
-      notifyFundingUpdates: true,
-      notifyPaymentConfirmation: true,
-      notifyPromotional: false,
-    };
-  }
-
-  // Update settings
-  if (body.riskTolerance !== undefined) profile.settings.riskTolerance = body.riskTolerance;
-  if (body.defaultPaymentGateway !== undefined)
-    profile.settings.defaultPaymentGateway = body.defaultPaymentGateway;
-  if (body.returnAccountNumber !== undefined)
-    profile.settings.returnAccountNumber = body.returnAccountNumber;
-  if (body.notifyNewProjects !== undefined) profile.settings.notifyNewProjects = body.notifyNewProjects;
-  if (body.notifyFundingUpdates !== undefined)
-    profile.settings.notifyFundingUpdates = body.notifyFundingUpdates;
-  if (body.notifyPaymentConfirmation !== undefined)
-    profile.settings.notifyPaymentConfirmation = body.notifyPaymentConfirmation;
-  if (body.notifyPromotional !== undefined) profile.settings.notifyPromotional = body.notifyPromotional;
-
-  await profile.save();
-
-  res.json({ settings: profile.settings, message: "Settings updated successfully" });
 }
 
 /**
