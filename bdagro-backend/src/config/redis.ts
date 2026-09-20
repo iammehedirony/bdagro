@@ -5,12 +5,12 @@ import IORedis from "ioredis";
  * `maxRetriesPerRequest: null` on the ioredis client — otherwise BullMQ's
  * internal blocking commands can throw instead of retrying indefinitely.
  */
-export const redisConnection = new IORedis({
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: Number(process.env.REDIS_PORT || 6379),
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-});
+export const redisConnection = new IORedis(
+  process.env.REDIS_URL || "redis://127.0.0.1:6379",
+  {
+    maxRetriesPerRequest: null,
+  }
+);
 
 redisConnection.on("error", (err: Error) => {
   console.error("[Redis] Connection error:", err.message);
