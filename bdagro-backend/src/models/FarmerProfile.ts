@@ -27,16 +27,6 @@ export interface IFarmerProfile extends Document {
   verifiedBy?: Types.ObjectId | null;
   verifiedAt?: Date | null;
   rejectionReason?: string | null;
-  settings?: {
-    bkashNumber?: string;
-    nagadNumber?: string;
-    bankAccount?: string;
-    defaultPaymentGateway?: string;
-    notifyInvestmentUpdates?: boolean;
-    notifyProfitReportReminders?: boolean;
-    notifyProjectStatusChanges?: boolean;
-    notifyPromotional?: boolean;
-  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,17 +55,7 @@ const farmerProfileSchema = new Schema<IFarmerProfile>(
     },
     verifiedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     verifiedAt: { type: Date, default: null },
-    rejectionReason: { type: String, default: null },
-    settings: {
-      bkashNumber: { type: String, trim: true, default: null },
-      nagadNumber: { type: String, trim: true, default: null },
-      bankAccount: { type: String, trim: true, default: null },
-      defaultPaymentGateway: { type: String , trim: true, default: null },
-      notifyInvestmentUpdates: { type: Boolean, default: true },
-      notifyProfitReportReminders: { type: Boolean, default: true },
-      notifyProjectStatusChanges: { type: Boolean, default: true },
-      notifyPromotional: { type: Boolean, default: false },
-    },
+    rejectionReason: { type: String, default: null }
   },
   { timestamps: true }
 );

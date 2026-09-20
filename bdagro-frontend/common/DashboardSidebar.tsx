@@ -1,12 +1,14 @@
 "use client";
 
 import { Sprout } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface User {
   name: string | null;
   role: string;
+  imageUrl: string | null;
 }
 
 interface NavItem {
@@ -23,7 +25,7 @@ interface SidebarProps {
 export default function Sidebar({ navItems, user }: SidebarProps) {
   const pathname = usePathname();
   const userInitial = user?.name ? user.name.charAt(0) : "U";
-
+console.log(user)
   return (
     <aside className="w-60 bg-primary-950 min-h-screen flex flex-col shrink-0 transition-all">
       {/* লোগো সেকশন */}
@@ -63,11 +65,21 @@ export default function Sidebar({ navItems, user }: SidebarProps) {
       </nav>
       
 
-      {/* ইউজার প্রোফাইল সেকশন */}
+{/* ইউজার প্রোফাইল সেকশন */}
       <div className="mt-auto p-5 border-t border-primary-900 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-accent-500 flex items-center justify-center text-primary-950 text-sm font-bold">
-          {userInitial}
-        </div>
+        {user?.imageUrl ? (
+          <Image 
+            src={user.imageUrl} 
+            alt="User Avatar" 
+            width={32} 
+            height={32} 
+            className="w-8 h-8 rounded-full object-cover shrink-0" 
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-accent-500 flex items-center justify-center text-primary-950 text-sm font-bold shrink-0">
+            {userInitial}
+          </div>
+        )}
         <div className="flex-1 overflow-hidden">
           <div className="text-sm text-neutral-100 truncate">{user?.name}</div>
           <div className="text-xs text-primary-100/50 truncate">{user?.role}</div>

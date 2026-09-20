@@ -34,12 +34,15 @@ function AccountStep() {
     control,
     trigger,
     getValues,
-    formState: { errors , isSubmitting},
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
   } = useFormContext<FarmerAccountFormValues>();
 
-const [clerkError, setClerkError] = useState("");
-const [countdown, setCountdown] = useState<number | null>(null); // কাউন্টডাউনের জন্য স্টেট
-const sendOtpMutation = useSendSignupOtpMutation();
+  const [clerkError, setClerkError] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const sendOtpMutation = useSendSignupOtpMutation();
 
   // কাউন্টডাউন টাইমার হ্যান্ডেল করার জন্য useEffect
   useEffect(() => {
@@ -52,19 +55,24 @@ const sendOtpMutation = useSendSignupOtpMutation();
     return () => clearInterval(timer);
   }, [countdown]);
 
-const handleSendOTP = async () => {
-  const isValid = await trigger(["name", "email", "password", "terms", "phone"]);
-  if (!isValid) return;
+  const handleSendOTP = async () => {
+    const isValid = await trigger(["name", "email", "password", "terms", "phone"]);
+    if (!isValid) return;
 
-  const data = getValues();
+    const data = getValues();
 
-  try {
-    await sendOtpMutation.mutateAsync(data);
+    try {
+      await sendOtpMutation.mutateAsync(data);
       setCountdown(5);
-  } catch {
-    setClerkError("OTP পাঠাতে সমস্যা হয়েছে।");
+    } catch {
+      setClerkError("OTP পাঠাতে সমস্যা হয়েছে।");
     }
-};
+  };
+
+  const handleAvatarChange = (file: File | null) => {
+    setAvatarFile(file);
+    setValue("avatar", file, { shouldValidate: false });
+  };
 
   return (
     <>
@@ -96,6 +104,18 @@ const handleSendOTP = async () => {
               {...register("name")}
             />
             <FieldError error={errors.name} />
+          </div>
+
+                    {/* প্রোফাইল ছবি */}
+          <div>
+            <label className="text-sm text-stone-700 block mb-1.5">প্রোফাইল ছবি (ঐচ্ছিক)</label>
+            <UploadBox
+              label="প্রোফাইল ছবি আপলোড করুন"
+              hint="JPG, PNG, WEBP · সর্বোচ্চ ৫MB"
+              file={avatarFile}
+              onChange={handleAvatarChange}
+              accept="image/*"
+            />
           </div>
 
           {/* ফোন নম্বর (Custom Field Component) */}
@@ -373,7 +393,7 @@ export default function FarmerSignupFlow() {
   const accountMethods = useForm<FarmerAccountFormValues>({
     resolver: zodResolver(farmerAccountSchema),
     mode: "onBlur",
-    defaultValues: { name: "", email: "", phone: "", otp: ["", "", "", "", "", ""], password: "" }
+    defaultValues: { name: "", email: "", phone: "", otp: ["", "", "", "", "", ""], password: "", avatar: null }
   });
 
   const nidMethods = useForm<FarmerNidFormValues>({
@@ -385,7 +405,12 @@ export default function FarmerSignupFlow() {
 
  const onSubmitAccount = async (data: FarmerAccountFormValues) => {
   try {
-    await signupMutation.mutateAsync({ otp: data.otp.join(""), role: "farmer", phone: data.phone });
+    await signupMutation.mutateAsync({ 
+      otp: data.otp.join(""), 
+      role: "farmer", 
+      phone: data.phone,
+      avatar: data.avatar ?? null 
+    });
     await user?.reload();
   } catch {
     console.error("অ্যাকাউন্ট তৈরি করা যায়নি।");

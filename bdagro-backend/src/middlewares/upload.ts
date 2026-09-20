@@ -86,3 +86,10 @@ export const uploadLoanDocs = upload.fields([
   { name: "incomeProof", maxCount: 1 },
   { name: "farmImage", maxCount: 1 },
 ]);
+
+/**
+ * Expects multipart/form-data for user registration with optional avatar upload.
+ */
+export const uploadAvatar = upload.fields([
+  { name: "avatar", maxCount: 1 },
+]);

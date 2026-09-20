@@ -11,8 +11,8 @@ import {
 } from "@/lib/services/investor.service";
 
 type SignupPayload =
-  | { otp: string; role: "admin"; phone?: string; profile?: never }
-  | { otp: string; role: "farmer" | "investor"; phone: string; profile?: InvestorProfilePayload };
+  | { otp: string; role: "admin"; phone?: string; profile?: never; avatar?: File | null }
+  | { otp: string; role: "farmer" | "investor"; phone: string; profile?: InvestorProfilePayload; avatar?: File | null };
 
 export function useSendSignupOtpMutation() {
   const { signUp } = useSignUp();
@@ -44,7 +44,7 @@ export function useSignupMutation() {
 
   return useMutation({
     mutationKey: queryKeys.auth.signup,
-    mutationFn: async ({ otp, role, phone, profile }: SignupPayload) => {
+    mutationFn: async ({ otp, role, phone, profile, avatar }: SignupPayload) => {
       const verification = await signUp.verifications.verifyEmailCode({ code: otp });
       if (verification.error) throw new Error(verification.error.message);
       if (signUp.status !== "complete") throw new Error("অ্যাকাউন্ট সম্পন্ন করা যায়নি।");
@@ -52,10 +52,13 @@ export function useSignupMutation() {
       const finalized = await signUp.finalize();
       if (finalized.error) throw new Error(finalized.error.message);
 
-      const selectRolePayload: SelectRolePayload = role === "admin"
-        ? { role, ...(phone ? { phone } : {}) }
-        : { role, phone };
-      const response = await selectRole(api, selectRolePayload);
+      // Prepare form data for selectRole with avatar
+      const formData = new FormData();
+      formData.append("role", role);
+      if (phone) formData.append("phone", phone);
+      if (avatar) formData.append("avatar", avatar);
+
+      const response = await selectRole(api, formData);
       if (role === "investor" && profile) await createInvestorProfile(api, profile);
       return response;
     },

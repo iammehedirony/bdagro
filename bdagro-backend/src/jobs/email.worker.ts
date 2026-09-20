@@ -1,6 +1,6 @@
 import { Worker, Job } from "bullmq";
 import { redisConnection } from "../config/redis";
-import { resend, EMAIL_FROM } from "../config/resend";
+import { getResend, EMAIL_FROM } from "../config/resend";
 import { EMAIL_QUEUE_NAME } from "./email.queue";
 import {
   welcomeEmail,
@@ -11,7 +11,8 @@ import {
 } from "../emails/templates";
 
 async function processEmailJob(job: Job): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { type, data } = job.data as { type: string; data: any };
+  const type = job.name as string;
+  const data = job.data as any;
 
   try {
     let html: string;
@@ -53,7 +54,7 @@ async function processEmailJob(job: Job): Promise<{ success: boolean; messageId?
         throw new Error(`Unknown email job type: ${type}`);
     }
 
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: EMAIL_FROM,
       to,
       subject,

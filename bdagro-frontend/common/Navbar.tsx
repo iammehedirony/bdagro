@@ -31,6 +31,7 @@ const Navbar = () => {
   const { signOut } = useClerk();
   const {user, role: userRole} = useUserWithRole()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  console.log(user)
 
   // ইউজারের রোল অনুযায়ী নেভিগেশন আইটেম ফিল্টার করা হচ্ছে
   const visibleNavItems = allNavItems.filter(
@@ -93,15 +94,21 @@ const Navbar = () => {
           ) : (
       <div className="relative">
       <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="w-10 h-10 bg-amber-500 rounded-full text-emerald-950 flex items-center justify-center font-medium cursor-pointer hover:opacity-90 transition-opacity"
-      >
-        <Image src={user?.imageUrl || '/default-user-image.png'} alt="User" width={40} height={40} className="rounded-full" />
-      </button>
+  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+  className="w-10 h-10 bg-amber-500 rounded-full text-emerald-950 flex items-center justify-center font-medium cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+>
+  <Image 
+    src={user?.imageUrl || '/default-user-image.png'} 
+    alt="User" 
+    width={40} 
+    height={40} 
+    className="rounded-full object-cover w-full h-full" 
+  />
+</button>
 
       <UserDropdown 
              isOpen={isDropdownOpen}
-             user={{ name: user?.firstName || 'User', role: userRole || 'Unknown' }}
+             user={{ name: user?.firstName || 'User', role: userRole || 'Unknown', imageUrl: user?.imageUrl || '/default-user-image.png' }}
              onProfileClick={() => setIsDropdownOpen(false)}
              onSettingsClick={() => setIsDropdownOpen(false)}
              onLogoutClick={() => {

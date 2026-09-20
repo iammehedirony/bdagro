@@ -220,6 +220,7 @@ function HomePage() {
           </motion.div>
 
        {/* Animated Bento Box Image Grid */}
+          {/* Animated Bento Box Image Grid */}
           <div className="relative">
             <div className="grid grid-cols-3 auto-rows-[130px] gap-3">
               {heroImages.map((img) => (
@@ -230,10 +231,9 @@ function HomePage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: img.delay }}
                 >
-                  {/* absolute inset-0 ব্যবহার করা হয়েছে যাতে কন্টেইনারটি পুরোপুরি ফিল হয়ে থাকে */}
                   <motion.div
-                    className="absolute inset-0 w-full h-full overflow-hidden"
-                    animate={{ y: [0, -6, 0] }}
+                    className="w-full h-full relative"
+                    animate={{ y: [0, -8, 0] }}
                     transition={{
                       repeat: Infinity,
                       duration: 4 + img.delay,
@@ -245,7 +245,7 @@ function HomePage() {
                       src={img.src}
                       alt="Farm Image"
                       fill
-                      className="object-cover w-full h-full opacity-80 hover:opacity-100 transition-opacity duration-300 scale-110"
+                      className="object-cover opacity-80 hover:opacity-100 transition-opacity duration-300"
                     />
                   </motion.div>
                 </motion.div>

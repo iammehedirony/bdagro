@@ -16,6 +16,7 @@ import OtpInput from "../ui/OtpInput";
 import CropChip from "../ui/CropChip";
 import RiskOption from "../ui/RiskOption";
 import { FieldError } from "../ui/FieldError";
+import UploadBox from "../ui/UploadBox";
 import { investorSignupSchema, type InvestorSignupFormValues } from "../../lib/schemas/auth";
 import { useRouter } from "next/navigation";
 import { useSendSignupOtpMutation, useSignupMutation } from "@/hooks/mutations/useAuthMutations";
@@ -23,6 +24,7 @@ import { useSendSignupOtpMutation, useSignupMutation } from "@/hooks/mutations/u
 export default function InvestorSignupPage() {
   const { user } = useUser();
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const signupMutation = useSignupMutation();
   const sendOtpMutation = useSendSignupOtpMutation();
   const router = useRouter();
@@ -49,11 +51,17 @@ export default function InvestorSignupPage() {
       riskTolerance: "কম",
       monthlyPlan: "৳৫,০০০ – ২৫,০০০",
       terms: true,
+      avatar: null,
     },
   });
 
   const selectedInterests = watch("interests");
   const selectedRisk = watch("riskTolerance");
+
+  const handleAvatarChange = (file: File | null) => {
+    setAvatarFile(file);
+    setValue("avatar", file, { shouldValidate: false });
+  };
 
   useEffect(() => {
     if (countdown === null || countdown <= 0) {
@@ -89,6 +97,7 @@ export default function InvestorSignupPage() {
         otp: data.otp.join(""),
         role: "investor",
         phone: data.phone,
+        avatar: data.avatar ?? null,
         profile: {
           preferredCropTypes: data.interests,
           maxRiskLevel: data.riskTolerance,
@@ -155,6 +164,18 @@ export default function InvestorSignupPage() {
                 }
               />
               <FieldError error={errors.email} />
+            </div>
+
+            {/* প্রোফাইল ছবি (ঐচ্ছিক) */}
+            <div>
+              <label className="text-sm text-stone-700 block mb-1.5">প্রোফাইল ছবি (ঐচ্ছিক)</label>
+              <UploadBox
+                label="প্রোফাইল ছবি আপলোড করুন"
+                hint="JPG, PNG, WEBP · সর্বোচ্চ ৫MB"
+                file={avatarFile}
+                onChange={handleAvatarChange}
+                accept="image/*"
+              />
             </div>
 
             {/* OTP কোড (Custom OtpInput Component with Controller) */}

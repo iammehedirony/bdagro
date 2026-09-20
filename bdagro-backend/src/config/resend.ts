@@ -1,8 +1,16 @@
 import { Resend } from "resend";
-import dotenv from 'dotenv';
 
-dotenv.config(); // ২. এটি রান হওয়ার আগেই resend.ts কল হয়ে গেছে!
+let resendInstance: Resend | null = null;
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+export function getResend(): Resend {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set. Please configure it to send emails.");
+    }
+    resendInstance = new Resend(apiKey);
+  }
+  return resendInstance;
+}
 
-export const EMAIL_FROM = process.env.EMAIL_FROM || "Bdagro <noreply@bdagro.com>";
+export const EMAIL_FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";

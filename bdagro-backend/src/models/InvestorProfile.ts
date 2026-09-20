@@ -18,15 +18,6 @@ export interface IInvestorProfile extends Document {
   totalReturned: number;
   activeProjectsCount: number;
   preferences: IInvestorPreferences;
-  settings: {
-    riskTolerance?: string;
-    defaultPaymentGateway?: string;
-    returnAccountNumber?: string;
-    notifyNewProjects: boolean;
-    notifyFundingUpdates: boolean;
-    notifyPaymentConfirmation: boolean;
-    notifyPromotional: boolean;
-  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,16 +32,7 @@ const investorProfileSchema = new Schema<IInvestorProfile>(
       monthlyInvestmentPlan: { type: String },
       preferredCropTypes: [{ type: String }],
       maxRiskLevel: { type: String, default: null },
-    },
-    settings: {
-      riskTolerance: { type: String },
-      defaultPaymentGateway: { type: String },
-      returnAccountNumber: { type: String, trim: true },
-      notifyNewProjects: { type: Boolean, default: true },
-      notifyFundingUpdates: { type: Boolean, default: true },
-      notifyPaymentConfirmation: { type: Boolean, default: true },
-      notifyPromotional: { type: Boolean, default: false },
-    },
+    }
   },
   { timestamps: true }
 );

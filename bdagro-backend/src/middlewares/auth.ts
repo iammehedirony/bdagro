@@ -54,8 +54,6 @@ export async function syncClerkUser(req: Request, res: Response, next: NextFunct
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   const { userId } = getAuth(req);
-  console.log(req.headers, req.body)
-  console.log("userId", userId);
   if (!userId) {
     res.status(401).json({ message: "Unauthorized" });
     return;

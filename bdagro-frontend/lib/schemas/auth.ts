@@ -8,12 +8,13 @@ export const farmerAccountSchema = z.object({
   email: z.string().email({ message: "সঠিক ইমেইল ঠিকানা দিন" }),
   phone: z.string().regex(/^[0-9]{10}$/, { message: "সঠিক ১০ ডিজিটের ফোন নম্বর দিন" }),
   otp: z.array(z.string().min(1, { message: "OTP-এর প্রতিটি ঘর পূরণ করতে হবে" })).length(6, {
-  message: "৬-ডিজিটের সঠিক OTP দিন",
-}),
+    message: "৬-ডিজিটের সঠিক OTP দিন",
+  }),
   password: z.string().min(8, { message: "পাসওয়ার্ড কমপক্ষে ৮ ক্যারেক্টারের হতে হবে" }),
   terms: z.literal(true, {
     errorMap: () => ({ message: "এগিয়ে যেতে আপনাকে শর্তাবলী ও গোপনীয়তা নীতিতে সম্মত হতে হবে।" }),
   }),
+  avatar: z.any().optional(),
 });
 
 export type FarmerAccountFormValues = z.infer<typeof farmerAccountSchema>;
@@ -64,6 +65,7 @@ export const investorSignupSchema = z.object({
   terms: z.literal(true, {
     errorMap: () => ({ message: "এগিয়ে যেতে আপনাকে শর্তাবলী ও গোপনীয়তা নীতিতে সম্মত হতে হবে।" }),
   }),
+  avatar: z.any().optional(),
 });
 
 export type InvestorSignupFormValues = z.infer<typeof investorSignupSchema>;
@@ -75,6 +77,7 @@ export const adminSignupSchema = z.object({
     message: "৬-ডিজিটের সঠিক OTP দিন",
   }),
   password: z.string().trim().min(8, { message: "পাসওয়ার্ড কমপক্ষে ৮ ক্যারেক্টারের হতে হবে" }),
+  avatar: z.any().optional(),
 });
 
 export type AdminSignupFormValues = z.infer<typeof adminSignupSchema>;

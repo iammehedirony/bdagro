@@ -23,7 +23,7 @@ import mongoose, { HydratedDocument } from "mongoose";
 import { notifyUser } from "../services/notification.service";
 import { getIo } from "../realtime/io";
 import { ApproveLoanApplicationInput, RejectInput } from "../validators/admin.validator";
-import { clerkClient, getAuth } from "@clerk/express";
+import { clerkClient } from "@clerk/express";
 import { addEmailJob } from "../jobs";
 
 // ****************** dashboard home ****************
@@ -108,16 +108,11 @@ export async function listVerifications(req: Request, res: Response): Promise<vo
  */
 export async function approveVerification(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const {userId} = getAuth(req);
   if (!mongoose.isValidObjectId(id)) {
     throw new AppError("Invalid profile id", 400);
   }
 
-  if (!userId) {
-    throw new AppError("Authentication required", 401);
-  }
-
-  const profile = await FarmerProfile.findById(id);
+  const profile = await FarmerProfile.findById(id).populate("user", "clerkId");
   if (!profile) {
     throw new AppError("Farmer profile not found", 404);
   }
@@ -125,11 +120,16 @@ export async function approveVerification(req: Request, res: Response): Promise<
     throw new AppError("Profile is already approved", 409);
   }
 
-  await clerkClient.users.updateUserMetadata(userId, {
-  publicMetadata: {
-    nidStatus: "approved",
-  },
-});
+  const farmerUser = profile.user as any;
+  if (!farmerUser?.clerkId) {
+    throw new AppError("Farmer's Clerk ID not found", 500);
+  }
+
+  await clerkClient.users.updateUserMetadata(farmerUser.clerkId, {
+    publicMetadata: {
+      nidStatus: "approved",
+    },
+  });
 
   profile.verificationStatus = VerificationStatus.APPROVED;
   profile.verifiedBy = req.user!._id;
@@ -137,7 +137,7 @@ export async function approveVerification(req: Request, res: Response): Promise<
   profile.rejectionReason = null;
   await profile.save();
 
-  await notifyUser(profile.user, {
+  await notifyUser(profile.user._id, {
     title: "Document verification approved",
     message: "Your NID and land document have been verified. You can now apply for a loan.",
     type: NotificationType.VERIFICATION,
@@ -171,7 +171,7 @@ export async function rejectVerification(req: Request, res: Response): Promise<v
   profile.rejectionReason = rejectionReason;
   await profile.save();
 
-  await notifyUser(profile.user, {
+  await notifyUser(profile.user._id, {
     title: "Document verification rejected",
     message: `Your submission was rejected: ${rejectionReason}`,
     type: NotificationType.VERIFICATION,

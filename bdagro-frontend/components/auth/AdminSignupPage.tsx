@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Field from "@/components/ui/Field";
 import { FieldError } from "@/components/ui/FieldError";
 import OtpInput from "@/components/ui/OtpInput";
+import UploadBox from "@/components/ui/UploadBox";
 import { adminSignupSchema, type AdminSignupFormValues } from "@/lib/schemas/auth";
 import { useSendSignupOtpMutation, useSignupMutation } from "@/hooks/mutations/useAuthMutations";
 
@@ -16,6 +17,7 @@ export default function AdminSignupPage() {
   const signupMutation = useSignupMutation();
   const sendOtpMutation = useSendSignupOtpMutation();
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const {
     register,
@@ -23,6 +25,7 @@ export default function AdminSignupPage() {
     control,
     trigger,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm<AdminSignupFormValues>({
     resolver: zodResolver(adminSignupSchema),
@@ -32,8 +35,14 @@ export default function AdminSignupPage() {
       email: "",
       otp: ["", "", "", "", "", ""],
       password: "",
+      avatar: null,
     },
   });
+
+  const handleAvatarChange = (file: File | null) => {
+    setAvatarFile(file);
+    setValue("avatar", file, { shouldValidate: false });
+  };
 
   useEffect(() => {
     if (countdown === null || countdown <= 0) {
@@ -61,7 +70,11 @@ export default function AdminSignupPage() {
 
   const onSubmit = async (data: AdminSignupFormValues) => {
     try {
-      await signupMutation.mutateAsync({ otp: data.otp.join(""), role: "admin" });
+      await signupMutation.mutateAsync({ 
+        otp: data.otp.join(""), 
+        role: "admin",
+        avatar: data.avatar ?? null 
+      });
       router.push("/admin");
     } catch {
       // The mutation error is rendered below.
@@ -117,6 +130,18 @@ export default function AdminSignupPage() {
               {...register("email")}
             />
             <FieldError error={errors.email} />
+          </div>
+
+          {/* প্রোফাইল ছবি (ঐচ্ছিক) */}
+          <div>
+            <label className="text-sm text-stone-700 block mb-1.5">প্রোফাইল ছবি (ঐচ্ছিক)</label>
+            <UploadBox
+              label="প্রোফাইল ছবি আপলোড করুন"
+              hint="JPG, PNG, WEBP · সর্বোচ্চ ৫MB"
+              file={avatarFile}
+              onChange={handleAvatarChange}
+              accept="image/*"
+            />
           </div>
 
           <div>

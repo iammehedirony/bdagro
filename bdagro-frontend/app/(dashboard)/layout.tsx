@@ -12,7 +12,7 @@ export default async function FarmerLayout({ children }: { children: React.React
      <div className="fixed top-0 left-0 h-screen w-64 bg-white">
        <Sidebar
        navItems={getNavItems(user.role)}
-        user={{name: user.firstName, role: user.role}} 
+        user={{name: user.firstName, role: user.role,imageUrl: user.imageUrl}} 
       />
      </div>
       <main className="bg-stone-50 min-h-screen w-full ml-64">

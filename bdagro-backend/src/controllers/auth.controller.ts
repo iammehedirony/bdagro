@@ -5,6 +5,9 @@ import { selectRoleSchema } from "../validators/auth.validator";
 import { AppError } from "../middlewares/errorHandler";
 import { UserRole } from "../utils/constants";
 import { addEmailJob } from "../jobs";
+import { uploadToCloudinary } from "../middlewares/upload";
+
+type UploadedFiles = { [fieldname: string]: Express.Multer.File[] } | undefined;
 
 /**
  * POST /api/auth/select-role
@@ -37,24 +40,44 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
   const email = clerkUser.primaryEmailAddress?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
   const name = clerkUser.fullName || email || "Unnamed User";
 
+  // Handle avatar upload if provided
+  const files = req.files as UploadedFiles;
+  let avatarUrl: string | null = clerkUser.imageUrl ?? null;
+
+  if (files?.avatar?.[0]) {
+    const uploadResult = await uploadToCloudinary(files.avatar[0], userId);
+    avatarUrl = uploadResult.secure_url;
+
+    // Sync avatar with Clerk user profile using the uploaded file
+    try {
+      const avatarFile = files.avatar[0];
+      const fileBlob = new Blob([avatarFile.buffer], { type: avatarFile.mimetype });
+      const file = new File([fileBlob], avatarFile.originalname, { type: avatarFile.mimetype });
+      await clerkClient.users.updateUserProfileImage(userId, { file });
+    } catch (clerkError) {
+      // Log error but don't fail registration - avatar is saved in DB
+      console.error("Failed to sync avatar with Clerk:", clerkError);
+    }
+  }
+
   const user = await User.create({
     clerkId: userId,
     name,
     email,
     phone: parsed.data.phone,
-    avatarUrl: clerkUser.imageUrl ?? null,
+    avatarUrl,
     role: parsed.data.role,
   });
 
   // Persist the choice back to Clerk's publicMetadata too, so it's
   // available immediately on the next webhook/session without a DB lookup.
-   // Clerk API ব্যবহার করে ইউজারের publicMetadata আপডেট করা
-    await clerkClient.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        role: parsed.data.role,
-        ...(parsed.data.role === "farmer" && { nidStatus: "unsubmitted" }),
-      },
-    });
+  // Clerk API ব্যবহার করে ইউজারের publicMetadata আপডেট করা
+  await clerkClient.users.updateUserMetadata(userId, {
+    publicMetadata: {
+      role: parsed.data.role,
+      ...(parsed.data.role === "farmer" && { nidStatus: "unsubmitted" }),
+    },
+  });
 
   // Send welcome email for Farmer and Investor roles (not Admin)
   if (parsed.data.role === UserRole.FARMER || parsed.data.role === UserRole.INVESTOR) {
