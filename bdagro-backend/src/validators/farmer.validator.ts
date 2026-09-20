@@ -47,6 +47,9 @@ export const updateFarmerProjectSchema = z.object({
   projectDescription: z.string().trim().min(10, "projectDescription is too short").optional(),
   location: z.string().trim().min(2, "location is too short").optional(),
   cropType: z.string().trim().optional(),
+  landArea: z.coerce.number().positive("landArea must be greater than 0").optional(),
+  expectedHarvestDate: z.coerce.date().optional(),
+  farmImage: z.string().url("farmImage must be a valid URL").nullable().optional(),
 });
 export type UpdateFarmerProjectInput = z.infer<typeof updateFarmerProjectSchema>;
 

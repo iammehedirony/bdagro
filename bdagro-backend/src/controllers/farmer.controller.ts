@@ -441,8 +441,10 @@ export async function createMyProject(req: Request, res: Response): Promise<void
 }
 
 /**
- * PUT /api/farmers/projects/:id
- * Updates a pending project (LoanApplication).
+ * PATCH /api/farmers/projects/:id
+ * Updates a project (LoanApplication) if status is Pending or Rejected.
+ * Approved applications cannot be edited.
+ * If Rejected, status is reset to Pending for admin re-review.
  */
 export async function updateMyProject(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
@@ -457,11 +459,18 @@ export async function updateMyProject(req: Request, res: Response): Promise<void
     throw new AppError("Project not found", 404);
   }
 
-  if (application.status !== LoanApplicationStatus.PENDING) {
-    throw new AppError("You can only edit projects that are in Pending status", 403);
+  // Security check: Approved applications cannot be edited
+  if (application.status === LoanApplicationStatus.APPROVED) {
+    throw new AppError("Approved applications cannot be edited", 403);
   }
 
-  if (body.requestedAmount || body.durationMonths) {
+  // Only Pending or Rejected applications can be edited
+  if (application.status !== LoanApplicationStatus.PENDING && application.status !== LoanApplicationStatus.REJECTED) {
+    throw new AppError("You can only edit projects that are in Pending or Rejected status", 403);
+  }
+
+  // Validate requestedAmount and durationMonths against loan product if provided
+  if (body.requestedAmount !== undefined || body.durationMonths !== undefined) {
     const loanProduct = await LoanProduct.findById(application.loanProduct);
     if (!loanProduct) {
       throw new AppError("Associated loan product not found", 404);
@@ -479,12 +488,24 @@ export async function updateMyProject(req: Request, res: Response): Promise<void
     }
   }
 
+  // Update ONLY the allowed editable fields
   if (body.requestedAmount !== undefined) application.requestedAmount = body.requestedAmount;
   if (body.durationMonths !== undefined) application.durationMonths = body.durationMonths;
   if (body.projectTitle !== undefined) application.projectTitle = body.projectTitle;
   if (body.projectDescription !== undefined) application.projectDescription = body.projectDescription;
   if (body.location !== undefined) application.location = body.location;
   if (body.cropType !== undefined) application.cropType = body.cropType;
+  if (body.landArea !== undefined) application.landArea = body.landArea;
+  if (body.expectedHarvestDate !== undefined) application.expectedHarvestDate = body.expectedHarvestDate;
+  if (body.farmImage !== undefined) application.farmImage = body.farmImage;
+
+  // Status reset: If Rejected, set back to Pending for re-review
+  if (application.status === LoanApplicationStatus.REJECTED) {
+    application.status = LoanApplicationStatus.PENDING;
+    application.rejectionReason = null;
+    application.reviewedBy = null;
+    application.reviewedAt = null;
+  }
 
   await application.save();
 

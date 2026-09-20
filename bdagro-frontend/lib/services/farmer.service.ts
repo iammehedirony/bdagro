@@ -180,6 +180,9 @@ export interface FarmerApplicationDetails {
   cropType?: string;
   requestedAmount: number;
   durationMonths: number;
+  landArea?: number;
+  expectedHarvestDate?: string;
+  farmImage?: string | null;
   status: FarmerProjectApplication["status"];
   rejectionReason?: string | null;
   createdAt: string;
@@ -333,5 +336,30 @@ export interface UpdateFarmerProfileInput {
 
 export async function updateFarmerProfile(api: AxiosInstance, data: UpdateFarmerProfileInput) {
   const response = await api.patch<FarmerProfileResponse>("/farmers/profile", data);
+  return response.data;
+}
+
+export interface UpdateFarmerProjectInput {
+  projectTitle?: string;
+  projectDescription?: string;
+  location?: string;
+  cropType?: string;
+  requestedAmount?: number;
+  durationMonths?: number;
+  landArea?: number;
+  expectedHarvestDate?: string;
+  farmImage?: string | null;
+}
+
+export interface UpdateFarmerProjectResponse {
+  project: FarmerApplicationDetails;
+}
+
+export async function updateFarmerProject(
+  api: AxiosInstance,
+  id: string,
+  data: UpdateFarmerProjectInput,
+) {
+  const response = await api.patch<UpdateFarmerProjectResponse>(`/farmers/projects/${id}`, data);
   return response.data;
 }

@@ -58,7 +58,7 @@ router.get("/projects/:id", farmerCtrl.getMyProjectById);
 router.get("/projects/:id/profit-report", farmerCtrl.getProjectProfitReport);
 router.post("/projects/:id/profit-report", validate(saveProjectProfitReportSchema), farmerCtrl.saveProjectProfitReport);
 router.post("/projects", uploadLoanDocs, validate(createLoanApplicationSchema), farmerCtrl.createMyProject);
-router.put("/projects/:id", validate(updateFarmerProjectSchema), farmerCtrl.updateMyProject);
+router.patch("/projects/:id", validate(updateFarmerProjectSchema), farmerCtrl.updateMyProject);
 
 // --- Transactions ---
 router.get("/profit-distribution", farmerCtrl.getProfitDistribution);
