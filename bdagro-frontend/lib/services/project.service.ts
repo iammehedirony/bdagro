@@ -1,4 +1,4 @@
-import type { AxiosInstance } from "axios";
+import axios, { type AxiosInstance } from "axios";
 
 export interface ProjectExplorerFilters {
   searchQuery: string;
@@ -37,6 +37,30 @@ export interface ProjectExplorerResponse {
   facets: { cropTypes: Record<string, number>; riskLevels: Record<string, number>; locations: Record<string, number>; fundingStatus: Record<string, number> };
 }
 
+export interface FeaturedProject {
+  _id: string;
+  title: string;
+  location: string;
+  cropType: string;
+  riskLevel: "low" | "medium" | "high";
+  expectedROIPercent: number;
+  fundingGoal: number;
+  fundedAmount: number;
+  progressPercent: number;
+  farmImage: string | null;
+  farmer: { name: string; avatarUrl: string | null } | null;
+  status: string;
+}
+
+export interface FeaturedProjectsResponse {
+  projects: FeaturedProject[];
+}
+
+const publicApi = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
 export async function listProjects(api: AxiosInstance, filters: ProjectExplorerFilters) {
   const response = await api.get<ProjectExplorerResponse>("/projects", {
     params: {
@@ -56,4 +80,9 @@ export async function listProjects(api: AxiosInstance, filters: ProjectExplorerF
 export async function getProjectDetails(api: AxiosInstance, projectId: string) {
   const response = await api.get<{ project: MarketplaceProject }>(`/projects/${projectId}`);
   return response.data.project;
+}
+
+export async function getFeaturedOngoingProjects(): Promise<FeaturedProject[]> {
+  const response = await publicApi.get<FeaturedProjectsResponse>("/projects/featured-ongoing");
+  return response.data.projects ?? [];
 }

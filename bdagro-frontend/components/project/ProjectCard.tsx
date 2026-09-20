@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { MapPin, Sprout } from "lucide-react";
+import Image from "next/image";
 import ProgressBar from "@/components/ui/ProgressBar";
 import RiskBadge from "@/components/ui/RiskBadge";
 import Link from "next/link";
@@ -13,9 +15,10 @@ interface ProjectCardProps {
   risk: "কম" | "মাঝারি" | "বেশি";
   roi: string;
   tone: "emerald" | "amber" | "orange";
+  image?: string | null;
 }
 
-function ProjectCard({ id, title, location, goal, raised, percent, risk, roi, tone }: ProjectCardProps) {
+function ProjectCard({ id, title, location, goal, raised, percent, risk, roi, tone, image }: ProjectCardProps) {
   const bgColor =
     tone === "emerald"
       ? "bg-primary-900"
@@ -23,10 +26,26 @@ function ProjectCard({ id, title, location, goal, raised, percent, risk, roi, to
       ? "bg-accent-700"
       : "bg-danger-800";
 
+  const [showFallback, setShowFallback] = useState(!image);
+
   return (
     <div className="border border-neutral-200 bg-white">
-      <div className={`h-32 flex items-center justify-center ${bgColor}`}>
-        <Sprout className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+      <div className="relative h-32 overflow-hidden">
+        {!showFallback && image && (
+          <Image
+            src={image}
+            alt={title}
+            fill
+            className="object-cover w-full h-full"
+            onError={() => setShowFallback(true)}
+            sizes="100vw"
+          />
+        )}
+        {showFallback && (
+          <div className={`h-full w-full flex items-center justify-center ${bgColor}`}>
+            <Sprout className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+          </div>
+        )}
       </div>
       <div className="p-5">
         <h3 className="text-lg text-neutral-900 mb-1">

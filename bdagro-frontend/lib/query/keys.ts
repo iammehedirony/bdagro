@@ -27,6 +27,7 @@ export const queryKeys = {
     transactions: ["investor", "transactions"] as const,
     notifications: ["investor", "notifications"] as const,
     projects: (filters: unknown) => ["investor", "projects", filters] as const,
+    featuredProjects: ["investor", "projects", "featured-ongoing"] as const,
     project: (id: string) => ["investor", "project", id] as const,
     profile: ["investor", "profile"] as const,
   },

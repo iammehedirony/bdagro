@@ -1,11 +1,13 @@
 "use client";
 import { usePathname } from 'next/navigation';
 import { Bell, Plus } from 'lucide-react';
+import Link from 'next/link';
 
 interface ConfigItem {
   pathMatch: string;
   title?: string;
   buttonText?: string | null;
+  buttonLink?: string | null;
 }
 
 interface DashboardHeaderProps {
@@ -18,7 +20,8 @@ export default function DashBoardHeader({ userName, config }: DashboardHeaderPro
 
   // ডিফল্ট মান
   let title = `স্বাগতম, ${userName}`;
-  let buttonText: string | null = "নতুন প্রকল্প পোস্ট করুন";
+  let buttonText: string | null = null;
+  let buttonLink: string | null = null;
 
   // URL অনুযায়ী কনফিগারেশন ম্যাচ করা
   if (config && config.length > 0) {
@@ -26,6 +29,7 @@ export default function DashBoardHeader({ userName, config }: DashboardHeaderPro
 
     if (matchedItem) {
       title = matchedItem.title || title;
+      buttonLink = matchedItem.buttonLink !== undefined ? matchedItem.buttonLink : buttonLink;
       buttonText = matchedItem.buttonText !== undefined ? matchedItem.buttonText : buttonText;
     }
   }
@@ -40,12 +44,13 @@ export default function DashBoardHeader({ userName, config }: DashboardHeaderPro
         <Bell className="w-5 h-5 text-neutral-400 cursor-pointer hover:text-neutral-600 transition-colors" />
 
         {buttonText && (
-          <button
+          <Link
+              href={buttonLink || "#"}
               className="bg-accent-500 text-primary-950 px-4 py-2 text-sm hover:bg-accent-400 flex items-center gap-1.5 transition-colors"
             >
               <Plus className="w-4 h-4" />
               {buttonText}
-            </button>
+            </Link>
         )}
       </div>
     </header>

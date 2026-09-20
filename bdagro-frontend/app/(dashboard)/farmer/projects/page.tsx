@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Eye, MapPin, Pencil, Sprout } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import StatusTag from "@/components/ui/StatusTag";
 import ProgressBar from "@/components/ui/ProgressBar";
@@ -19,6 +21,31 @@ function getProgress(project: FarmerProjectApplication) {
 
 function getTone(status: FarmerProjectApplication["status"]) {
   return status === "Approved" ? "emerald" : "amber";
+}
+
+function ProjectThumbnail({ image, tone }: { image?: string | null; tone: "emerald" | "amber" }) {
+  const bgColor = tone === "emerald" ? "bg-emerald-900" : "bg-amber-700";
+  const [showFallback, setShowFallback] = useState(!image);
+
+  return (
+    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+      {!showFallback && image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          className="object-cover"
+          onError={() => setShowFallback(true)}
+          sizes="56px"
+        />
+      )}
+      {showFallback && (
+        <div className={`h-full w-full flex items-center justify-center ${bgColor}`}>
+          <Sprout className="h-6 w-6 text-white/70" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function FarmerMyProjectsPage() {
@@ -55,12 +82,13 @@ export default function FarmerMyProjectsPage() {
                 const fundingGoal = marketplaceProject?.fundingGoal ?? project.requestedAmount;
                 const fundedAmount = marketplaceProject?.fundedAmount ?? 0;
                 const progress = getProgress(project);
+                const tone = getTone(project.status);
+                // Use project.farmImage for pending/rejected, marketplaceProject.farmImage for approved
+                const image = project.farmImage ?? marketplaceProject?.farmImage ?? null;
 
                 return (
                   <div key={project._id} className="flex flex-wrap items-center gap-6 p-6">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center bg-primary-900">
-                      <Sprout className="h-6 w-6 text-white/70" />
-                    </div>
+                    <ProjectThumbnail image={image} tone={tone} />
 
                     <div className="min-w-[180px] flex-1">
                       <div className="flex items-center gap-2">

@@ -5,9 +5,12 @@ import { UserRole } from "../utils/constants";
 import { validate } from "../middlewares/validate";
 import { listProjectsQuerySchema } from "../validators/investor.validator";
 import { manualPayoutSchema, completePayoutSchema } from "../validators/payout.validator";
-import { listProjects, getProjectById, getProjectPayouts, markInvestmentPayout, completeProjectPayout } from "../controllers/project.controller";
+import { listProjects, getProjectById, getProjectPayouts, markInvestmentPayout, completeProjectPayout, getFeaturedOngoingProjects } from "../controllers/project.controller";
 
 const router = Router();
+
+// Public endpoint - no authentication required
+router.get("/featured-ongoing", getFeaturedOngoingProjects);
 
 // Any authenticated, active account can browse the marketplace
 // (primarily investors, but nothing role-sensitive is exposed here).

@@ -32,20 +32,20 @@
   ];
 
      export const farmerHeaderConfig = [
-    { pathMatch: '/farmer/projects', title: 'আমার প্রকল্পসমূহ', buttonText: 'নতুন প্রকল্প পোস্ট করুন'},
-    { pathMatch: '/farmer/profit-distribution', title: 'মুনাফা বণ্টন' },
+    { pathMatch: '/farmer/projects', title: 'আমার প্রকল্পসমূহ', buttonText: 'নতুন প্রকল্প পোস্ট করুন', buttonLink: '/loans/application' },
+    { pathMatch: '/farmer/profit-distribution', title: 'মুনাফা বণ্টন'},
     { pathMatch: '/farmer/transactions', title: 'লেনদেন' },
     { pathMatch: '/farmer/notifications', title: 'নোটিফিকেশন' },
     { pathMatch: '/farmer/settings', title: 'অ্যাকাউন্ট সেটিংস' }
   ];
 
   export const investorHeaderConfig = [
-    { pathMatch: '/investor/investments', title: 'আমার বিনিয়োগ', buttonText: 'নতুন বিনিয়োগ করুন' },
+    { pathMatch: '/investor/investments', title: 'আমার বিনিয়োগ', buttonText: 'নতুন বিনিয়োগ করুন', buttonLink: '/projects' },
     { pathMatch: '/investor/roi-tracking', title: 'রিটার্ন ট্র্যাকিং' },
     { pathMatch: '/investor/transactions', title: 'লেনদেন' },
     { pathMatch: '/investor/notifications', title: 'নোটিফিকেশন' },
     { pathMatch: '/investor/settings', title: 'অ্যাকাউন্ট সেটিংস' },
-     { pathMatch: '/investor', buttonText: 'নতুন বিনিয়োগ করুন' }
+     { pathMatch: '/investor', title: 'ইনভেস্টর ওভারভিউ'}
   ];
 
    export const adminHeaderConfig = [

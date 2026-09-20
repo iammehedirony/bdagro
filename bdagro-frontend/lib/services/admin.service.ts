@@ -29,9 +29,9 @@ export interface AdminLoanApplication {
 }
 export interface AdminLoanApplicationResponse { applications: AdminLoanApplication[]; meta: { total: number } }
 export interface AdminAllProject {
-  application: AdminLoanApplication;
+  application: AdminLoanApplication & { farmImage: string | null };
   farmer: { _id: string; name: string; email?: string; phone?: string; district: string | null };
-  project: { _id: string; fundedAmount: number; fundingGoal: number } | null;
+  project: { _id: string; fundedAmount: number; fundingGoal: number; farmImage: string | null } | null;
 }
 export interface AdminAllProjectResponse { applications: AdminAllProject[]; meta: { total: number } }
 export interface AdminUser { _id: string; name: string; phone?: string; role: AdminUserRole; status: AdminUserStatus; nidVerificationStatus: AdminVerificationStatus | null; createdAt: string }

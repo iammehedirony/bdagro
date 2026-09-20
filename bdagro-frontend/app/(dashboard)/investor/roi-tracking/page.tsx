@@ -5,6 +5,8 @@ import {
   MapPin,
   Banknote,
 } from "lucide-react";
+import { useState } from "react";
+import Image from "next/image";
 import StatCard from "@/components/ui/StatCard";
 import { useInvestorROITrackingQuery } from "@/hooks/queries/useInvestorQueries";
 
@@ -22,6 +24,31 @@ function formatDate(value: string | null) {
 
 function projectStatus(status: string) {
   return status === "closed" ? "নিষ্পত্তি সম্পন্ন" : "চলমান";
+}
+
+function ProjectThumbnail({ image, tone }: { image?: string | null; tone: "emerald" | "amber" | "orange" }) {
+  const [showFallback, setShowFallback] = useState(!image);
+  const bgColor = tone === "emerald" ? "bg-emerald-900" : tone === "amber" ? "bg-amber-700" : "bg-orange-800";
+
+  return (
+    <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
+      {!showFallback && image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          className="object-cover"
+          onError={() => setShowFallback(true)}
+          sizes="40px"
+        />
+      )}
+      {showFallback && (
+        <div className={`h-full w-full flex items-center justify-center ${bgColor}`}>
+          <Sprout className="w-4.5 h-4.5 text-white/80" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function InvestorROITrackingPage() {
@@ -60,32 +87,29 @@ export default function InvestorROITrackingPage() {
               <div className="divide-y divide-stone-200">
                 {isLoading && <div className="p-6 text-sm text-stone-400">রিটার্নের তথ্য লোড হচ্ছে...</div>}
                 {isError && <div className="p-6 text-sm text-red-600">রিটার্নের তথ্য লোড করা যায়নি।</div>}
-                {!isLoading && !isError && projectReturns.map((project, index) => (
-                  <div key={project.projectId} className="p-5 flex items-center gap-4 flex-wrap">
-                    <div
-                      className={`w-10 h-10 flex items-center justify-center shrink-0 ${
-                        tones[index % tones.length] === "emerald" ? "bg-emerald-900" : tones[index % tones.length] === "amber" ? "bg-amber-700" : "bg-orange-800"
-                      }`}
-                    >
-                      <Sprout className="w-4.5 h-4.5 text-white/80" />
-                    </div>
-                    <div className="flex-1 min-w-35">
-                      <div className="text-sm text-stone-800">{project.projectTitle}</div>
-                      <div className="flex items-center gap-1 text-xs text-stone-400 mt-0.5">
-                        <MapPin className="w-3 h-3" />
-                        {project.location}
-                        <span className="mx-1">·</span>
-                        {projectStatus(project.status)}
+                {!isLoading && !isError && projectReturns.map((project, index) => {
+                  const tone = tones[index % tones.length] as "emerald" | "amber" | "orange";
+                  return (
+                    <div key={project.projectId} className="p-5 flex items-center gap-4 flex-wrap">
+                      <ProjectThumbnail image={project.farmImage} tone={tone} />
+                      <div className="flex-1 min-w-35">
+                        <div className="text-sm text-stone-800">{project.projectTitle}</div>
+                        <div className="flex items-center gap-1 text-xs text-stone-400 mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          {project.location}
+                          <span className="mx-1">·</span>
+                          {projectStatus(project.status)}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm text-emerald-700">+{formatCurrency(project.earned)}</div>
+                        <div className="text-xs text-stone-400 mt-0.5">
+                          বিনিয়োগ {formatCurrency(project.invested)} · {project.roi.toFixed(1)}%
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm text-emerald-700">+{formatCurrency(project.earned)}</div>
-                      <div className="text-xs text-stone-400 mt-0.5">
-                        বিনিয়োগ {formatCurrency(project.invested)} · {project.roi.toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
-                ))}
+);
+                })}
                 {!isLoading && !isError && projectReturns.length === 0 && <div className="p-6 text-sm text-stone-400">কোনো প্রকল্পভিত্তিক রিটার্ন নেই।</div>}
               </div>
             </div>

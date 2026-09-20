@@ -60,6 +60,7 @@ export interface InvestorPortfolioProject {
   expectedROIPercent: number;
   fundingGoal: number;
   fundedAmount: number;
+  farmImage: string | null;
 }
 
 export interface InvestorInvestment {
@@ -104,6 +105,7 @@ export interface InvestorROIProject {
   earned: number;
   roi: number;
   status: string;
+  farmImage: string | null;
 }
 
 export interface InvestorPayout {

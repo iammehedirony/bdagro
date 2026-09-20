@@ -80,7 +80,7 @@ export async function getPortfolio(req: Request, res: Response): Promise<void> {
     investor: investorId,
     status: { $nin: excludedInvestmentStatuses },
   })
-    .populate("project", "title location cropType riskLevel expectedROIPercent status fundingGoal fundedAmount")
+    .populate("project", "title location cropType riskLevel expectedROIPercent status fundingGoal fundedAmount farmImage")
     .sort({ createdAt: -1 });
 
   const totalInvested = totals?.totalInvested ?? 0;
@@ -191,6 +191,7 @@ interface ProjectROI {
   earned: number;
   roi: number;
   status: string;
+  farmImage: string | null;
 }
 
 interface InvestorPayout {
@@ -211,7 +212,7 @@ export async function getROITracking(req: Request, res: Response): Promise<void>
 
   // Investment.returnAmount is the source of truth for project-level returns.
   const investments = await Investment.find({ investor: investorId })
-    .populate("project", "title location status")
+    .populate("project", "title location status farmImage")
     .lean();
 
   // Payouts can be created by either manual settlement or a distribution gateway.
@@ -255,6 +256,7 @@ export async function getROITracking(req: Request, res: Response): Promise<void>
       earned: investment.returnAmount,
       roi: investment.amount > 0 ? (investment.returnAmount / investment.amount) * 100 : 0,
       status: project.status || investment.status,
+      farmImage: project.farmImage ?? null,
     });
     return rows;
   }, []);
@@ -315,6 +317,7 @@ export async function getROITracking(req: Request, res: Response): Promise<void>
     monthlyData,
     projectROIs: projectROIs.map((project) => ({
       ...project,
+      farmImage: project.farmImage,
       earned: Math.round(project.earned),
       roi: Math.round(project.roi * 10) / 10,
       status: project.status,

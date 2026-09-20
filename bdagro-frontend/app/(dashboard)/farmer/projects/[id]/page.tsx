@@ -1,7 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { Calendar, HandCoins, MapPin, Pencil, Ruler, Sprout, Users, Wheat } from "lucide-react";
+import Image from "next/image";
 import ProgressBar from "@/components/ui/ProgressBar";
 import StatusStep from "@/components/ui/StatusStep";
 import { useFarmerApplicationQuery, useFarmerApprovedProjectQuery } from "@/hooks/queries/useFarmerProjectDetailsQueries";
@@ -23,6 +25,31 @@ function statusClasses(status: FarmerProjectApplication["status"]) {
 
 function statusIndex(status: FarmerProjectApplication["status"]) {
   return ["Pending", "Processing", "Approved"].indexOf(status);
+}
+
+function ProjectBanner({ image }: { image?: string | null }) {
+  const [showFallback, setShowFallback] = useState(!image);
+
+  return (
+    <div className="relative h-64 w-full overflow-hidden">
+      {!showFallback && image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          className="object-cover"
+          onError={() => setShowFallback(true)}
+          sizes="100vw"
+          priority
+        />
+      )}
+      {showFallback && (
+        <div className="h-full w-full flex items-center justify-center bg-emerald-900">
+          <Sprout className="h-12 w-12 text-white/60" strokeWidth={1.5} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function FarmerProjectDetailsPage() {
@@ -55,7 +82,7 @@ export default function FarmerProjectDetailsPage() {
       <div className="p-8">
         <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
           <div>
-            <div className="flex h-64 items-center justify-center bg-emerald-900"><Sprout className="h-12 w-12 text-white/60" strokeWidth={1.5} /></div>
+            <ProjectBanner image={application.farmImage ?? null} />
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <div>

@@ -288,7 +288,7 @@ export async function listAllProjects(req: Request, res: Response): Promise<void
   const farmerIds = applications.map((application) => application.farmer._id);
   const [projects, farmerProfiles] = await Promise.all([
     Project.find({ loanApplication: { $in: applicationIds } })
-      .select("loanApplication fundedAmount fundingGoal")
+      .select("loanApplication fundedAmount fundingGoal farmImage")
       .lean(),
     FarmerProfile.find({ user: { $in: farmerIds } })
       .select("user address")
@@ -305,7 +305,10 @@ export async function listAllProjects(req: Request, res: Response): Promise<void
     const farmer = application.farmer as unknown as { _id: mongoose.Types.ObjectId; name: string; email?: string; phone?: string };
 
     return {
-      application,
+      application: {
+        ...application,
+        farmImage: application.farmImage ?? null,
+      },
       farmer: {
         ...farmer,
         district: districtByFarmerId.get(farmer._id.toString()) ?? null,
@@ -315,6 +318,7 @@ export async function listAllProjects(req: Request, res: Response): Promise<void
             _id: project._id,
             fundedAmount: project.fundedAmount,
             fundingGoal: project.fundingGoal,
+            farmImage: project.farmImage ?? null,
           }
         : null,
     };

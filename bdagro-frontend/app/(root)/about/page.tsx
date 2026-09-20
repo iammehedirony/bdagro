@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
 import {
   Sprout,
   HandCoins,
@@ -7,7 +9,57 @@ import {
   Target,
   Heart,
 } from "lucide-react";
+import { motion, useInView, animate } from "motion/react";
 
+// বাংলা সংখ্যায় রূপান্তর করার ফাংশন
+const enToBn = (enNum: string | number) => {
+  const bn = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return enNum.toString().replace(/\d/g, (d) => bn[parseInt(d)]);
+};
+
+// কাস্টম কাউন্টার অ্যানিমেশন কম্পোনেন্ট
+const AnimatedStat = ({
+  value,
+  prefix = "",
+  suffix = "",
+  decimals = 0,
+  format = false,
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  format?: boolean;
+}) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [display, setDisplay] = useState(enToBn((0).toFixed(decimals)));
+
+  useEffect(() => {
+    if (isInView) {
+      const controls = animate(0, value, {
+        duration: 2.5,
+        ease: "easeOut",
+        onUpdate(v) {
+          let strVal = v.toFixed(decimals);
+          if (format) {
+            strVal = Number(strVal).toLocaleString("en-US");
+          }
+          setDisplay(enToBn(strVal));
+        },
+      });
+      return () => controls.stop();
+    }
+  }, [isInView, value, decimals, format]);
+
+  return (
+    <span ref={ref}>
+      {prefix}
+      {display}
+      {suffix}
+    </span>
+  );
+};
 
 const values = [
   {
@@ -33,15 +85,24 @@ const team = [
   { name: "সহ-প্রতিষ্ঠাতা", role: "প্রযুক্তি ও প্ল্যাটফর্ম" },
 ];
 
+const statsData = [
+  { value: 500, suffix: "+", label: "যাচাইকৃত কৃষক" },
+  { value: 1200, suffix: "+", label: "সক্রিয় বিনিয়োগকারী", format: true },
+  { value: 2.8, prefix: "৳", suffix: " কোটি+", label: "মোট বিনিয়োগ", decimals: 1 },
+  { value: 64, suffix: "টি", label: "জেলায় উপস্থিতি" },
+];
+
 export default function AboutPage() {
   return (
     <div className="bg-white">
-
-    
-
       {/* HERO */}
-      <section className="bg-emerald-950">
-        <div className="max-w-4xl mx-auto px-6 py-24 text-center">
+      <section className="bg-emerald-950 overflow-hidden">
+        <motion.div 
+          className="max-w-4xl mx-auto px-6 py-24 text-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           <h1 className="text-4xl md:text-5xl leading-[1.15] text-stone-50">
             মাটির সাথে পুঁজির সেতুবন্ধন
           </h1>
@@ -52,17 +113,21 @@ export default function AboutPage() {
             মাটির সাথে যুক্ত হওয়ার সুযোগ না থাকে — তাহলে দুই পক্ষকে
             নিরাপদে এক জায়গায় আনা যায় কীভাবে?
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* MISSION */}
       <section className="max-w-4xl mx-auto px-6 py-20">
-        <div className="grid md:grid-cols-[auto_1fr] gap-6 items-start">
+        <motion.div 
+          className="grid md:grid-cols-[auto_1fr] gap-6 items-start"
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
           <Target className="w-7 h-7 text-emerald-800 shrink-0" />
           <div>
-            <h2 className="text-2xl text-stone-900">
-              আমাদের লক্ষ্য
-            </h2>
+            <h2 className="text-2xl text-stone-900">আমাদের লক্ষ্য</h2>
             <p className="mt-3 text-stone-600 leading-relaxed">
               বাংলাদেশের যাচাইকৃত কৃষকদের সরাসরি বিনিয়োগকারীদের সাথে যুক্ত
               করা, যাতে কৃষক ন্যায্য শর্তে মূলধন পান আর বিনিয়োগকারী সরাসরি
@@ -70,26 +135,37 @@ export default function AboutPage() {
               সুদভিত্তিক জটিলতা ছাড়াই।
             </p>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* VALUES */}
       <section className="bg-stone-50 border-y border-stone-200">
         <div className="max-w-6xl mx-auto px-6 py-20">
-          <h2 className="text-2xl md:text-3xl text-stone-900 mb-12 text-center">
+          <motion.h2 
+            className="text-2xl md:text-3xl text-stone-900 mb-12 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+          >
             আমরা যেভাবে কাজ করি
-          </h2>
+          </motion.h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {values.map((v) => (
-              <div key={v.title} className="border border-stone-200 bg-white p-6">
+            {values.map((v, i) => (
+              <motion.div 
+                key={v.title} 
+                className="border border-stone-200 bg-white p-6"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+              >
                 <v.icon className="w-6 h-6 text-emerald-800" />
-                <h3 className="mt-4 text-stone-900">
-                  {v.title}
-                </h3>
+                <h3 className="mt-4 text-stone-900">{v.title}</h3>
                 <p className="mt-2 text-sm text-stone-500 leading-relaxed">
                   {v.body}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -98,18 +174,26 @@ export default function AboutPage() {
       {/* STATS */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            ["৫০০+", "যাচাইকৃত কৃষক"],
-            ["১,২০০+", "সক্রিয় বিনিয়োগকারী"],
-            ["৳২.৮ কোটি+", "মোট বিনিয়োগ"],
-            ["৬৪টি", "জেলায় উপস্থিতি"],
-          ].map(([num, label]) => (
-            <div key={label} className="text-center">
-              <div className="text-2xl text-stone-900">
-                {num}
+          {statsData.map((stat, i) => (
+            <motion.div 
+              key={stat.label} 
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+            >
+              <div className="text-2xl text-stone-900 font-semibold">
+                <AnimatedStat
+                  value={stat.value}
+                  prefix={stat.prefix}
+                  suffix={stat.suffix}
+                  decimals={stat.decimals}
+                  format={stat.format}
+                />
               </div>
-              <div className="text-sm text-stone-500 mt-1">{label}</div>
-            </div>
+              <div className="text-sm text-stone-500 mt-1">{stat.label}</div>
+            </motion.div>
           ))}
         </div>
       </section>
@@ -117,46 +201,63 @@ export default function AboutPage() {
       {/* TEAM */}
       <section className="border-t border-stone-200">
         <div className="max-w-6xl mx-auto px-6 py-20">
-          <div className="flex items-center gap-2 mb-12">
+          <motion.div 
+            className="flex items-center gap-2 mb-12"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+          >
             <Heart className="w-5 h-5 text-emerald-800" />
             <h2 className="text-2xl md:text-3xl text-stone-900">
               যারা তৈরি করছেন
             </h2>
-          </div>
+          </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
-            {team.map((m) => (
-              <div key={m.role} className="border border-stone-200 p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-900 mx-auto flex items-center justify-center text-white text-lg">
+            {team.map((m, i) => (
+              <motion.div 
+                key={m.role} 
+                className="border border-stone-200 p-6 text-center"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+              >
+                <div className="w-16 h-16 rounded-full bg-emerald-900 mx-auto flex items-center justify-center text-white text-lg font-medium shadow-sm">
                   {m.name[0]}
                 </div>
-                <div className="mt-4 text-stone-900">
+                <div className="mt-4 text-stone-900 font-medium">
                   {m.name}
                 </div>
                 <div className="text-sm text-stone-400 mt-1">{m.role}</div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="bg-emerald-950">
-        <div className="max-w-4xl mx-auto px-6 py-16 text-center">
+      <section className="bg-emerald-950 overflow-hidden">
+        <motion.div 
+          className="max-w-4xl mx-auto px-6 py-16 text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6 }}
+        >
           <h2 className="text-2xl md:text-3xl text-stone-50">
             আপনিও এই যাত্রার অংশ হতে পারেন
           </h2>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <button className="bg-amber-500 text-emerald-950 px-6 py-3 text-sm font-medium hover:bg-amber-400">
+            <button className="bg-amber-500 text-emerald-950 px-6 py-3 text-sm font-medium hover:bg-amber-400 transition-colors">
               কৃষক হিসেবে শুরু করুন
             </button>
-            <button className="border border-emerald-100/30 text-emerald-50 px-6 py-3 text-sm hover:border-emerald-100/70">
+            <button className="border border-emerald-100/30 text-emerald-50 px-6 py-3 text-sm hover:border-emerald-100/70 transition-colors">
               বিনিয়োগকারী হিসেবে যোগ দিন
             </button>
           </div>
-        </div>
+        </motion.div>
       </section>
-
-    
     </div>
   );
 }

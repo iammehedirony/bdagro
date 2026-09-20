@@ -146,12 +146,14 @@ export interface FarmerProjectApplication {
   status: "Pending" | "Processing" | "Approved" | "Rejected";
   rejectionReason?: string | null;
   createdAt: string;
+  farmImage: string | null;
   marketplaceProject: {
     _id: string;
     cropType: string;
     fundingGoal: number;
     fundedAmount: number;
     status: string;
+    farmImage: string | null;
   } | null;
 }
 

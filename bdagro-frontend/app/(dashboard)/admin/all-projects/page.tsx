@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useState as useStateHook } from "react";
 import { Eye, MapPin, Sprout } from "lucide-react";
+import Image from "next/image";
 import StatusTag from "@/components/ui/StatusTag";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { useAdminAllProjectsQuery } from "@/hooks/queries/useAdminQueries";
@@ -33,6 +35,31 @@ function getErrorMessage(error: unknown) {
     if (response?.data?.message) return response.data.message;
   }
   return "আবার চেষ্টা করুন।";
+}
+
+function ProjectThumbnail({ image, status }: { image?: string | null; status: DisplayStatus }) {
+  const [showFallback, setShowFallback] = useStateHook(!image);
+  const bgColor = status === "Approved" ? "bg-primary-900" : "bg-accent-700";
+
+  return (
+    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
+      {!showFallback && image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          className="object-cover"
+          onError={() => setShowFallback(true)}
+          sizes="44px"
+        />
+      )}
+      {showFallback && (
+        <div className={`h-full w-full flex items-center justify-center ${bgColor}`}>
+          <Sprout className="h-5 w-5 text-white/80" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminAllProjectsPage() {
@@ -79,12 +106,11 @@ export default function AdminAllProjectsPage() {
                 const progress = getProgress(item);
                 const target = item.project?.fundingGoal ?? item.application.requestedAmount;
                 const tone = status === "Approved" ? "emerald" : "amber";
+                const image = item.application.farmImage ?? item.project?.farmImage ?? null;
 
                 return (
                   <div key={item.application._id} className="flex flex-wrap items-center gap-6 p-5">
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center ${status === "Approved" ? "bg-primary-900" : "bg-accent-700"}`}>
-                      <Sprout className="h-5 w-5 text-white/80" />
-                    </div>
+                    <ProjectThumbnail image={image} status={status} />
                     <div className="min-w-45 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-neutral-900">{item.application.projectTitle}</span>

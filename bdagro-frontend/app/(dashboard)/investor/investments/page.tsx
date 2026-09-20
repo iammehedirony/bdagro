@@ -6,6 +6,7 @@ import {
   Download,
 } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 import StatusTag from "@/components/ui/StatusTag";
 import ProgressBar from "@/components/ui/ProgressBar";
 import RiskDot from "@/components/ui/RiskDot";
@@ -35,6 +36,31 @@ function formatCurrency(value: number) {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("bn-BD", { day: "numeric", month: "long", year: "numeric" }).format(
     new Date(value),
+  );
+}
+
+function ProjectThumbnail({ image, tone }: { image?: string | null; tone: "emerald" | "amber" | "orange" }) {
+  const [showFallback, setShowFallback] = useState(!image);
+  const bgColor = tone === "emerald" ? "bg-emerald-900" : tone === "amber" ? "bg-amber-700" : "bg-orange-800";
+
+  return (
+    <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-lg">
+      {!showFallback && image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          className="object-cover"
+          onError={() => setShowFallback(true)}
+          sizes="56px"
+        />
+      )}
+      {showFallback && (
+        <div className={`h-full w-full flex items-center justify-center ${bgColor}`}>
+          <Sprout className="w-6 h-6 text-white/70" />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -97,20 +123,12 @@ export default function InvestorMyInvestmentsPage() {
                 const progress = investment.project.fundingGoal > 0
                   ? Math.min(100, Math.round((investment.project.fundedAmount / investment.project.fundingGoal) * 100))
                   : 0;
+                const tone = tones[investment.project.riskLevel];
+                const image = investment.project.farmImage;
 
                 return (
                 <div key={investment._id} className="p-6 flex items-center gap-6 flex-wrap">
-                  <div
-                    className={`w-14 h-14 flex items-center justify-center shrink-0 ${
-                      tones[investment.project.riskLevel] === "emerald"
-                        ? "bg-emerald-900"
-                        : tones[investment.project.riskLevel] === "amber"
-                        ? "bg-amber-700"
-                        : "bg-orange-800"
-                    }`}
-                  >
-                    <Sprout className="w-6 h-6 text-white/70" />
-                  </div>
+                  <ProjectThumbnail image={image} tone={tone} />
 
                   <div className="flex-1 min-w-45">
                     <div className="flex items-center gap-2">

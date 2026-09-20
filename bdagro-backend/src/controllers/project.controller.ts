@@ -309,3 +309,39 @@ export async function completeProjectPayout(req: Request, res: Response): Promis
   );
   res.json({ project: updatedProject, message: "All investor payouts completed" });
 }
+
+/**
+ * GET /api/projects/featured-ongoing
+ * Public endpoint - no authentication required.
+ * Returns top 3 active/ongoing projects with funding progress > 50%,
+ * sorted by highest funding goal (budget).
+ */
+export async function getFeaturedOngoingProjects(_req: Request, res: Response): Promise<void> {
+  const activeStatuses = [ProjectStatus.OPEN, ProjectStatus.PARTIALLY_FUNDED];
+
+  const projects = await Project.find({
+    status: { $in: activeStatuses },
+    $expr: { $gt: [{ $divide: ["$fundedAmount", "$fundingGoal"] }, 0.5] },
+  })
+    .populate("farmer", "name avatarUrl")
+    .sort({ fundingGoal: -1 })
+    .limit(3)
+    .lean();
+
+  const formattedProjects = projects.map((project) => ({
+    _id: project._id.toString(),
+    title: project.title,
+    location: project.location,
+    cropType: project.cropType,
+    riskLevel: project.riskLevel,
+    expectedROIPercent: project.expectedROIPercent,
+    fundingGoal: project.fundingGoal,
+    fundedAmount: project.fundedAmount,
+    progressPercent: Math.round((project.fundedAmount / project.fundingGoal) * 100),
+    farmImage: project.farmImage,
+    farmer: project.farmer,
+    status: project.status,
+  }));
+
+  res.json({ projects: formattedProjects });
+}

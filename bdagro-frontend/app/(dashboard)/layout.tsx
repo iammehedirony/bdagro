@@ -9,11 +9,13 @@ export default async function FarmerLayout({ children }: { children: React.React
   
   return (
     <div className="flex">
-      <Sidebar
+     <div className="fixed top-0 left-0 h-screen w-64 bg-white">
+       <Sidebar
        navItems={getNavItems(user.role)}
         user={{name: user.firstName, role: user.role}} 
       />
-      <main className="flex-1 bg-stone-50 min-h-screen">
+     </div>
+      <main className="bg-stone-50 min-h-screen w-full ml-64">
         <DashBoardHeader
           userName={user.firstName} 
           config={getActiveHeaderConfig(user.role)} 
