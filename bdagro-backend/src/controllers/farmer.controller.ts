@@ -668,7 +668,7 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
 
   // Calculate stats
   const activeProjectsCount = projects.filter(
-    (p) => p.status === ProjectStatus.OPEN || p.status === ProjectStatus.PARTIALLY_FUNDED
+    (p) => p.status !== ProjectStatus.CLOSED
   ).length;
 
   const pendingApplicationsCount = applications.filter(
@@ -750,7 +750,8 @@ export async function getFarmerDashboard(req: Request, res: Response): Promise<v
         fundingPercent: project && fundingGoal > 0
           ? Math.round((fundedAmount / fundingGoal) * 100)
           : 0,
-        status: application.status,
+        status: application.status,              // এটি লোন অ্যাপ্লিকেশনের স্ট্যাটাস
+        projectStatus: project?.status || null,  // <-- নতুন ফিল্ড: প্রজেক্টের স্ট্যাটাস
         investorCount,
       };
     })

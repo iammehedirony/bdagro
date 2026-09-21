@@ -26,7 +26,7 @@ export interface MarketplaceProject {
   fundingDeadline: string | null;
   farmImage: string | null;
   durationMonths: number | null;
-  landAreaAcres: number | null;
+  landArea: number | null;
   investmentSummary: { totalRaised: number; investorCount: number; daysLeft: number | null };
   farmer: { _id: string; name: string; avatarUrl: string | null; createdAt?: string };
 }

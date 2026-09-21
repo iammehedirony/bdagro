@@ -149,25 +149,25 @@ function HomePage() {
  const heroImages = [
     {
       id: 1,
-      src: "https://images.unsplash.com/photo-1574943320219-553eb213f72d",
+      src: "/hero-1.jpg",
       span: "col-span-2 row-span-2",
       delay: 0,
     },
     {
       id: 2,
-      src: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854",
+      src: "/hero-2.jpg",
       span: "col-span-1 row-span-1",
       delay: 0.2,
     },
     {
       id: 3,
-       src: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff",
+       src: "/hero-3.jpg",
       span: "col-span-1 row-span-1",
       delay: 0.4,
     },
     {
       id: 4,
-      src: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae",
+      src: "/hero-4.jpg",
       span: "col-span-3 row-span-1",
       delay: 0.1,
     },

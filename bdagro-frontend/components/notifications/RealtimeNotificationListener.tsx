@@ -177,60 +177,13 @@ export default function RealtimeNotificationListener() {
       console.log("[RealtimeListener] [EVENT] notification:new received (room-based):", notification._id);
     };
 
-    const handleLoanStatusUpdate = (data: { loanApplicationId: string; status: string }) => {
-      console.log("[RealtimeListener] [EVENT] loan:status_updated received:", data);
-      const statusMessages: Record<string, { title: string; message: string }> = {
-        Approved: {
-          title: "Loan Application Approved",
-          message: "Your loan application has been approved and is now live on the investor marketplace.",
-        },
-        Rejected: {
-          title: "Loan Application Rejected",
-          message: "Your loan application was rejected. Please check the details for the reason.",
-        },
-        Processing: {
-          title: "Loan Application Under Review",
-          message: "Your loan application is now being processed by our team.",
-        },
-        Pending: {
-          title: "Loan Application Submitted",
-          message: "Your loan application is pending review.",
-        },
-      };
-
-      const statusInfo = statusMessages[data.status] ?? {
-        title: "Loan Application Update",
-        message: `Your loan application status changed to ${data.status}.`,
-      };
-
-      const notification: RealtimeNotification = {
-        _id: `loan-${data.loanApplicationId}-${Date.now()}`,
-        title: statusInfo.title,
-        message: statusInfo.message,
-        type: "project",
-        isRead: false,
-        createdAt: new Date().toISOString(),
-        meta: { loanApplicationId: data.loanApplicationId, status: data.status },
-      };
-
-      // Deduplication for loan status updates too
-      const now = Date.now();
-      const lastSeen = seenNotificationsRef.current.get(notification._id);
-      if (!lastSeen || now - lastSeen >= 3000) {
-        seenNotificationsRef.current.set(notification._id, now);
-        setNotifications((prev) => [...prev, notification]);
-      }
-    };
-
     socket.on("new-notification", handleNewNotification);
     socket.on("notification:new", handleNotificationNew);
-    socket.on("loan:status_updated", handleLoanStatusUpdate);
 
     return () => {
       console.log("[RealtimeListener] [EFFECT] CLEANUP - Removing listeners from socket:", socket.id);
       socket.off("new-notification", handleNewNotification);
       socket.off("notification:new", handleNotificationNew);
-      socket.off("loan:status_updated", handleLoanStatusUpdate);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);

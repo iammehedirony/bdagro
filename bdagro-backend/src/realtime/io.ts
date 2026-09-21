@@ -51,6 +51,14 @@ export function initializeSocketHandlers(io: Server): void {
       const userId = String(receivedId ?? "");
       console.log(`[Socket.io] [JOIN] Received join event. Raw: "${receivedId}" (type: ${typeof receivedId}, constructor: ${receivedId?.constructor?.name}), Converted: "${userId}"`);
 
+      // SECURITY: Validate requested userId matches handshake auth
+      const authUserId = String(socket.handshake.auth?.userId ?? "");
+      if (authUserId !== userId) {
+        console.warn(`[Socket.io] [SECURITY] Join rejected: handshake userId="${authUserId}" != requested="${userId}"`);
+        socket.emit("join:ack", { success: false, error: "Unauthorized: userId mismatch" });
+        return;
+      }
+
       if (userId && userId !== "undefined" && userId !== "null") {
         // FORCE string conversion for room name
         const roomName = `user:${String(userId)}`;

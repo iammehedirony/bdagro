@@ -52,6 +52,7 @@ export interface FarmerDashboardProject {
   fundingGoal: number;
   fundedAmount: number;
   fundingPercent: number;
+  projectStatus: string | null;
   status: string;
   investorCount: number;
 }

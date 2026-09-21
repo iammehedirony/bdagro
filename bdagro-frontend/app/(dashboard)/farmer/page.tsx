@@ -74,7 +74,7 @@ export default function FarmerOverviewPage() {
                       </div>
                     </div>
                     <span className={`border px-2 py-0.5 text-xs ${statusClasses(project.status)}`}>
-                      {project.status}
+                      {project.projectStatus ? project.projectStatus : project.status} 
                     </span>
                   </div>
                   {project.status === "Approved" ? (

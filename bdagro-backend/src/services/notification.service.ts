@@ -10,10 +10,6 @@ interface NotifyPayload {
   meta?: Record<string, unknown>;
 }
 
-function getUserSocket(userId: string): string | undefined {
-  return (global as any).getUserSocket?.(userId);
-}
-
 /**
  * Persists a Notification and, if the target user is currently online,
  * pushes it live over Socket.io directly to their socket.id.
@@ -59,15 +55,6 @@ export async function notifyUser(
     // Also emit notification:new for notification pages
     console.log(`[notifyUser] Emitting "notification:new" to room "${roomName}"`);
     io.to(roomName).emit("notification:new", notification);
-
-    // Also emit directly to the user's socket as a fallback (if socket ID known)
-    const socketId = getUserSocket(userIdStr);
-    if (socketId) {
-      console.log(`[notifyUser] Also emitting "new-notification" directly to socket ${socketId}`);
-      io.to(socketId).emit("new-notification", notification);
-    } else {
-      console.log(`[notifyUser] No direct socket ID found for user "${userIdStr}" (relying on room emission)`);
-    }
   } else {
     console.error(`[notifyUser] Socket.io instance not available!`);
   }

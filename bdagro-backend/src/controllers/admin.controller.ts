@@ -48,13 +48,12 @@ export async function getDashboard(_req: Request, res: Response): Promise<void> 
     LoanApplication.countDocuments({
       status: { $in: [LoanApplicationStatus.PENDING, LoanApplicationStatus.PROCESSING] },
     }),
-    Project.countDocuments({ status: { $in: [ProjectStatus.OPEN, ProjectStatus.PARTIALLY_FUNDED] } }),
+    Project.countDocuments({ status: { $ne: ProjectStatus.CLOSED } }),
     Transaction.aggregate([
       { $match: { type: TransactionType.LOAN_DISBURSEMENT, status: TransactionStatus.SUCCESS } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     Investment.aggregate([
-      { $match: { status: InvestmentStatus.COMPLETED } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
   ]);
