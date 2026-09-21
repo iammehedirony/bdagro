@@ -10,7 +10,6 @@ import {
   UserRole,
   VerificationStatus,
   LoanApplicationStatus,
-  InvestmentStatus,
   TransactionType,
   TransactionStatus,
   ProjectStatus,
