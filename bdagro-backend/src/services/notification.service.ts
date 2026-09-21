@@ -29,7 +29,10 @@ export async function notifyUser(
   userId: Types.ObjectId | string,
   payload: NotifyPayload
 ) {
-  const userIdStr = userId.toString();
+  // FORCE string conversion - handle ObjectId, string, or any other type
+  const userIdStr = String(userId);
+  console.log(`[notifyUser] Called for userId: "${userIdStr}" (type: ${typeof userId}, constructor: ${userId?.constructor?.name}), notification type: ${payload.type ?? NotificationType.GENERAL}`);
+  
   const notification = await Notification.create({
     user: userIdStr,
     title: payload.title,
@@ -38,16 +41,35 @@ export async function notifyUser(
     meta: payload.meta ?? {},
   });
 
+  console.log(`[notifyUser] Notification created in DB: ${notification._id}`);
+
   const io = getIo();
   if (io) {
-    // Emit to the room for any existing listeners (e.g., notification pages)
-    io.to(`user:${userIdStr}`).emit("notification:new", notification);
+    // FORCE string conversion for room name
+    const roomName = `user:${String(userIdStr)}`;
+    
+    // DEBUG: Log the EXACT room being emitted to
+    console.log(`[notifyUser] [ROOM] ACTUAL ROOM EMITTING TO: "${roomName}"`);
+    console.log(`[notifyUser] [ROOM] userIdStr value: "${userIdStr}", length: ${userIdStr.length}`);
+    
+    // Single emission to the MongoDB _id room (frontend joins this exact room)
+    console.log(`[notifyUser] Emitting "new-notification" to room "${roomName}"`);
+    io.to(roomName).emit("new-notification", notification);
 
-    // Also emit directly to the user's socket for the real-time popup
+    // Also emit notification:new for notification pages
+    console.log(`[notifyUser] Emitting "notification:new" to room "${roomName}"`);
+    io.to(roomName).emit("notification:new", notification);
+
+    // Also emit directly to the user's socket as a fallback (if socket ID known)
     const socketId = getUserSocket(userIdStr);
     if (socketId) {
+      console.log(`[notifyUser] Also emitting "new-notification" directly to socket ${socketId}`);
       io.to(socketId).emit("new-notification", notification);
+    } else {
+      console.log(`[notifyUser] No direct socket ID found for user "${userIdStr}" (relying on room emission)`);
     }
+  } else {
+    console.error(`[notifyUser] Socket.io instance not available!`);
   }
 
   return notification;

@@ -94,3 +94,26 @@ export async function selectRole(req: Request, res: Response): Promise<void> {
 
   res.status(201).json({ user });
 }
+
+/**
+ * GET /api/auth/me
+ * Returns the current authenticated user's MongoDB profile.
+ * Used by frontend to get the MongoDB _id for Socket.io room joining.
+ */
+export async function getMe(req: Request, res: Response): Promise<void> {
+  if (!req.user) {
+    throw new AppError("User not authenticated", 401);
+  }
+
+  res.json({
+    user: {
+      id: req.user._id.toString(),
+      clerkId: req.user.clerkId,
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone,
+      avatarUrl: req.user.avatarUrl,
+      role: req.user.role,
+    },
+  });
+}

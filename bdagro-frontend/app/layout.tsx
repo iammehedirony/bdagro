@@ -32,12 +32,13 @@ export default function Layout({ children }: LayoutProps<"/">) {
       <ClerkProvider>
         <QueryProvider>
           <SocketProvider>
-            <AuthLoaderWrapper>{children}</AuthLoaderWrapper>
+            <AuthLoaderWrapper>
+            {children}
+            </AuthLoaderWrapper>
             <RealtimeNotificationListener />
           </SocketProvider>
         </QueryProvider>
-      </ClerkProvider>
-      
+      </ClerkProvider>  
       </body>
     </html>
   );
