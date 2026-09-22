@@ -133,8 +133,8 @@ export default function FarmerEditProjectPage() {
   if (editQuery.isLoading) {
     return (
       <div className="bg-white min-h-screen flex">
-        <div className="flex-1 min-w-0 p-8 max-w-3xl mx-auto">
-          <div className="flex items-center justify-center h-64">
+        <div className="flex-1 min-w-0 p-4 lg:p-0 max-w-3xl mx-auto">
+          <div className="flex items-center justify-center h-48 lg:h-64">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-800" />
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function FarmerEditProjectPage() {
   if (editQuery.isError || !application) {
     return (
       <div className="bg-white min-h-screen flex">
-        <div className="flex-1 min-w-0 p-8 max-w-3xl mx-auto">
+        <div className="flex-1 min-w-0 p-4 lg:p-0 max-w-3xl mx-auto">
           <div className="border border-red-200 bg-red-50 p-6 text-sm text-red-700">
             প্রজেক্টের তথ্য লোড করা যায়নি।
             <button className="ml-3 underline" onClick={() => editQuery.refetch()}>
@@ -163,18 +163,18 @@ export default function FarmerEditProjectPage() {
   return (
     <div className="bg-white min-h-screen flex">
       <div className="flex-1 min-w-0">
-        <div className="p-8 max-w-3xl">
+        <div className="p-4 lg:p-0 max-w-3xl">
           {/* HEADER */}
-          <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 lg:mb-6">
             <div>
-              <h1 className="text-3xl text-stone-900">প্রকল্প এডিট করুন</h1>
+              <h1 className="text-2xl lg:text-3xl text-stone-900">প্রকল্প এডিট করুন</h1>
               <p className="mt-2 text-stone-500 text-sm">
                 {isEditable
                   ? "পরিবর্তন সংরক্ষণ করার পর এটি আবার অ্যাডমিন যাচাইয়ের জন্য পাঠানো হবে।"
                   : "অনুমোদিত প্রকল্প সম্পাদনা করা সম্ভব নয়।"}
               </p>
             </div>
-            <span className={`text-xs border px-2.5 py-1 ${statusClasses(application.status)}`}>
+            <span className={`text-xs border px-2.5 py-1 shrink-0 ${statusClasses(application.status)}`}>
               {application.status}
             </span>
           </div>
@@ -221,7 +221,7 @@ export default function FarmerEditProjectPage() {
               </label>
               <div className="relative">
                 {application?.farmImage ? (
-                  <div className="relative w-full h-48 rounded-md overflow-hidden bg-stone-100">
+                  <div className="relative w-full h-40 lg:h-48 rounded-md overflow-hidden bg-stone-100">
                     <Image
                       src={application.farmImage}
                       alt="প্রকল্পের কভার ছবি"
@@ -231,7 +231,7 @@ export default function FarmerEditProjectPage() {
                     />
                     {isEditable && (
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center group">
-                        <label className="hidden group-hover:flex items-center gap-2 text-white text-sm px-4 py-2 bg-emerald-900/90 rounded-lg cursor-pointer hover:bg-emerald-800 transition-colors">
+                        <label className="hidden group-hover:flex items-center gap-2 text-white text-sm px-3 lg:px-4 py-2 bg-emerald-900/90 rounded-lg cursor-pointer hover:bg-emerald-800 transition-colors">
                           <Upload className="w-4 h-4" />
                           ছবি পরিবর্তন করুন
                           <input
@@ -246,12 +246,12 @@ export default function FarmerEditProjectPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="relative w-full h-48 rounded-md border-2 border-dashed border-stone-300 bg-stone-50 flex items-center justify-center group">
+                  <div className="relative w-full h-40 lg:h-48 rounded-md border-2 border-dashed border-stone-300 bg-stone-50 flex items-center justify-center group">
                     <div className="flex flex-col items-center gap-2 text-stone-400">
-                      <ImageIcon className="w-10 h-10" strokeWidth={1.5} />
+                      <ImageIcon className="w-8 lg:w-10 h-8 lg:h-10" strokeWidth={1.5} />
                       <span className="text-sm">কভার ছবি নেই</span>
                       {isEditable && (
-                        <label className="text-emerald-900 hover:text-emerald-700 text-sm font-medium cursor-pointer px-4 py-2 border border-emerald-300 bg-white rounded-lg transition-colors">
+                        <label className="text-emerald-900 hover:text-emerald-700 text-sm font-medium cursor-pointer px-3 lg:px-4 py-2 border border-emerald-300 bg-white rounded-lg transition-colors">
                           ছবি আপলোড করুন
                           <input
                             type="file"
@@ -307,7 +307,7 @@ export default function FarmerEditProjectPage() {
                 <FieldError error={errors.projectDescription} />
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-5">
                 <div>
                   <Field
                     label="ফসল / প্রকল্পের ধরন"
@@ -332,7 +332,7 @@ export default function FarmerEditProjectPage() {
             {/* FARM DETAILS & FUNDING */}
             <div>
               <h2 className="text-lg text-stone-900 mb-4">খামার ও ফান্ডের বিবরণ</h2>
-              <div className="grid sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-5">
                 <div>
                   <Field
                     label="জমির পরিমাণ (বিঘা/শতাংশ) *"
@@ -381,13 +381,13 @@ export default function FarmerEditProjectPage() {
             </div>
 
             {/* ACTIONS */}
-            <div className="pt-6 border-t border-stone-200 flex items-center gap-3">
+            <div className="pt-4 lg:pt-6 border-t border-stone-200 flex flex-col sm:flex-row sm:items-center gap-3">
               {isEditable ? (
                 <>
                   <button
                     type="submit"
                     disabled={updateMutation.isPending || isSubmitting}
-                    className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 transition-colors flex items-center gap-2"
+                    className="bg-emerald-900 text-white px-4 lg:px-6 py-3 text-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
                   >
                     {updateMutation.isPending ? (
                       <>
@@ -408,7 +408,7 @@ export default function FarmerEditProjectPage() {
               ) : (
                 <Link
                   href={`/farmer/projects/${id}`}
-                  className="bg-stone-200 text-stone-700 px-6 py-3 text-sm hover:bg-stone-300 transition-colors"
+                  className="w-full sm:w-auto bg-stone-200 text-stone-700 px-4 lg:px-6 py-3 text-sm hover:bg-stone-300 transition-colors text-center"
                 >
                   প্রজেক্ট দেখুন
                 </Link>

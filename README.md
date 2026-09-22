@@ -4,82 +4,78 @@
 
 ---
 
-## 📋 Table of Contents
-
-- [Tech Stack](#tech-stack)
-- [Key Features](#key-features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Running Locally](#running-locally)
-- [Author](#author)
-
----
-
 ## 🛠 Tech Stack
 
 ### Backend
-| Layer | Technology |
-|-------|------------|
-| Runtime / API | Node.js, Express.js, **TypeScript** |
-| Database | MongoDB via Mongoose (typed models) |
-| Authentication | Clerk (Phone+OTP for Farmers, Email/Social for Investors) |
-| Payments | SSLCommerz, Stripe |
-| Real-time | Socket.io |
-| Cache / Queue | Redis, BullMQ |
-| Validation | Zod (route-level validation on top of Mongoose schema validation) |
-| File Storage | Cloudinary |
+
+| Layer          | Technology                                                        |
+| -------------- | ----------------------------------------------------------------- |
+| Runtime / API  | Node.js, Express.js, **TypeScript**                               |
+| Database       | MongoDB via Mongoose (typed models)                               |
+| Authentication | Clerk (Phone+OTP for Farmers, Email/Social for Investors)         |
+| Payments       | SSLCommerz, Stripe                                                |
+| Real-time      | Socket.io                                                         |
+| Cache / Queue  | Redis, BullMQ                                                     |
+| Validation     | Zod (route-level validation on top of Mongoose schema validation) |
+| File Storage   | Cloudinary                                                        |
 
 ### Frontend
-| Layer | Technology |
-|-------|------------|
-| Framework | **Next.js 16** (App Router) |
-| UI Library | **React 19** |
-| Styling | **Tailwind CSS 4** |
-| Language | **TypeScript** |
-| Authentication | **Clerk Next.js SDK** |
-| State Management | TanStack Query (React Query) |
-| Real-time | Socket.io Client |
-| Forms | React Hook Form + Zod Resolvers |
-| Animations | Motion (Framer Motion) |
+
+| Layer            | Technology                      |
+| ---------------- | ------------------------------- |
+| Framework        | **Next.js 16** (App Router)     |
+| UI Library       | **React 19**                    |
+| Styling          | **Tailwind CSS 4**              |
+| Language         | **TypeScript**                  |
+| Authentication   | **Clerk Next.js SDK**           |
+| State Management | TanStack Query (React Query)    |
+| Real-time        | Socket.io Client                |
+| Forms            | React Hook Form + Zod Resolvers |
+| Animations       | Motion (Framer Motion)          |
 
 ---
 
 ## ✨ Key Features
 
 ### 🔔 Real-Time Notification System
+
 - Socket.io + Redis powered live notifications
 - Events for loan status updates, verification decisions, admin broadcasts, profit distribution reminders
 - Frontend joins user-specific rooms (`user:<id>`) for instant updates
 
 ### 👨‍🌾 Farmer Dashboard & Loan Management
+
 - Submit and track loan applications against predefined **Loan Products** (Seed Purchase, Tractor, Livestock, etc.)
 - Profile verification workflow (NID + Land Documents) with Admin approval
 - Real-time status tracking: `Pending → Processing → Approved/Rejected`
 - Project dashboard showing active projects, funding percentage, and ROI
 
 ### 💰 Investment Marketplace
+
 - Browse open/partially-funded projects with filters (crop type, risk level, min/max ROI)
 - Secure investment flow: partial or full funding with transaction creation
 - Portfolio tracking: total invested, total returned, active projects count
 - Money receipt generation for completed transactions
 
 ### 🔐 Role-Based Access Control (RBAC)
-| Role | Capabilities |
-|------|--------------|
-| **Admin** | Platform dashboard, user management, verification queue, loan application processing, project creation, transaction monitoring, broadcast notifications |
-| **Farmer** | Profile submission, loan applications, project tracking, profit distribution schedule & payments |
-| **Investor** | Marketplace browsing, investments, portfolio analytics, transaction history & receipts |
+
+| Role         | Capabilities                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Admin**    | Platform dashboard, user management, verification queue, loan application processing, project creation, transaction monitoring, broadcast notifications |
+| **Farmer**   | Profile submission, loan applications, project tracking, profit distribution schedule & payments                                                        |
+| **Investor** | Marketplace browsing, investments, portfolio analytics, transaction history & receipts                                                                  |
 
 ### 💳 Payment Integration
+
 - **SSLCommerz** (local BD gateway) — IPN validation, success/fail/cancel callbacks
 - **Stripe** — Checkout Sessions, webhook verification
 - Unified `Transaction` ledger for all money movements (disbursement, investment, profit distribution, refund)
 
 ### ⚙️ Background Jobs (BullMQ + Redis)
+
 - Daily cron job (`0 6 * * *`) to:
-  - Flip overdue profit distributions (`PENDING → OVERDUE`) + notify farmers
-  - Send "due soon" reminders (3-day window)
+    - Flip overdue profit distributions (`PENDING → OVERDUE`) + notify farmers
+    - Send "due soon" reminders (3-day window)
 
 ---
 
@@ -177,13 +173,14 @@ npm run dev
 ```
 
 #### Backend Scripts
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server with `tsx watch` |
-| `npm run build` | Compile TypeScript → `dist/` |
-| `npm start` | Run compiled production build |
+
+| Command             | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `npm run dev`       | Start dev server with `tsx watch`            |
+| `npm run build`     | Compile TypeScript → `dist/`                 |
+| `npm start`         | Run compiled production build                |
 | `npm run typecheck` | Type-check without emitting (`tsc --noEmit`) |
-| `npm run seed` | Seed database with sample LoanProducts |
+| `npm run seed`      | Seed database with sample LoanProducts       |
 
 ---
 
@@ -206,12 +203,13 @@ npm run dev
 ```
 
 #### Frontend Scripts
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build |
-| `npm start` | Run production server |
-| `npm run lint` | Run ESLint |
+
+| Command         | Description              |
+| --------------- | ------------------------ |
+| `npm run dev`   | Start Next.js dev server |
+| `npm run build` | Production build         |
+| `npm start`     | Run production server    |
+| `npm run lint`  | Run ESLint               |
 
 ---
 

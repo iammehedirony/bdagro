@@ -110,7 +110,7 @@ export default function InvestorSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 min-w-0 p-8 flex justify-center mt-20">
+      <div className="flex-1 min-w-0 p-4 lg:p-0 flex justify-center mt-10 lg:mt-20">
         <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
       </div>
     );
@@ -120,142 +120,131 @@ export default function InvestorSettingsPage() {
   const user = data?.user;
 
   return (
-    <div className="bg-white min-h-screen flex">
-      {/* MAIN */}
-      <div className="flex-1 min-w-0">
-        <div className="p-8 max-w-2xl space-y-10">
-          {/* PROFILE */}
-          <div>
-            <h2 className="text-xl text-neutral-900 mb-4">
-              প্রোফাইল তথ্য
-            </h2>
-            <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="space-y-4">
-              <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
-                <div>
-                  <Field label="পূর্ণ নাম" {...registerProfile("name")} />
-                  {profileErrors.name && (
-                    <p className="text-red-500 text-xs mt-1">{profileErrors.name.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Field label="ফোন নম্বর" {...registerProfile("phone")} placeholder="০১৭XXXXXXXX" />
-                  {profileErrors.phone && (
-                    <p className="text-red-500 text-xs mt-1">{profileErrors.phone.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Field
-                    label="ইমেইল"
-                    defaultValue={clerkUser?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
-                    readOnly
-                  />
-                </div>
+    <div className="bg-white min-h-screen">
+      <div className="p-4 lg:p-0 max-w-2xl space-y-8 lg:space-y-10">
+        {/* PROFILE */}
+        <div>
+          <h2 className="text-xl text-neutral-900 mb-4">প্রোফাইল তথ্য</h2>
+          <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="space-y-4">
+            <div className="border border-neutral-200 p-4 lg:p-6 grid sm:grid-cols-2 gap-4 lg:gap-5">
+              <div>
+                <Field label="পূর্ণ নাম" {...registerProfile("name")} />
+                {profileErrors.name && (
+                  <p className="text-red-500 text-xs mt-1">{profileErrors.name.message}</p>
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={isUpdatingProfile}
-                  className="bg-primary-900 text-white px-6 py-3 text-sm hover:bg-primary-800 disabled:opacity-50 flex items-center"
-                >
-                  {isUpdatingProfile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  পরিবর্তন সংরক্ষণ করুন
-                </button>
-                {profileSuccess && <p className="text-emerald-600 text-sm font-medium">{profileSuccess}</p>}
+              <div>
+                <Field label="ফোন নম্বর" {...registerProfile("phone")} placeholder="০১৭XXXXXXXX" />
+                {profileErrors.phone && (
+                  <p className="text-red-500 text-xs mt-1">{profileErrors.phone.message}</p>
+                )}
               </div>
-            </form>
-          </div>
-
-          {/* INVESTMENT PREFERENCES */}
-          <div>
-            <h2 className="text-xl text-neutral-900 mb-4">
-              বিনিয়োগ পছন্দ
-            </h2>
-            <div className="border border-neutral-200 p-6">
-              <label className="text-sm text-neutral-700 mb-2 block">
-                ঝুঁকি সহনশীলতা
-              </label>
-              <div className="grid sm:grid-cols-3 gap-3">
-                <Controller
-                  name="maxRiskLevel"
-                  control={control}
-                  rules={{ required: "ঝুঁকি সহনশীলতা নির্বাচন করুন" }}
-                  render={({ field }) => (
-                    <>
-                      {riskLevels.map((level) => (
-                        <RiskOption
-                          key={level}
-                          label={level}
-                          desc={riskLevelDescriptions[level]}
-                          value={level}
-                          checked={field.value === level}
-                          onChange={field.onChange}
-                        />
-                      ))}
-                    </>
-                  )}
+              <div>
+                <Field
+                  label="ইমেইল"
+                  defaultValue={clerkUser?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
+                  readOnly
                 />
-                {profileErrors.maxRiskLevel && (
-                  <p className="text-red-500 text-xs mt-1 col-span-3">{profileErrors.maxRiskLevel.message}</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="submit"
+                disabled={isUpdatingProfile}
+                className="bg-primary-900 text-white px-4 lg:px-6 py-3 text-sm hover:bg-primary-800 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isUpdatingProfile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                পরিবর্তন সংরক্ষণ করুন
+              </button>
+              {profileSuccess && <p className="text-emerald-600 text-sm font-medium">{profileSuccess}</p>}
+            </div>
+          </form>
+        </div>
+
+        {/* INVESTMENT PREFERENCES */}
+        <div>
+          <h2 className="text-xl text-neutral-900 mb-4">বিনিয়োগ পছন্দ</h2>
+          <div className="border border-neutral-200 p-4 lg:p-6">
+            <label className="text-sm text-neutral-700 mb-2 block">ঝুঁকি সহনশীলতা</label>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <Controller
+                name="maxRiskLevel"
+                control={control}
+                rules={{ required: "ঝুঁকি সহনশীলতা নির্বাচন করুন" }}
+                render={({ field }) => (
+                  <>
+                    {riskLevels.map((level) => (
+                      <RiskOption
+                        key={level}
+                        label={level}
+                        desc={riskLevelDescriptions[level]}
+                        value={level}
+                        checked={field.value === level}
+                        onChange={field.onChange}
+                      />
+                    ))}
+                  </>
+                )}
+              />
+              {profileErrors.maxRiskLevel && (
+                <p className="text-red-500 text-xs mt-1 col-span-3">{profileErrors.maxRiskLevel.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* PASSWORD */}
+        <div>
+          <h2 className="text-xl text-neutral-900 mb-4">পাসওয়ার্ড পরিবর্তন</h2>
+          <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="space-y-4">
+            <div className="border border-neutral-200 p-4 lg:p-6 grid sm:grid-cols-2 gap-4 lg:gap-5">
+              <div>
+                <Field
+                  label="বর্তমান পাসওয়ার্ড"
+                  type="password"
+                  placeholder="••••••••"
+                  {...registerPassword("currentPassword")}
+                />
+                {passwordErrors.currentPassword && (
+                  <p className="text-red-500 text-xs mt-1">{passwordErrors.currentPassword.message}</p>
+                )}
+              </div>
+              <div>
+                <Field
+                  label="নতুন পাসওয়ার্ড"
+                  type="password"
+                  placeholder="••••••••"
+                  {...registerPassword("newPassword")}
+                />
+                {passwordErrors.newPassword && (
+                  <p className="text-red-500 text-xs mt-1">{passwordErrors.newPassword.message}</p>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* PASSWORD */}
-          <div>
-            <h2 className="text-xl text-neutral-900 mb-4">
-              পাসওয়ার্ড পরিবর্তন
-            </h2>
-            <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="space-y-4">
-              <div className="border border-neutral-200 p-6 grid sm:grid-cols-2 gap-5">
-                <div>
-                  <Field
-                    label="বর্তমান পাসওয়ার্ড"
-                    type="password"
-                    placeholder="••••••••"
-                    {...registerPassword("currentPassword")}
-                  />
-                  {passwordErrors.currentPassword && (
-                    <p className="text-red-500 text-xs mt-1">{passwordErrors.currentPassword.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Field
-                    label="নতুন পাসওয়ার্ড"
-                    type="password"
-                    placeholder="••••••••"
-                    {...registerPassword("newPassword")}
-                  />
-                  {passwordErrors.newPassword && (
-                    <p className="text-red-500 text-xs mt-1">{passwordErrors.newPassword.message}</p>
-                  )}
-                </div>
-              </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="submit"
+                disabled={isUpdatingPassword}
+                className="bg-neutral-900 text-white px-4 lg:px-6 py-3 text-sm hover:bg-neutral-800 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isUpdatingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                পাসওয়ার্ড আপডেট করুন
+              </button>
 
-              <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={isUpdatingPassword}
-                  className="bg-neutral-900 text-white px-6 py-3 text-sm hover:bg-neutral-800 disabled:opacity-50 flex items-center"
-                >
-                  {isUpdatingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  পাসওয়ার্ড আপডেট করুন
-                </button>
+              {passwordError && <p className="text-red-500 text-sm font-medium">{passwordError}</p>}
+              {passwordSuccess && <p className="text-emerald-600 text-sm font-medium">{passwordSuccess}</p>}
 
-                {passwordError && <p className="text-red-500 text-sm font-medium">{passwordError}</p>}
-                {passwordSuccess && <p className="text-emerald-600 text-sm font-medium">{passwordSuccess}</p>}
-
-                <button
-                  type="button"
-                  onClick={() => signOut()}
-                  className="text-sm text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 ml-auto"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  লগ আউট করুন
-                </button>
-              </div>
-            </form>
-          </div>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="text-sm text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 sm:ml-auto"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                লগ আউট করুন
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

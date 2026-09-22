@@ -2,12 +2,13 @@
 
 import { UserDropdown } from "@/components/ui/Dropdown";
 import { useClerk } from "@clerk/nextjs";
-import { Sprout } from "lucide-react";
+import { Sprout, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useUserWithRole } from "@/hooks/useUserWithRole";
+import { MobileSidebar } from "@/components/ui/MobileSidebar";
 
 // নেভিগেশন ডেটা স্ট্রাকচার
 const allNavItems = [
@@ -33,6 +34,7 @@ const Navbar = () => {
     const { signOut } = useClerk();
     const { user, role: userRole } = useUserWithRole();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     console.log(user);
 
     // ইউজারের রোল অনুযায়ী নেভিগেশন আইটেম ফিল্টার করা হচ্ছে
@@ -77,18 +79,28 @@ const Navbar = () => {
 
                 {/* বাটন সেকশন */}
                 <div className="flex items-center gap-3">
+                    {/* মোবাইল মেনু টগল বাটন - ইউজার অ্যাভাটারের আগে */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="md:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                        aria-label="মেনু খুলুন"
+                        aria-expanded={isMobileMenuOpen}
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+
                     {!userRole ? (
                         // ইউজার লগইন না থাকলে
                         <>
                             <Link
                                 href="/login"
-                                className="text-sm font-medium text-neutral-700 px-4 py-2 rounded-md hover:text-primary-900 hover:bg-neutral-100 transition-all"
+                                className="text-sm font-medium text-neutral-700 px-4 py-2 rounded-md hover:text-primary-900 hover:bg-neutral-100 transition-all hidden sm:block"
                             >
                                 লগইন
                             </Link>
                             <Link
                                 href="/register/farmer"
-                                className="text-sm font-medium bg-primary-900 text-white px-5 py-2 rounded-md hover:bg-primary-800 shadow-sm transition-all"
+                                className="text-sm font-medium bg-primary-900 text-white px-5 py-2 rounded-md hover:bg-primary-800 shadow-sm transition-all hidden sm:block"
                             >
                                 সাইন আপ
                             </Link>
@@ -131,6 +143,8 @@ const Navbar = () => {
                             />
                         </div>
                     )}
+
+                    <MobileSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
                 </div>
             </div>
         </header>

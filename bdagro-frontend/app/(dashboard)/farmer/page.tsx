@@ -29,11 +29,11 @@ function statusClasses(status: string) {
 export default function FarmerOverviewPage() {
   const { data, isLoading, isError, refetch } = useFarmerDashboardQuery();
 
-  if (isLoading) return <div className="p-8 text-sm text-stone-500">ড্যাশবোর্ড লোড হচ্ছে...</div>;
+  if (isLoading) return <div className="p-4 lg:p-0 text-sm text-stone-500">ড্যাশবোর্ড লোড হচ্ছে...</div>;
 
   if (isError || !data) {
     return (
-      <div className="p-8">
+      <div className="p-4 lg:p-0">
         <div className="border border-red-200 bg-red-50 p-6 text-sm text-red-800">
           ড্যাশবোর্ডের তথ্য লোড করা যায়নি।
           <button className="ml-3 underline" onClick={() => refetch()}>আবার চেষ্টা করুন</button>
@@ -45,42 +45,42 @@ export default function FarmerOverviewPage() {
   const { summary, projectSummaries, activityFeed } = data;
 
   return (
-    <div className="p-8">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="p-4 lg:p-0">
+      <div className="grid grid-cols-2 gap-3 lg:gap-4 sm:grid-cols-4">
         <StatCard label="সক্রিয় প্রকল্প" value={`${summary.activeProjectsCount}টি`} sub={`${summary.pendingApplicationsCount}টি অনুমোদনের অপেক্ষায়`} />
         <StatCard label="মোট সংগৃহীত ফান্ড" value={formatCurrency(summary.totalFundsRaised)} sub="সব প্রকল্প মিলিয়ে" />
         <StatCard label="মোট বিনিয়োগকারী" value={`${summary.totalInvestorsCount} জন`} sub="সব প্রকল্প মিলিয়ে" />
         <StatCard label="প্রত্যাশিত মুনাফা" value={formatCurrency(summary.expectedProfit)} sub="বর্তমান সংগৃহীত ফান্ডের ভিত্তিতে" />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="mt-6 lg:mt-8 grid gap-6 lg:gap-8 lg:grid-cols-[1fr_320px]">
         <div className="border border-stone-200">
-          <div className="flex items-center justify-between border-b border-stone-200 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-stone-200 p-4 lg:p-6">
             <h3 className="text-stone-900">আমার প্রকল্পের অবস্থা</h3>
             <span className="text-xs text-stone-400">{projectSummaries.length}টি প্রকল্প</span>
           </div>
           {projectSummaries.length === 0 ? (
-            <div className="p-6 text-sm text-stone-500">এখনো কোনো প্রকল্পের আবেদন নেই।</div>
+            <div className="p-4 lg:p-6 text-sm text-stone-500">এখনো কোনো প্রকল্পের আবেদন নেই।</div>
           ) : (
             <div className="divide-y divide-stone-200">
               {projectSummaries.map((project) => (
-                <div key={project._id} className="p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-stone-900">{project.title}</div>
-                      <div className="mt-1 flex items-center gap-1 text-xs text-stone-400">
-                        <MapPin className="h-3 w-3" />
-                        {project.cropType}
+                <div key={project._id} className="p-4 lg:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="text-stone-900 break-words">{project.title}</div>
+                      <div className="mt-1 flex items-center gap-1 text-xs text-stone-400 flex-wrap">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="break-words">{project.cropType}</span>
                       </div>
                     </div>
-                    <span className={`border px-2 py-0.5 text-xs ${statusClasses(project.status)}`}>
+                    <span className={`border px-2 py-0.5 text-xs shrink-0 ${statusClasses(project.status)}`}>
                       {project.projectStatus ? project.projectStatus : project.status} 
                     </span>
                   </div>
                   {project.status === "Approved" ? (
                     <>
                       <div className="mt-4"><ProgressBar percent={Math.min(project.fundingPercent, 100)} /></div>
-                      <div className="mt-2 flex items-center justify-between text-xs text-stone-400">
+                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-stone-400 flex-wrap">
                         <span>{formatCurrency(project.fundedAmount)} সংগৃহীত · {project.investorCount} জন বিনিয়োগকারী</span>
                         <span>লক্ষ্য {formatCurrency(project.fundingGoal)}</span>
                       </div>
@@ -97,19 +97,19 @@ export default function FarmerOverviewPage() {
         </div>
 
         <div className="h-fit border border-stone-200">
-          <div className="border-b border-stone-200 p-6"><h3 className="text-stone-900">সাম্প্রতিক কার্যক্রম</h3></div>
+          <div className="border-b border-stone-200 p-4 lg:p-6"><h3 className="text-stone-900">সাম্প্রতিক কার্যক্রম</h3></div>
           {activityFeed.length === 0 ? (
-            <div className="p-5 text-sm text-stone-500">এখনো কোনো সাম্প্রতিক কার্যক্রম নেই।</div>
+            <div className="p-4 lg:p-5 text-sm text-stone-500">এখনো কোনো সাম্প্রতিক কার্যক্রম নেই।</div>
           ) : (
             <div className="divide-y divide-stone-200">
               {activityFeed.map((activity, index) => {
                 const Icon = activity.type === "investment" ? TrendingUp : activity.type === "notification" ? CheckCircle2 : Clock3;
                 return (
-                  <div key={`${activity.time}-${index}`} className="flex gap-3 p-5">
+                  <div key={`${activity.time}-${index}`} className="flex gap-3 p-4 lg:p-5">
                     <Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                    <div>
-                      <div className="text-sm leading-snug text-stone-700">{activity.text}</div>
-                      <div className="mt-1 text-xs text-stone-400">{formatTime(activity.time)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm leading-snug text-stone-700 break-words whitespace-normal">{activity.text}</div>
+                      <div className="mt-1 text-xs text-stone-400 whitespace-nowrap">{formatTime(activity.time)}</div>
                     </div>
                   </div>
                 );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Sprout } from 'lucide-react';
+import { Sprout, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,29 +20,37 @@ interface NavItem {
 interface SidebarProps {
   navItems: NavItem[];
   user: User;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ navItems, user }: SidebarProps) {
+export default function Sidebar({ navItems, user, onClose }: SidebarProps) {
   const pathname = usePathname();
   const userInitial = user?.name ? user.name.charAt(0) : "U";
-console.log(user)
-  return (
-    <aside className="w-60 bg-primary-950 min-h-screen flex flex-col shrink-0 transition-all">
-      {/* লোগো সেকশন */}
-      <Link href="/" className="h-16 flex items-center gap-2 px-5 border-b border-primary-900">
-        <Sprout className="w-5 h-5 text-accent-400" />
-        <span className="text-neutral-50 text-base font-serif">
-          Bdagroonline
-        </span>
-      </Link>
 
-      {/* নেভিগেশন মেনু */}
-      <nav className="py-4 space-y-1 overflow-y-auto">
+  return (
+    <aside className="w-64 bg-primary-950 min-h-screen flex flex-col shrink-0">
+      {/* Logo section with close button for mobile */}
+      <div className="h-16 flex items-center justify-between px-5 border-b border-primary-900 lg:justify-start lg:gap-2">
+        <Link href="/" className="flex items-center gap-2">
+          <Sprout className="w-5 h-5 text-accent-400" />
+          <span className="text-neutral-50 text-base font-serif">
+            Bdagroonline
+          </span>
+        </Link>
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 text-primary-100/60 hover:text-primary-50 hover:bg-primary-900/40 rounded-lg transition-colors"
+          aria-label="Close sidebar"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Navigation menu */}
+      <nav className="py-4 space-y-1 overflow-y-auto flex-1">
         {navItems.map((item, idx) => {
-          // রুট ওভারভিউ লিংকগুলো চেক করা হচ্ছে
           const isRoot = item.href === '/farmer' || item.href === '/investor' || item.href === '/admin';
           
-          // নতুন isActive লজিক
           const isActive = isRoot 
             ? pathname === item.href 
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -63,10 +71,9 @@ console.log(user)
           );
         })}
       </nav>
-      
-
-{/* ইউজার প্রোফাইল সেকশন */}
-      <div className="mt-auto p-5 border-t border-primary-900 flex items-center gap-3">
+       
+      {/* User profile section */}
+      <div className="p-5 border-t border-primary-900 flex items-center gap-3">
         {user?.imageUrl ? (
           <Image 
             src={user.imageUrl} 

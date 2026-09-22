@@ -82,15 +82,15 @@ export default function NotificationsBoard({ tabs, categories }: NotificationsBo
 
   return (
     <div className="bg-white h-full flex flex-col">
-      <div className="p-8 max-w-2xl w-full">
+      <div className="p-4 lg:p-0 max-w-2xl w-full">
 
         {/* ডাইনামিক ফিল্টার ট্যাব */}
-        <div className="flex gap-2 border-b border-neutral-200 overflow-x-auto">
+        <div className="flex gap-1.5 lg:gap-2 border-b border-neutral-200 overflow-x-auto">
           {tabs.map((tab: string) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
                 activeTab === tab
                   ? "border-primary-800 text-primary-900 font-medium"
                   : "border-transparent text-neutral-400 hover:text-neutral-700"
@@ -102,13 +102,13 @@ export default function NotificationsBoard({ tabs, categories }: NotificationsBo
         </div>
 
         {/* ডাইনামিক নোটিফিকেশন লিস্ট */}
-        <div className="mt-6 border border-neutral-200 rounded-md overflow-hidden bg-white">
-          {isLoading && <div className="p-8 text-center text-sm text-neutral-500">নোটিফিকেশন লোড হচ্ছে...</div>}
-          {isError && <div className="p-8 text-center text-sm text-danger-600">নোটিফিকেশন লোড করা যায়নি।</div>}
+        <div className="mt-4 lg:mt-6 border border-neutral-200 rounded-md overflow-hidden bg-white">
+          {isLoading && <div className="p-4 lg:p-0 text-center text-sm text-neutral-500">নোটিফিকেশন লোড হচ্ছে...</div>}
+          {isError && <div className="p-4 lg:p-0 text-center text-sm text-danger-600">নোটিফিকেশন লোড করা যায়নি।</div>}
           {!isLoading && !isError && notificationGroups.map((group: NotificationGroup, groupIndex: number) => (
             <div key={groupIndex}>
               {/* গ্রুপের টাইটেল (যেমন: আজ, গতকাল) */}
-              <div className={`px-5 pt-4 pb-2 text-xs font-medium text-neutral-400 ${groupIndex !== 0 ? "border-t border-neutral-200 bg-neutral-50/50" : ""}`}>
+              <div className={`px-4 lg:px-5 pt-3 lg:pt-4 pb-2 text-xs font-medium text-neutral-400 ${groupIndex !== 0 ? "border-t border-neutral-200 bg-neutral-50/50" : ""}`}>
                 {group.label}
               </div>
 
@@ -123,7 +123,7 @@ export default function NotificationsBoard({ tabs, categories }: NotificationsBo
 
           {/* যদি ডেটা না থাকে */}
           {!isLoading && !isError && notificationGroups.length === 0 && (
-            <div className="p-8 text-center text-sm text-neutral-500">
+            <div className="p-4 lg:p-0 text-center text-sm text-neutral-500">
               কোনো নোটিফিকেশন নেই।
             </div>
           )}

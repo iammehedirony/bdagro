@@ -2,9 +2,10 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: "success" | "warning" | "danger" | "neutral";
   size?: "sm" | "md";
+  className?: string;
 }
 
-function Badge({ children, variant = "neutral", size = "sm" }: BadgeProps) {
+function Badge({ children, variant = "neutral", size = "sm", className }: BadgeProps) {
   const variantStyles = {
     success: "border-state-success-border text-state-success-text bg-state-success-bg",
     warning: "border-state-warning-border text-state-warning-text bg-state-warning-bg",
@@ -19,7 +20,7 @@ function Badge({ children, variant = "neutral", size = "sm" }: BadgeProps) {
 
   return (
     <span
-      className={`inline-block border ${variantStyles[variant]} ${sizeStyles[size]}`}
+      className={`inline-block border ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
     >
       {children}
     </span>

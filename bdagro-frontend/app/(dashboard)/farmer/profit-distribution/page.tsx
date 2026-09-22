@@ -85,10 +85,10 @@ export default function FarmerProfitSharingPage() {
     <div className="bg-white min-h-screen flex relative">
       {/* MAIN */}
       <div className="flex-1 min-w-0">
-        <div className="p-8">
+        <div className="p-4 lg:p-0">
           
           {/* STATS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 lg:gap-4 sm:grid-cols-4">
             <StatCard label="সক্রিয় ফান্ডিং" value={stats ? formatCurrency(stats.activeFundingAmount) : "..."} sub="সক্রিয় প্রকল্পসমূহ" />
             <StatCard label="মুনাফা বণ্টন হার" value={stats ? `${stats.profitDistributionRate}%` : "..."} tone="amber" sub="বিনিয়োগকারীর অংশ" />
             <StatCard label="প্রত্যাশিত ফসল সংগ্রহ" value={stats ? formatDate(stats.expectedHarvestDate) : "..."} sub="নিষ্পত্তির পূর্বে" />
@@ -107,21 +107,21 @@ export default function FarmerProfitSharingPage() {
           )}
 
           {/* READY FOR REPORT PROJECTS LIST */}
-          <div className="mt-10">
+          <div className="mt-6 lg:mt-10">
             <h3 className="text-lg text-stone-900 mb-4 font-medium">মুনাফা রিপোর্ট জমাদানের অপেক্ষায় থাকা প্রকল্পসমূহ</h3>
             
             <div className="grid grid-cols-1 gap-4">
               {isLoading ? (
-                <div className="p-6 border border-stone-200 text-sm text-stone-500">প্রকল্পগুলো লোড হচ্ছে...</div>
+                <div className="p-4 lg:p-0 border border-stone-200 text-sm text-stone-500">প্রকল্পগুলো লোড হচ্ছে...</div>
               ) : readyProjects.map((project) => (
-                <div key={project.id} className="border border-amber-200 bg-amber-50/40 p-6">
-                  <div className="flex items-start justify-between flex-wrap gap-4">
-                    <div>
+                <div key={project.id} className="border border-amber-200 bg-amber-50/40 p-4 lg:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 lg:gap-4">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 text-amber-700 text-xs">
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>ফসল সংগ্রহ সম্পন্ন হলে মুনাফা রিপোর্ট জমা দিন</span>
                       </div>
-                      <h2 className="mt-2 text-xl text-stone-900">
+                      <h2 className="mt-2 text-lg lg:text-xl text-stone-900 truncate">
                         {project.title}
                       </h2>
                       <div className="text-sm text-stone-500 mt-1">
@@ -130,7 +130,7 @@ export default function FarmerProfitSharingPage() {
                     </div>
                     <button 
                       onClick={() => handleOpenModal(project)}
-                      className="bg-emerald-900 text-white px-6 py-3 text-sm hover:bg-emerald-800 shrink-0 flex items-center gap-2"
+                      className="bg-emerald-900 text-white px-4 lg:px-6 py-2 lg:py-3 text-sm hover:bg-emerald-800 shrink-0 flex items-center gap-2"
                     >
                       <HandCoins className="w-4 h-4" />
                       মুনাফা রিপোর্ট জমা দিন
@@ -140,7 +140,7 @@ export default function FarmerProfitSharingPage() {
               ))}
               
               {!isLoading && readyProjects.length === 0 && (
-                <div className="p-6 border border-stone-200 text-center text-sm text-stone-500">
+                <div className="p-4 lg:p-6 border border-stone-200 text-center text-sm text-stone-500">
                   বর্তমানে কোনো প্রকল্পের রিপোর্ট জমাদানের অপেক্ষায় নেই।
                 </div>
               )}
@@ -148,33 +148,33 @@ export default function FarmerProfitSharingPage() {
           </div>
 
           {/* SETTLEMENT HISTORY */}
-          <div className="mt-10 border border-stone-200">
-            <div className="p-6 border-b border-stone-200">
+          <div className="mt-6 lg:mt-10 border border-stone-200">
+            <div className="p-4 lg:p-6 border-b border-stone-200">
               <h3 className="text-stone-900">
                 নিষ্পত্তির ইতিহাস
               </h3>
             </div>
-            <div className="divide-y divide-stone-100">
+            <div className="divide-y divide-stone-100 overflow-x-auto">
               {isLoading ? (
-                <div className="p-6 text-sm text-stone-500">নিষ্পত্তির ইতিহাস লোড হচ্ছে...</div>
+                <div className="p-4 lg:p-6 text-sm text-stone-500">নিষ্পত্তির ইতিহাস লোড হচ্ছে...</div>
               ) : settlements.length === 0 ? (
-                <div className="p-6 text-sm text-stone-500">এখনো কোনো নিষ্পত্তির ইতিহাস নেই।</div>
+                <div className="p-4 lg:p-6 text-sm text-stone-500">এখনো কোনো নিষ্পত্তির ইতিহাস নেই।</div>
               ) : settlements.map((row) => (
-                <div key={row.id} className="p-5 flex items-center justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="text-sm text-stone-800">{row.project}</div>
+                <div key={row.id} className="p-4 lg:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 lg:gap-4 flex-wrap min-w-[500px]">
+                  <div className="min-w-0">
+                    <div className="text-sm text-stone-800 truncate">{row.project}</div>
                     <div className="text-xs text-stone-400 mt-0.5">{formatDate(row.date)}</div>
                   </div>
-                  <div className="text-xs text-stone-500">
+                  <div className="text-xs text-stone-500 shrink-0">
                     বিক্রয় {formatCurrency(row.sales)} · নিট মুনাফা {formatCurrency(row.profit)}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right sm:text-left">
                     <div className="text-sm text-stone-800">
                       {formatCurrency(row.share)} <span className="text-stone-400">({row.sharePercent}%)</span>
                     </div>
                     <div className="text-xs text-stone-400 mt-0.5">বিনিয়োগকারীর অংশ</div>
                   </div>
-                  <StatusTag status={row.status === "success" ? "পরিশোধিত" : row.status} />
+                  <StatusTag status={row.status === "success" ? "পরিশোধিত" : row.status} className="shrink-0" />
                 </div>
               ))}
             </div>
@@ -185,15 +185,15 @@ export default function FarmerProfitSharingPage() {
       {/* PROFIT REPORT MODAL */}
       {isModalOpen && selectedProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-2xl shadow-xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-2xl shadow-xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="p-6 border-b border-stone-200 flex justify-between items-start">
-              <div>
+            <div className="p-4 lg:p-6 border-b border-stone-200 flex justify-between items-start">
+              <div className="min-w-0">
                 <h3 className="text-lg font-medium text-stone-900">
                   মুনাফা রিপোর্ট জমা দিন
                 </h3>
-                <p className="text-xs text-emerald-700 mt-1 font-medium bg-emerald-50 inline-block px-2 py-1 rounded">
+                <p className="text-xs text-emerald-700 mt-1 font-medium bg-emerald-50 inline-block px-2 py-1 rounded truncate">
                   প্রকল্প: {selectedProject.title}
                 </p>
                 <p className="text-xs text-stone-400 mt-2">
@@ -202,14 +202,14 @@ export default function FarmerProfitSharingPage() {
               </div>
               <button 
                 onClick={closeModal}
-                className="text-stone-400 hover:text-stone-700 p-1"
+                className="text-stone-400 hover:text-stone-700 p-1 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body / Form */}
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="p-6 grid sm:grid-cols-2 gap-5">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="p-4 lg:p-6 grid sm:grid-cols-2 gap-4 lg:gap-5">
               <div>
                 <Field
                   label="মোট বিক্রয় (৳)"
@@ -231,23 +231,23 @@ export default function FarmerProfitSharingPage() {
                 <FieldError error={errors.productionCost} />
               </div>
 
-              <div className="sm:col-span-2 border-t border-stone-200 pt-5 flex items-center justify-between">
+              <div className="sm:col-span-2 border-t border-stone-200 pt-4 lg:pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span className="text-sm text-stone-500">নিট মুনাফা</span>
                 <span className="text-stone-900 font-medium">
                   {formatCurrency(netProfit)}
                 </span>
               </div>
-              <div className="sm:col-span-2 flex items-center justify-between">
+              <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span className="text-sm text-stone-500">
                   বিনিয়োগকারীর প্রাপ্য অংশ ({selectedProject.profitShare}%)
                 </span>
-                <span className="text-xl text-emerald-800 font-medium">
+                <span className="text-lg lg:text-xl text-emerald-800 font-medium">
                   {formatCurrency(investorShare)}
                 </span>
               </div>
 
               {/* Action Buttons inside Modal */}
-              <div className="sm:col-span-2 mt-4 flex gap-3">
+              <div className="sm:col-span-2 mt-4 flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
                   onClick={closeModal}

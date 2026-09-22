@@ -76,7 +76,7 @@ function FeaturedProjects() {
 
   if (isLoading) {
     return (
-      <div className="grid md:grid-cols-3 gap-6" role="status" aria-live="polite">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-live="polite">
         {[1, 2, 3].map((i) => (
           <motion.div
             key={i}
@@ -119,7 +119,7 @@ function FeaturedProjects() {
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {projects.map((proj, i) => (
         <motion.div
           key={proj._id}
@@ -138,6 +138,7 @@ function FeaturedProjects() {
             risk={riskMap[proj.riskLevel] ?? "মাঝারি"}
             roi={`${proj.expectedROIPercent}%`}
             tone={toneMap[proj.riskLevel] ?? "amber"}
+            image={proj.farmImage}
           />
         </motion.div>
       ))}
@@ -181,48 +182,48 @@ function HomePage() {
   ];
 
   return (
-    <div className="bg-white">
+    <div className="bg-white w-full max-w-full overflow-x-hidden">
       {/* HERO SECTION */}
       <section className="bg-primary-950 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-14 items-center">
-          <motion.div
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-14 items-center">
+<motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="text-4xl md:text-5xl leading-[1.15] text-neutral-50">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl leading-[1.15] text-neutral-50 break-words">
               কৃষক পান পুঁজি, বিনিয়োগকারী পান ফসলের ভাগ
             </h1>
-            <p className="mt-6 text-primary-100/80 text-base leading-relaxed max-w-md">
+            <p className="mt-4 sm:mt-6 text-primary-100/80 text-sm sm:text-base leading-relaxed max-w-full sm:max-w-md">
               Bdagroonline যাচাইকৃত কৃষকদের খামার প্রকল্পের সাথে
               বিনিয়োগকারীদের সরাসরি যুক্ত করে। NID ভেরিফিকেশন, রিয়েল-টাইম
               প্রজেক্ট স্ট্যাটাস আর নিরাপদ পেমেন্টের মাধ্যমে — মাটি থেকে মুনাফা,
               সবটাই স্বচ্ছ।
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 sm:mt-8 flex flex-wrap gap-3">
               <Link
                 href="/register/farmer"
-                className="bg-accent-500 text-primary-950 px-6 py-3 text-sm font-medium hover:bg-accent-400 transition-colors"
+                className="bg-accent-500 text-primary-950 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-medium hover:bg-accent-400 transition-colors"
               >
                 কৃষক হিসেবে শুরু করুন
               </Link>
               <Link
                 href="/register/investor"
-                className="border border-primary-100/30 text-primary-50 px-6 py-3 text-sm hover:border-primary-100/70 transition-colors"
+                className="border border-primary-100/30 text-primary-50 px-5 sm:px-6 py-2.5 sm:py-3 text-sm hover:border-primary-100/70 transition-colors"
               >
                 বিনিয়োগকারী হিসেবে যোগ দিন
               </Link>
             </div>
-            <div className="mt-8 flex items-center gap-2 text-primary-100/60 text-xs">
-              <ShieldCheck className="w-4 h-4" />
+            <div className="mt-6 sm:mt-8 flex items-center gap-2 text-primary-100/60 text-xs sm:text-sm flex-wrap">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
               <span>SSLCommerz ও Stripe দ্বারা সুরক্ষিত পেমেন্ট</span>
             </div>
           </motion.div>
 
-       {/* Animated Bento Box Image Grid */}
+        {/* Animated Bento Box Image Grid */}
           {/* Animated Bento Box Image Grid */}
-          <div className="relative">
-            <div className="grid grid-cols-3 auto-rows-[130px] gap-3">
+          <div className="relative mt-10 md:mt-0">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[140px] md:auto-rows-[150px]">
               {heroImages.map((img) => (
                 <motion.div
                   key={img.id}
@@ -252,7 +253,7 @@ function HomePage() {
               ))}
             </div>
             <motion.div 
-              className="mt-5 flex items-center justify-between text-primary-100/70 text-sm"
+              className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-primary-100/70 text-xs sm:text-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
@@ -266,7 +267,7 @@ function HomePage() {
 
       {/* STATS SECTION (Animated Counter) */}
       <section className="border-b border-neutral-200">
-        <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {statsData.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -275,7 +276,7 @@ function HomePage() {
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
             >
-              <div className="text-2xl text-neutral-900 font-semibold">
+              <div className="text-xl sm:text-2xl text-neutral-900 font-semibold">
                 <AnimatedStat
                   value={stat.value}
                   prefix={stat.prefix}
@@ -284,24 +285,24 @@ function HomePage() {
                   format={stat.format}
                 />
               </div>
-              <div className="text-sm text-neutral-500 mt-1">{stat.label}</div>
+              <div className="text-xs sm:text-sm text-neutral-500 mt-1">{stat.label}</div>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* HOW IT WORKS SECTION */}
-      <section id="how" className="max-w-6xl mx-auto px-6 py-20">
+      <section id="how" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-2xl md:text-3xl text-neutral-900 mb-12"
+          className="text-2xl sm:text-3xl text-neutral-900 mb-8 sm:mb-12 text-center"
         >
           কীভাবে কাজ করে
         </motion.h2>
-        <div className="grid md:grid-cols-4 gap-0 border-t border-neutral-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 border border-neutral-200 rounded-lg overflow-hidden">
           {[
             {
               n: "১",
@@ -329,14 +330,12 @@ function HomePage() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: i * 0.15 }} // ধাপে ধাপে এনিমেট হবে
-              className={`p-6 border-b border-r border-neutral-200 ${
-                i === 3 ? "border-r-0 md:border-r-0" : ""
-              }`}
+              transition={{ duration: 0.5, delay: i * 0.15 }}
+              className={`p-4 sm:p-6 border-b border-r border-neutral-200 last:border-b-0 lg:last:border-r-0 ${i >= 2 ? "md:border-t-0" : ""} ${i % 2 === 1 ? "lg:border-r-0" : ""}`}
             >
-              <div className="text-3xl text-accent-600">{step.n}</div>
-              <h3 className="mt-3 text-neutral-900 font-medium">{step.title}</h3>
-              <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
+              <div className="text-2xl sm:text-3xl text-accent-600 font-bold">{step.n}</div>
+              <h3 className="mt-2 sm:mt-3 text-neutral-900 font-medium text-sm sm:text-base">{step.title}</h3>
+              <p className="mt-2 text-xs sm:text-sm text-neutral-500 leading-relaxed break-words">
                 {step.body}
               </p>
             </motion.div>
@@ -361,27 +360,27 @@ function HomePage() {
       </section>
 
       {/* ROLES SECTION */}
-      <section id="roles" className="max-w-6xl mx-auto px-6 py-20">
+      <section id="roles" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-2xl md:text-3xl text-neutral-900 mb-12"
+          className="text-2xl sm:text-3xl text-neutral-900 mb-8 sm:mb-12 text-center"
         >
           কৃষক ও বিনিয়োগকারী উভয়ের জন্য
         </motion.h2>
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6 }}
-            className="border border-neutral-200 p-8"
+            className="border border-neutral-200 p-6 sm:p-8"
           >
             <Sprout className="w-6 h-6 text-primary-800" />
-            <h3 className="mt-4 text-xl text-neutral-900">কৃষক</h3>
-            <ul className="mt-5 space-y-3 text-sm text-neutral-600">
+            <h3 className="mt-4 text-lg sm:text-xl text-neutral-900">কৃষক</h3>
+            <ul className="mt-4 sm:mt-5 space-y-2 sm:space-y-3 text-sm text-neutral-600">
               {[
                 "NID ও ছবি দিয়ে সহজ ভেরিফিকেশন",
                 "লক্ষ্যমাত্রা, বিবরণ ও ছবিসহ প্রকল্প পোস্ট করুন",
@@ -390,25 +389,25 @@ function HomePage() {
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary-700 shrink-0" />
-                  <span>{t}</span>
+                  <span className="break-words">{t}</span>
                 </li>
               ))}
             </ul>
-            <button className="mt-6 bg-primary-900 text-white px-5 py-2.5 text-sm hover:bg-primary-800">
+            <button className="mt-5 sm:mt-6 w-full sm:w-auto bg-primary-900 text-white px-5 py-2.5 text-sm hover:bg-primary-800">
               কৃষক হিসেবে শুরু করুন
             </button>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="border border-neutral-200 p-8"
+            className="border border-neutral-200 p-6 sm:p-8"
           >
             <TrendingUp className="w-6 h-6 text-accent-600" />
-            <h3 className="mt-4 text-xl text-neutral-900">বিনিয়োগকারী</h3>
-            <ul className="mt-5 space-y-3 text-sm text-neutral-600">
+            <h3 className="mt-4 text-lg sm:text-xl text-neutral-900">বিনিয়োগকারী</h3>
+            <ul className="mt-4 sm:mt-5 space-y-2 sm:space-y-3 text-sm text-neutral-600">
               {[
                 "ঝুঁকির মাত্রা ও প্রত্যাশিত ROI দেখে প্রকল্প বাছাই করুন",
                 "আংশিক অথবা পূর্ণ বিনিয়োগের সুযোগ",
@@ -417,11 +416,11 @@ function HomePage() {
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 text-accent-600 shrink-0" />
-                  <span>{t}</span>
+                  <span className="break-words">{t}</span>
                 </li>
               ))}
             </ul>
-            <button className="mt-6 border border-neutral-300 text-neutral-800 px-5 py-2.5 text-sm hover:border-primary-800 hover:text-primary-900 transition-colors">
+            <button className="mt-5 sm:mt-6 w-full sm:w-auto border border-neutral-300 text-neutral-800 px-5 py-2.5 text-sm hover:border-primary-800 hover:text-primary-900 transition-colors">
               বিনিয়োগকারী হিসেবে যোগ দিন
             </button>
           </motion.div>
