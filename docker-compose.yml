@@ -1,0 +1,79 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: bdagro-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: bdagroonline
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - bdagro-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bdagro-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - bdagro-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+      build:
+        context: ./bdagro-backend
+        dockerfile: Dockerfile
+      container_name: bdagro-backend
+      restart: unless-stopped
+      env_file:
+        - ./bdagro-backend/.env   # ব্যাকএন্ডের সব কিছু এখান থেকে অটোমেটিক পাবে
+      ports:
+        - "5000:5000"
+      depends_on:
+        mongodb:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+      networks:
+        - bdagro-network
+
+  frontend:
+      build:
+        context: ./bdagro-frontend
+        dockerfile: Dockerfile
+        args:
+          # শুধু ফ্রন্টএন্ডের বিল্ড টাইমের জন্য এই ভ্যারিয়েবলগুলো পাস করবো
+          - NEXT_PUBLIC_API_URL=http://localhost:5000
+          - NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+          - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/login}
+          - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/register}
+      container_name: bdagro-frontend
+      restart: unless-stopped
+      ports:
+        - "3000:3000"
+      depends_on:
+        - backend
+      networks:
+        - bdagro-network
+      # সার্ভার-সাইড ভ্যারিয়েবল (যেমন: CLERK_SECRET_KEY) রানটাইমে পাওয়ার জন্য
+      env_file:
+        - ./bdagro-frontend/.env.local
+
+networks:
+  bdagro-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:

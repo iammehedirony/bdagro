@@ -1,14 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'img.clerk.com',
         port: '',
-        pathname: '/**', // ডোমেইনের ভেতরের সব রুট অ্যালাউ করার জন্য
+        pathname: '/**',
       },
       {
         protocol: "https",
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
         port: "",
-        pathname: "/**",  
+        pathname: "/**",
       }
     ],
   },
