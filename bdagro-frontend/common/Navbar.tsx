@@ -104,6 +104,12 @@ const Navbar = () => {
                             >
                                 সাইন আপ
                             </Link>
+                            <Link
+                                href="/register/admin"
+                                className="text-sm font-medium bg-primary-900 text-white px-5 py-2 rounded-md hover:bg-primary-800 shadow-sm transition-all hidden sm:block"
+                            >
+                                অ্যাডমিন হিসেবে জয়েন করুন
+                            </Link>
                         </>
                     ) : (
                         <div className="relative">
@@ -144,7 +150,10 @@ const Navbar = () => {
                         </div>
                     )}
 
-                    <MobileSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+                    <MobileSidebar
+                        isOpen={isMobileMenuOpen}
+                        onClose={() => setIsMobileMenuOpen(false)}
+                    />
                 </div>
             </div>
         </header>

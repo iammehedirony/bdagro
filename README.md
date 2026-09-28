@@ -1,6 +1,6 @@
-# Bdagroonline (Bao.com) — Agricultural Investment & Crowd-Funding Platform
+# Bdagro— Agricultural Investment & Crowd-Funding Platform
 
-**Bdagroonline** is a full-stack Agri-FinTech platform that connects **Farmers** seeking capital with **Investors** looking to fund agricultural projects. The platform facilitates loan applications, project marketplace listings, secure transactions, and real-time notifications — all managed through role-based access for Farmers, Investors, and Admins.
+**Bdagro** is a full-stack Agri-FinTech platform that connects **Farmers** seeking capital with **Investors** looking to fund agricultural projects. The platform facilitates loan applications, project marketplace listings, secure transactions, and real-time notifications — all managed through role-based access for Farmers, Investors, and Admins.
 
 ---
 
