@@ -36,7 +36,7 @@ services:
       container_name: bdagro-backend
       restart: unless-stopped
       env_file:
-        - ./bdagro-backend/.env   # ব্যাকএন্ডের সব কিছু এখান থেকে অটোমেটিক পাবে
+        - ./bdagro-backend/.env
       ports:
         - "5000:5000"
       depends_on:
@@ -52,7 +52,6 @@ services:
         context: ./bdagro-frontend
         dockerfile: Dockerfile
         args:
-          # শুধু ফ্রন্টএন্ডের বিল্ড টাইমের জন্য এই ভ্যারিয়েবলগুলো পাস করবো
           - NEXT_PUBLIC_API_URL=http://localhost:5000
           - NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
           - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
@@ -66,7 +65,6 @@ services:
         - backend
       networks:
         - bdagro-network
-      # সার্ভার-সাইড ভ্যারিয়েবল (যেমন: CLERK_SECRET_KEY) রানটাইমে পাওয়ার জন্য
       env_file:
         - ./bdagro-frontend/.env.local
 

@@ -1,0 +1,363 @@
+name: CI/CD Pipeline
+
+# =============================================================================
+# TRIGGERS
+# =============================================================================
+# Currently set to MANUAL ONLY (workflow_dispatch) since project is deployed on Vercel.
+# Uncomment the 'push' and 'pull_request' triggers below when migrating to self-hosted.
+on:
+  workflow_dispatch:
+    # inputs:
+    #   environment:
+    #     description: 'Target deployment environment'
+    #     required: true
+    #     default: 'staging'
+    #     type: choice
+    #     options:
+    #       - staging
+    #       - production
+
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '.github/**'
+
+  # pull_request:
+  #   branches: [main]
+  #   types: [opened, synchronize, reopened]
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '.github/**'
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+env:
+  NODE_VERSION: '20.x'
+  # Default to staging; can be overridden by workflow_dispatch input
+  DEPLOY_ENV: 'staging'
+  # Container registry (GitHub Container Registry - GHCR)
+  REGISTRY: ghcr.io
+  # Image names (lowercase repo name required for GHCR)
+  FRONTEND_IMAGE: ${{ github.repository_owner }}/bdagro-frontend
+  BACKEND_IMAGE: ${{ github.repository_owner }}/bdagro-backend
+
+# Concurrency control: cancel in-progress runs for same branch/PR (except manual)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+# =============================================================================
+# JOBS
+# =============================================================================
+jobs:
+  # -----------------------------------------------------------------------------
+  # CI JOB: Continuous Integration
+  # Runs lint, typecheck, builds Docker images, pushes to GHCR
+  # -----------------------------------------------------------------------------
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write  # Required to push to GHCR
+
+    steps:
+      # ----- Checkout repository -----
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for proper git history in some tools
+
+      # ----- Setup Node.js -----
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            bdagro-frontend/package-lock.json
+            bdagro-backend/package-lock.json
+
+      # ----- Cache node_modules (speed up subsequent runs) -----
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            bdagro-frontend/node_modules
+            bdagro-backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('bdagro-frontend/package-lock.json', 'bdagro-backend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # ----- Install Frontend Dependencies -----
+      - name: Install Frontend Dependencies
+        working-directory: ./bdagro-frontend
+        run: npm ci --prefer-offline --no-audit --progress=false
+
+      # ----- Install Backend Dependencies -----
+      - name: Install Backend Dependencies
+        working-directory: ./bdagro-backend
+        run: npm ci --prefer-offline --no-audit --progress=false
+
+      # ----- Frontend: Lint -----
+      - name: Frontend - Lint
+        working-directory: ./bdagro-frontend
+        run: npm run lint
+
+      # ----- Frontend: Type Check -----
+      - name: Frontend - Type Check
+        working-directory: ./bdagro-frontend
+        run: npx tsc --noEmit
+
+      # ----- Frontend: Build (Next.js standalone output) -----
+      - name: Frontend - Build
+        working-directory: ./bdagro-frontend
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_SOCKET_URL: ${{ secrets.NEXT_PUBLIC_SOCKET_URL }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }}
+        run: npm run build
+
+      # ----- Backend: Type Check -----
+      - name: Backend - Type Check
+        working-directory: ./bdagro-backend
+        run: npm run typecheck
+
+      # ----- Backend: Build (Compile TypeScript) -----
+      - name: Backend - Build
+        working-directory: ./bdagro-backend
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+      # ----- Set up Docker Buildx (multi-platform support, better caching) -----
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ----- Log in to GitHub Container Registry -----
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ----- Extract metadata (tags, labels) for Docker images -----
+      - name: Extract Docker metadata - Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Extract Docker metadata - Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      # ----- Build and Push Frontend Docker Image -----
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bdagro-frontend
+          file: ./bdagro-frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_SOCKET_URL=${{ secrets.NEXT_PUBLIC_SOCKET_URL }}
+            NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}
+            NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }}
+
+      # ----- Build and Push Backend Docker Image -----
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bdagro-backend
+          file: ./bdagro-backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----- Output image digests for CD job -----
+      - name: Output Image Digests
+        id: images
+        run: |
+          echo "frontend_image=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}@${{ steps.meta-frontend.outputs.digest }}" >> $GITHUB_OUTPUT
+          echo "backend_image=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}@${{ steps.meta-backend.outputs.digest }}" >> $GITHUB_OUTPUT
+          echo "frontend_tags=${{ steps.meta-frontend.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "backend_tags=${{ steps.meta-backend.outputs.tags }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      frontend_image: ${{ steps.images.outputs.frontend_image }}
+      backend_image: ${{ steps.images.outputs.backend_image }}
+      frontend_tags: ${{ steps.images.outputs.frontend_tags }}
+      backend_tags: ${{ steps.images.outputs.backend_tags }}
+
+  # -----------------------------------------------------------------------------
+  # CD JOB: Continuous Deployment (Pull pre-built images from GHCR, deploy via SSH)
+  # Depends on CI job passing. Only runs on manual trigger for now.
+  # -----------------------------------------------------------------------------
+  cd:
+    name: Continuous Deployment
+    needs: ci
+    if: github.event_name == 'workflow_dispatch'  # Only run on manual trigger for now
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    # ---- Required GitHub Secrets (configure in repo Settings > Secrets) ----
+    # SSH_HOST:          Server IP or hostname (e.g., ec2-xx-xx-xx-xx.compute-1.amazonaws.com)
+    # SSH_USER:          SSH username (e.g., ubuntu, ec2-user, root)
+    # SSH_KEY:           Private SSH key (-----BEGIN OPENSSH PRIVATE KEY----- ...)
+    # SSH_PORT:          SSH port (default 22)
+    # DEPLOY_PATH:       Remote path to deploy to (e.g., /opt/bdagro)
+    # GHCR_TOKEN:        Optional - if registry is private, PAT with read:packages scope
+    #                    (not needed for public images or same repo GITHUB_TOKEN)
+    # ------------------------------------------------------------------------
+
+    steps:
+      # ----- Setup SSH Agent -----
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      # ----- Add Server to Known Hosts (prevents host key verification prompt) -----
+      - name: Add SSH Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      # ----- Deploy via SSH (Pull pre-built images from GHCR) -----
+      # This approach: CI builds & pushes images → CD pulls & runs on server
+      # Benefits: faster deploy, consistent artifacts, no build tools needed on server
+      - name: Deploy to Server via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          FRONTEND_IMAGE: ${{ needs.ci.outputs.frontend_image }}
+          BACKEND_IMAGE: ${{ needs.ci.outputs.backend_image }}
+          FRONTEND_TAGS: ${{ needs.ci.outputs.frontend_tags }}
+          BACKEND_TAGS: ${{ needs.ci.outputs.backend_tags }}
+          REGISTRY: ${{ env.REGISTRY }}
+        run: |
+          set -euo pipefail
+
+          echo "🚀 Starting deployment..."
+          echo "Frontend image: $FRONTEND_IMAGE"
+          echo "Backend image: $BACKEND_IMAGE"
+
+          # Create deploy directory on server
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_PATH"
+
+          # Copy docker-compose.yml and env files to server
+          echo "Copying docker-compose.yml..."
+          scp -P $SSH_PORT ./docker-compose.yml $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
+
+          # Copy backend .env (ensure secrets are set on server separately, or use GitHub Environments)
+          # scp -P $SSH_PORT ./bdagro-backend/.env $SSH_USER@$SSH_HOST:$DEPLOY_PATH/bdagro-backend/.env
+
+          # Execute deployment commands on server
+          echo "Running deployment on server..."
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOF'
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            # Log in to GHCR on the server (if images are private)
+            # echo "${{ secrets.GHCR_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            # Note: For public images or same org, this may not be needed
+
+            # Pull the exact images built in CI (by digest - immutable)
+            echo "Pulling frontend image: ${{ env.FRONTEND_IMAGE }}"
+            docker pull ${{ env.FRONTEND_IMAGE }}
+
+            echo "Pulling backend image: ${{ env.BACKEND_IMAGE }}"
+            docker pull ${{ env.BACKEND_IMAGE }}
+
+            # Tag pulled images locally for docker-compose (which uses image names without digest)
+            # docker-compose.yml should reference: ghcr.io/owner/bdagro-frontend:latest (or specific tag)
+            # The images are already tagged with 'latest' on main branch via CI metadata
+
+            # Stop and remove old containers
+            docker compose down --remove-orphans
+
+            # Start new containers with pulled images
+            docker compose up -d
+
+            # Wait for health checks
+            echo "Waiting for services to be healthy..."
+            sleep 15
+
+            # Verify deployment
+            docker compose ps
+
+            # Show logs for verification
+            docker compose logs --tail=50
+          EOF
+
+      # ----- Post-Deployment Health Check (Optional) -----
+      - name: Post-Deployment Health Check
+        if: always()
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+        run: |
+          echo "Running post-deployment health checks..."
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOF'
+            set -euo pipefail
+            # Frontend health check
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "✅ Frontend is responding"
+            else
+              echo "❌ Frontend health check failed"
+              exit 1
+            fi
+
+            # Backend health check
+            if curl -sf http://localhost:5000/api/health > /dev/null; then
+              echo "✅ Backend is responding"
+            else
+              echo "❌ Backend health check failed"
+              exit 1
+            fi
+          EOF
+
+      # ----- Notify on Failure (Optional - Slack/Discord/Email) -----
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          # Add your notification logic here:
+          # - Slack: curl -X POST -H 'Content-type: application/json' --data '{"text":"Deployment failed for ${{ github.repository }}"}' $SLACK_WEBHOOK_URL
+          # - Discord: curl -H "Content-Type: application/json" -d '{"content": "Deployment failed"}' $DISCORD_WEBHOOK_URL
+          # - Email: Use dawidd6/action-send-mail or similar
