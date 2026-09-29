@@ -1,4 +1,30 @@
 services:
+  # ============================================================
+  # Nginx Reverse Proxy - Entry point for all external traffic
+  # ============================================================
+  nginx:
+    image: nginx:alpine
+    container_name: bdagro-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"  # For future SSL/TLS
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # Optional: SSL certificates for HTTPS
+      # - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - bdagro-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   mongodb:
     image: mongo:7
     container_name: bdagro-mongodb
@@ -30,43 +56,57 @@ services:
       retries: 5
 
   backend:
-      build:
-        context: ./bdagro-backend
-        dockerfile: Dockerfile
-      container_name: bdagro-backend
-      restart: unless-stopped
-      env_file:
-        - ./bdagro-backend/.env
-      ports:
-        - "5000:5000"
-      depends_on:
-        mongodb:
-          condition: service_healthy
-        redis:
-          condition: service_healthy
-      networks:
-        - bdagro-network
+    build:
+      context: ./bdagro-backend
+      dockerfile: Dockerfile
+    container_name: bdagro-backend
+    restart: unless-stopped
+    env_file:
+      - ./bdagro-backend/.env
+    # Ports removed - only accessible via nginx (internal network)
+    # ports:
+    #   - "5000:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bdagro-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
-      build:
-        context: ./bdagro-frontend
-        dockerfile: Dockerfile
-        args:
-          - NEXT_PUBLIC_API_URL=http://localhost:5000
-          - NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
-          - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-          - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/login}
-          - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/register}
-      container_name: bdagro-frontend
-      restart: unless-stopped
-      ports:
-        - "3000:3000"
-      depends_on:
-        - backend
-      networks:
-        - bdagro-network
-      env_file:
-        - ./bdagro-frontend/.env.local
+    build:
+      context: ./bdagro-frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost
+        - NEXT_PUBLIC_SOCKET_URL=http://localhost
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/login}
+        - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/register}
+    container_name: bdagro-frontend
+    restart: unless-stopped
+    # Ports removed - only accessible via nginx (internal network)
+    # ports:
+    #   - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - bdagro-network
+    env_file:
+      - ./bdagro-frontend/.env.local
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   bdagro-network:
