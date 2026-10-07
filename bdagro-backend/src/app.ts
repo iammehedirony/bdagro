@@ -19,10 +19,10 @@ const app: Express = express();
 // --- Core security/middleware ---
 app.use(helmet());
 app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    credentials: true,
-  })
+    cors({
+        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        credentials: true,
+    }),
 );
 
 // --- Clerk session middleware: attaches req.auth on every request
@@ -51,7 +51,11 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
 // --- Health check ---
 app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", service: "bdagroonline-backend", time: new Date().toISOString() });
+    res.status(200).json({
+        status: "ok",
+        service: "bdagro-backend",
+        time: new Date().toISOString(),
+    });
 });
 
 // --- Routes ---
