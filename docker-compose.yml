@@ -39,6 +39,9 @@ services:
 
   client:
     image: iammehedirony/bdagro-frontend:latest
+    environment:
+          - HOSTNAME=0.0.0.0
+          - PORT=3000
     container_name: bdagro_client
     restart: unless-stopped
     env_file:
